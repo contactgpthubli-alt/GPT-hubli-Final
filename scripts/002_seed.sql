@@ -24,3 +24,13 @@ ON CONFLICT (name) DO NOTHING;
 INSERT INTO users (email, password_hash, role, display_name, status, force_password_change, is_demo)
 VALUES ('akshay@gpthubli.ac.in', crypt('Zaq1Zaq2$123', gen_salt('bf', 10)), 'admin', 'Akshay', 'approved', FALSE, FALSE)
 ON CONFLICT (email) DO NOTHING;
+
+-- ---------- Demo accounts ----------
+-- These allow instant access via the "Quick Login" bar (when enabled)
+INSERT INTO users (email, password_hash, role, display_name, status, force_password_change, is_demo)
+VALUES
+  ('demo-admin@example.com', crypt('demo-admin', gen_salt('bf', 10)), 'admin', 'Demo Admin', 'approved', FALSE, TRUE),
+  ('demo-student@example.com', crypt('demo-student', gen_salt('bf', 10)), 'student', 'Demo Student', 'approved', FALSE, TRUE),
+  ('demo-faculty@example.com', crypt('demo-faculty', gen_salt('bf', 10)), 'faculty', 'Demo Faculty', 'approved', FALSE, TRUE),
+  ('demo-principal@example.com', crypt('demo-principal', gen_salt('bf', 10)), 'principal', 'Demo Principal', 'approved', FALSE, TRUE)
+ON CONFLICT (email) DO NOTHING;

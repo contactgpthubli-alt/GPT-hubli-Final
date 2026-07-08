@@ -21,7 +21,7 @@ export default function Page() {
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: legacyBodyHtml }} />
       {/* Bridge config must exist before the bridge script runs */}
       <Script id="bridge-config" strategy="afterInteractive">
-        {`window.__GPT_CONFIG = { demoLoginEnabled: false };`}
+        {`window.__GPT_CONFIG = { demoLoginEnabled: true };`}
       </Script>
       <Script src="/legacy-app.js" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
