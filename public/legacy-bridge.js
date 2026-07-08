@@ -17,12 +17,14 @@ function __initGptBridge() {
       const res = await fetch(path, Object.assign({ headers: { 'content-type': 'application/json' } }, opts));
       const data = await res.json().catch(function () { return {}; });
       if (!res.ok) {
-        if (data && data.error) alert('⚠️ ' + data.error);
+        var msg = data && data.error ? data.error : 'Unknown error (Status: ' + res.status + ')';
+        console.error('[bridge] API error at ' + path, msg, data);
+        alert('⚠️ ' + msg);
         return null;
       }
       return data;
     } catch (e) {
-      console.error('[bridge] network error', e);
+      console.error('[bridge] network error at ' + path, e);
       alert('⚠️ Network error. Please check your connection.');
       return null;
     }
@@ -253,14 +255,36 @@ function __initGptBridge() {
   window.login = async function (role) {
     if (bypass) return origLogin(role);
     var modalMap = { student: 'mStudent', faculty: 'mFaculty', principal: 'mPrincipal', admin: 'mAdmin' };
-    var modal = document.getElementById(modalMap[role]);
-    var idInput = modal ? modal.querySelector('input[type="text"], input[type="email"]') : null;
-    var pwInput = modal ? modal.querySelector('input[type="password"]') : null;
+    var modalId = modalMap[role];
+    var modal = document.getElementById(modalId);
+    if (!modal) {
+      console.error('[bridge] Login modal not found:', modalId);
+      alert('⚠️ Login system error: modal not found.');
+      return;
+    }
+    // Search for inputs within the specific login panel (e.g. stuLogin)
+    var loginPanel = modal.querySelector('div[id$="Login"]');
+    var idInput = (loginPanel || modal).querySelector('input[type="text"], input[type="email"]');
+    var pwInput = (loginPanel || modal).querySelector('input[type="password"]');
+
     var identifier = idInput ? idInput.value.trim() : '';
     var password = pwInput ? pwInput.value : '';
-    if (!identifier || !password) { alert('Please enter your login ID and password.'); return; }
+
+    if (!identifier || !password) {
+      alert('Please enter your login ID and password.');
+      if (idInput && !identifier) idInput.focus();
+      else if (pwInput) pwInput.focus();
+      return;
+    }
+
+    console.log('[bridge] Attempting login for', role, 'as', identifier);
     var res = await api.post('/api/auth/login', { email: identifier, password: password });
-    if (!res || !res.user) return;
+    if (!res || !res.user) {
+      console.warn('[bridge] Login failed for', identifier);
+      return;
+    }
+
+    console.log('[bridge] Login successful:', res.user.email, res.user.role);
     currentUser = res.user;
     if (pwInput) pwInput.value = '';
     openDashboardFor(res.user);
@@ -362,7 +386,7 @@ function __initGptBridge() {
     var remarks = remarksInput ? remarksInput.value.trim() : '';
     var gid = btn.dataset.gid;
     origResolveGrievance(btn);
-    if (gid && remarks) {
+    if (gid && gid !== 'undefined' && remarks) {
       api.patch('/api/grievances', { id: Number(gid), status: 'Resolved', resolution: remarks });
     }
   };
