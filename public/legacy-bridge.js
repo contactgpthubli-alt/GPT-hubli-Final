@@ -578,3 +578,98 @@ function __initGptBridge() {
   if (attempt > 100) { console.error('[bridge] legacy app never became ready'); return; }
   setTimeout(function () { bridgeBoot(attempt + 1); }, 100);
 })(0);
+
+/* ================================================================
+   PROFILE EDIT REQUESTS — real backend wiring (student -> DB)
+   ================================================================ */
+async function submitStuProfileUpdate() {
+  var container = document.getElementById('stuDynamicProfileSections');
+  if (!container) { alert('Profile section not found.'); return; }
+  var changes = {};
+  container.querySelectorAll('.fg').forEach(function (fg) {
+    var label = fg.querySelector('label');
+    var field = fg.querySelector('input, textarea');
+    if (!label || !field) return;
+    if (field.hasAttribute('readonly') || field.disabled) return; // not editable
+    var labelText = label.textContent.replace(/✏️.*$/, '').trim();
+    changes[labelText] = field.value;
+  });
+  if (Object.keys(changes).length === 0) {
+    alert('No editable fields found to update.');
+    return;
+  }
+  var regNo = (window.currentUser && window.currentUser.reg_no) || null;
+  if (!regNo) { alert('Could not identify your registration number. Please contact admin.'); return; }
+  var res = await api.post('/api/profile-requests', { targetType: 'student', targetId: regNo, changes: changes });
+  if (res && res.ok) {
+    alert('✅ Update request submitted! Awaiting Admin/HOD approval. You will be notified once reviewed.');
+  }
+}
+window.submitStuProfileUpdate = submitStuProfileUpdate;
+
+function profileChangesSummary(changes) {
+  return Object.keys(changes).map(function (k) { return '<strong>' + k + ':</strong> ' + (changes[k] || '—'); }).join('<br>');
+}
+
+async function renderProfileRequestApprovals() {
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hod')) return;
+  var containerId = currentUser.role === 'admin' ? 'adApprovals' : 'facApprovals';
+  var host = document.getElementById(containerId);
+  if (!host) return;
+  var data = await apiReqQuiet('/api/profile-requests');
+  if (!data) return;
+  var pending = data.pending || [];
+  var panel = document.getElementById('bridgeProfileRequests');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'bridgeProfileRequests';
+    panel.className = 'card';
+    panel.style.marginBottom = '18px';
+    panel.style.borderLeft = '4px solid #1a4fa0';
+    host.insertBefore(panel, host.firstChild);
+  }
+  if (pending.length === 0) {
+    panel.innerHTML = '';
+    return;
+  }
+  var rows = pending.map(function (r) {
+    return '<tr>' +
+      '<td>' + r.requester_name + ' <span style="color:var(--text-muted);font-size:0.7rem;">(' + r.requester_role + ')</span></td>' +
+      '<td>' + r.target_type + '</td>' +
+      '<td>' + r.target_id + '</td>' +
+      '<td style="font-size:0.75rem;">' + profileChangesSummary(r.changes) + '</td>' +
+      '<td>' + new Date(r.created_at).toLocaleDateString('en-IN') + '</td>' +
+      '<td><div style="display:flex;gap:5px;">' +
+      '<button class="btn gr" onclick="reviewProfileRequest(' + r.id + ',\'approved\')">✓ Approve</button>' +
+      '<button class="btn re" onclick="reviewProfileRequest(' + r.id + ',\'rejected\')">✕ Reject</button>' +
+      '</div></td>' +
+      '</tr>';
+  }).join('');
+  panel.innerHTML =
+    '<div class="card-hd"><h3>👤 Profile Update Requests</h3><span class="badge pending">' + pending.length + ' Pending</span></div>' +
+    '<table><thead><tr><th>Requester</th><th>Type</th><th>Target</th><th>Requested Changes</th><th>Submitted</th><th>Action</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>';
+}
+window.renderProfileRequestApprovals = renderProfileRequestApprovals;
+
+async function reviewProfileRequest(id, action) {
+  var res = await fetch('/api/profile-requests', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ id: id, action: action }),
+  }).then(function (r) { return r.json(); }).catch(function () { return null; });
+  if (res && res.ok) {
+    renderProfileRequestApprovals();
+  } else {
+    alert('Failed to update request. ' + (res && res.error ? res.error : ''));
+  }
+}
+window.reviewProfileRequest = reviewProfileRequest;
+
+// Poll while an admin/HOD session is active so new requests show up without a refresh.
+setInterval(function () {
+  if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'hod')) {
+    renderProfileRequestApprovals();
+  }
+}, 4000);
