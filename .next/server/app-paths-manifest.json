@@ -1,0 +1,23 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/approvals/route": "app/api/approvals/route.js",
+  "/api/attendance/route": "app/api/attendance/route.js",
+  "/api/auth/change-password/route": "app/api/auth/change-password/route.js",
+  "/api/auth/demo-login/route": "app/api/auth/demo-login/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/cert-requests/route": "app/api/cert-requests/route.js",
+  "/api/committees/route": "app/api/committees/route.js",
+  "/api/forms/[id]/responses/route": "app/api/forms/[id]/responses/route.js",
+  "/api/forms/route": "app/api/forms/route.js",
+  "/api/gallery/route": "app/api/gallery/route.js",
+  "/api/grievances/route": "app/api/grievances/route.js",
+  "/api/notices/route": "app/api/notices/route.js",
+  "/api/results/route": "app/api/results/route.js",
+  "/api/staff/route": "app/api/staff/route.js",
+  "/api/students/route": "app/api/students/route.js",
+  "/page": "app/page.js"
+}

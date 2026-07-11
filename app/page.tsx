@@ -19,14 +19,16 @@ export default function Page() {
           so it can't byte-match the server string. React intentionally never patches
           this subtree — all interactivity is handled by legacy-app.js. */}
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: legacyBodyHtml }} />
-      {/* Bridge config must exist before the bridge script runs */}
+      {/* Bridge config must exist before the bridge script runs.
+          Demo quick-login is opt-in via NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true. */}
       <Script id="bridge-config" strategy="afterInteractive">
-        {`window.__GPT_CONFIG = { demoLoginEnabled: false };`}
+        {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
       <Script src="/legacy-app.js" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
-          It must load AFTER legacy-app.js so the functions exist to be wrapped. */}
-      <Script src="/legacy-bridge.js" strategy="lazyOnload" />
+          Must load after legacy-app.js (same strategy preserves document order).
+          afterInteractive — not lazyOnload — so auth is wired before the user clicks Login. */}
+      <Script src="/legacy-bridge.js" strategy="afterInteractive" />
     </>
   )
 }

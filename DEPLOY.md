@@ -43,7 +43,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 SQL
 ```
 
-> `pgcrypto` is required — the seed script uses `crypt()`/`gen_salt()` for password hashing.
+> `pgcrypto` is optional for current seeds (passwords use precomputed bcrypt hashes).
+> Keeping the extension installed is fine and still created by `001_schema.sql`.
 
 Load the schema and seed data:
 
@@ -170,12 +171,18 @@ Nothing else should be open. Postgres (5432) and Next.js (3000) stay internal.
 
 ## 8. First login & housekeeping
 
-- Root admin: `admin@gpthubli.ac.in` / `Admin@123` — **you are forced to change
-  this password on first login. Do it immediately.**
-- Demo accounts (`demo.*@gpthubli.ac.in`, password `demo1234`) exist for the demo
-  bar. With `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=false` the bar is hidden and the demo
-  login API is disabled. To remove the accounts entirely:
+- Root admin (any identifier works):
+  - Email: `akshay@gpthubli.ac.in`
+  - Username: `akshay` (or display name `Akshay`)
+  - Password: `Zaq1Zaq2$123`
+  - Change this password after first login if the account is shared.
+- Demo accounts (`demo.*@gpthubli.ac.in`, password `demo1234`) are seeded for the
+  quick-login bar. Enable them with `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (rebuild
+  after changing). With the default / `false`, the bar is hidden and
+  `/api/auth/demo-login` returns 403. To remove demo accounts:
   `DELETE FROM users WHERE is_demo = TRUE;`
+- If login fails after an old seed (pgcrypto hashes), re-run seed to refresh
+  bcryptjs-compatible hashes: `pnpm db:init` or re-apply `scripts/002_seed.sql`.
 - Backups: `pg_dump -U gpthubli gpthubli_db > backup_$(date +%F).sql` (cron it daily).
 - Updates: `git pull && pnpm install && pnpm build && pm2 restart gpthubli`.
 
@@ -186,7 +193,9 @@ Nothing else should be open. Postgres (5432) and Next.js (3000) stay internal.
 | Symptom | Fix |
 |---|---|
 | `ECONNREFUSED` on DB | `sudo systemctl status postgresql`; check `DATABASE_URL` |
-| Login returns 401 with right password | Check `pgcrypto` extension is installed |
+| Login returns 401 with right password | Re-run `scripts/002_seed.sql` (root admin password hash is upserted) |
+| Login returns “service unavailable” | Missing/invalid `DATABASE_URL`; check app logs |
+| Demo quick-login fails | Set `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true`, rebuild, ensure demo users seeded |
 | Cookies not persisting | You're on HTTP with `NODE_ENV=production` — set up HTTPS |
 | App dies after reboot | Re-run `pm2 startup` + `pm2 save` |
 | 502 from nginx | App not running: `pm2 logs gpthubli` |

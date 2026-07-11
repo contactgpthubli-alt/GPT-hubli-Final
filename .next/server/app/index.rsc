@@ -1,0 +1,5627 @@
+1:"$Sreact.fragment"
+2:I[82594,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"default"]
+3:I[15921,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"default"]
+4:I[88127,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"Analytics"]
+c:I[86180,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"default",1]
+:HL["/_next/static/chunks/07l_-k_n1ka01.css","style"]
+:HL["https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap","style"]
+5:T7a0d4,
+<!-- ============================================================ -->
+<!--  LANDING PAGE -->
+<!-- ============================================================ -->
+<div id="landingPage">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div><span>📧 <a href="mailto:contactgpthubli@gmail.com">contactgpthubli@gmail.com</a></span> &nbsp;|&nbsp; <span>📞 <a href="tel:08362277154">0836-2277154</a> &nbsp;/&nbsp; <a href="tel:08362277153">0836-2277153</a></span></div>
+  <div class="tb-right">
+    <a href="https://www.instagram.com/gpthubliofficial" target="_blank">📸 Instagram</a>
+    <a href="https://www.facebook.com/share/1DebETAJrB/" target="_blank">👍 Facebook</a>
+    <span style="color:rgba(255,255,255,0.5);">Dept. of Technical Education, Karnataka</span>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="hdr-inner">
+    <a class="logo-area" href="#" onclick="return false;">
+      <div class="logo-circle">
+        <img src="/images/college-logo.png" alt="GPT Logo" onerror="this.parentElement.innerHTML='🎓';" />
+      </div>
+      <div class="clg-name">
+        <h1>Government Polytechnic Hubli</h1>
+        <p>Est. 2009 · Dept. of Technical Education, Karnataka</p>
+      </div>
+    </a>
+    <div class="hdr-space"></div>
+    <div class="hdr-btns">
+      <button class="hbtn outline" onclick="openM('mStudent')">🎓 Student</button>
+      <button class="hbtn outline" onclick="openM('mFaculty')">👨‍🏫 Faculty</button>
+      <button class="hbtn outline" onclick="openM('mPrincipal')">👔 Principal</button>
+      <button class="hbtn accent" onclick="openM('mAdmin')">⚙️ Admin</button>
+    </div>
+  </div>
+</header>
+
+<!-- Public Nav -->
+<nav class="pub-nav">
+  <div class="pnav-inner">
+    <div class="pnav-item">
+      <div class="pnav-link">🏅 Achievements <span class="arr">▼</span></div>
+      <div class="pdrop">
+        <div class="pdi">🏆 Sports</div>
+        <div class="pdi">🎨 Cultural Activities</div>
+        <div class="pdi">📚 Academic</div>
+        <div class="pdi">💼 Placement</div>
+      </div>
+    </div>
+    <div class="pnav-item">
+      <div class="pnav-link">🏛️ Institute Activities <span class="arr">▼</span></div>
+      <div class="pdrop">
+        <div class="pdi">💼 Placement</div>
+        <div class="pdi">🤝 NSS</div>
+        <div class="pdi">🏥 Youth Red Cross</div>
+        <div class="pdi">🎓 Alumni</div>
+        <div class="pdi">🏆 Sports</div>
+        <div class="pdi">🛡️ Student Welfare Officer</div>
+        <div class="pdi">🤜 Student Association</div>
+        <div class="pdi" style="position:relative;">🏛️ Committees <span class="subarr">›</span>
+          <div class="psub" style="min-width:260px;">
+            <div class="pdi" onclick="openCommittee('SC/ST Committee')">⚖️ SC/ST Committee</div>
+            <div class="pdi" onclick="openCommittee('Internal Quality Assurance Cell')">🏅 Internal Quality Assurance Cell</div>
+            <div class="pdi" onclick="openCommittee('Women/Girl Students Grievance Cell')">👩 Women/Girl Students Grievance Cell</div>
+            <div class="pdi" onclick="openCommittee('Anti-Ragging Squad')">🚫 Anti-Ragging Squad</div>
+            <div class="pdi" onclick="openCommittee('Grievance Redressal')">📋 Grievance Redressal</div>
+            <div class="pdi" onclick="openCommittee('Anti-Ragging Committee')">🛡️ Anti-Ragging Committee</div>
+            <div class="pdi" onclick="openCommittee('Institute Industry Cell')">🏭 Institute Industry Cell</div>
+            <div class="pdi" onclick="openCommittee('Internal Complaint Committee')">📝 Internal Complaint Committee</div>
+            <div class="pdi" onclick="openCommittee('Media Cell')">📢 Media Cell</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pnav-item">
+      <div class="pnav-link">📢 Notices <span class="arr">▼</span></div>
+      <div class="pdrop">
+        <div class="pdi">📋 Latest Notices</div>
+        <div class="pdi">📅 Academic Calendar</div>
+        <div class="pdi">📣 Announcements</div>
+      </div>
+    </div>
+    <div class="pnav-item">
+      <div class="pnav-link" onclick="openM('mStudent')">🎓 Student Portal</div>
+    </div>
+    <div class="pnav-item">
+      <div class="pnav-link" onclick="openM('mFaculty')">👨‍🏫 Faculty Login</div>
+    </div>
+    <div class="pnav-item">
+      <div class="pnav-link" onclick="openM('mPrincipal')">👔 Principal</div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg-img">
+    <img src="/images/campus.png" alt="GPT Hubli Campus" onerror="this.parentElement.style.background='linear-gradient(135deg,#1a4fa0,#1c2b4a)'" />
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-chip">★ Established 2009 · Hubli, Karnataka</div>
+    <h1 class="hero-title">Government Polytechnic <em>Hubli</em></h1>
+    <p class="hero-sub">A premier technical institution under the Department of Technical Education, Karnataka — shaping engineers since 2009.</p>
+    <div class="hero-btns">
+      <button class="hero-btn gold" onclick="openM('mStudent')">Student Portal →</button>
+      <button class="hero-btn ghost" onclick="openM('mAdmin')">Management Login</button>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="n">4</div><div class="l">Departments</div></div>
+    <div class="hstat"><div class="n">700+</div><div class="l">Students</div></div>
+    <div class="hstat"><div class="n">64</div><div class="l">Faculty</div></div>
+    <div class="hstat"><div class="n">15+</div><div class="l">Years</div></div>
+  </div>
+</section>
+
+<!-- Ticker -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <div class="ticker-label">📢 NOTICES</div>
+    <div class="ticker-wrap">
+      <div class="ticker-track">
+        <span>Semester Exams scheduled for March 2026 — Check Exam Module</span>
+        <span>Placement Drive — Infosys on 15th March · Register via Placement Module</span>
+        <span>NSS Special Camp 20–26 March · Contact NSS Coordinator</span>
+        <span>Alumni Meet 2026 — Registration open on Alumni Module</span>
+        <span>Sports Day Celebrations 5th April · Sports Module for updates</span>
+        <span>Transfer Certificate applications now open — ACM Module</span>
+        <span>Semester Exams scheduled for March 2026 — Check Exam Module</span>
+        <span>Placement Drive — Infosys on 15th March · Register via Placement Module</span>
+        <span>NSS Special Camp 20–26 March · Contact NSS Coordinator</span>
+        <span>Alumni Meet 2026 — Registration open on Alumni Module</span>
+        <span>Sports Day Celebrations 5th April · Sports Module for updates</span>
+        <span>Transfer Certificate applications now open — ACM Module</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notices Section -->
+<div class="sec">
+  <div class="sec-hd">Latest <span>Notices & Announcements</span></div>
+  <div class="sec-sub">// Official notices — Government Polytechnic Hubli</div>
+  <div class="notices-grid">
+    <div class="nc"><div class="nc-img">📋</div><div class="nc-body"><span class="nc-tag">Academic</span><div class="nc-title">Semester End Examinations — Time Table Released</div><div class="nc-date">📅 February 24, 2026</div></div></div>
+    <div class="nc"><div class="nc-img" style="background:var(--green-light);">💼</div><div class="nc-body"><span class="nc-tag" style="background:var(--green-light);color:var(--green);">Placement</span><div class="nc-title">Campus Recruitment Drive — Infosys & L&T</div><div class="nc-date">📅 February 20, 2026</div></div></div>
+    <div class="nc"><div class="nc-img" style="background:var(--accent-light);">🏆</div><div class="nc-body"><span class="nc-tag" style="background:var(--accent-light);color:var(--accent);">Sports</span><div class="nc-title">Annual Sports Day — Registration Open</div><div class="nc-date">📅 February 18, 2026</div></div></div>
+    <div class="nc"><div class="nc-img" style="background:var(--purple-light);">🎓</div><div class="nc-body"><span class="nc-tag" style="background:var(--purple-light);color:var(--purple);">Alumni</span><div class="nc-title">Alumni Meet 2026 — Save the Date: March 30</div><div class="nc-date">📅 February 15, 2026</div></div></div>
+    <div class="nc"><div class="nc-img" style="background:var(--orange-light);">📝</div><div class="nc-body"><span class="nc-tag" style="background:var(--orange-light);color:var(--orange);">Exam</span><div class="nc-title">Attendance Shortage List — January 2026</div><div class="nc-date">📅 February 10, 2026</div></div></div>
+    <div class="nc-upload" onclick="alert('Admin can upload notice images here. This feature requires Admin login.')">
+      <div class="ic">📤</div>
+      <strong>Upload Notice / Circular</strong>
+      <p>Admin can upload notice images, PDFs & circulars</p>
+    </div>
+  </div>
+</div>
+
+<!-- Officers / About Us Section (view only for students) -->
+<div class="sec" style="background:white;border-top:3px solid var(--primary);border-bottom:1px solid var(--border);">
+  <div class="sec-hd">Officers & <span>Administration</span></div>
+  <div class="sec-sub">// Current officers and their charges — Information only · Entered by EST, Approved by Principal</div>
+  <div id="officersPublicGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+    <div style="background:var(--bg);border-radius:var(--radius-lg);padding:18px 16px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:1.8rem;margin-bottom:8px;">🎓</div>
+      <div style="font-family:'Libre Baskerville',serif;font-size:0.92rem;font-weight:700;color:var(--navy);">Dr. P.K. Sharma</div>
+      <div style="font-size:0.72rem;color:var(--primary);font-weight:600;margin:3px 0;">Principal</div>
+      <div style="font-size:0.7rem;color:var(--text-muted);">Charge: Head of Institution</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-lg);padding:18px 16px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:1.8rem;margin-bottom:8px;">📜</div>
+      <div style="font-family:'Libre Baskerville',serif;font-size:0.92rem;font-weight:700;color:var(--navy);">Mr. S. Kulkarni</div>
+      <div style="font-size:0.72rem;color:var(--primary);font-weight:600;margin:3px 0;">Registrar</div>
+      <div style="font-size:0.7rem;color:var(--text-muted);">Charge: Office Records & Documentation</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-lg);padding:18px 16px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:1.8rem;margin-bottom:8px;">👨‍💼</div>
+      <div style="font-family:'Libre Baskerville',serif;font-size:0.92rem;font-weight:700;color:var(--navy);">Mrs. L. Desai</div>
+      <div style="font-size:0.72rem;color:var(--primary);font-weight:600;margin:3px 0;">Office Superintendent</div>
+      <div style="font-size:0.7rem;color:var(--text-muted);">Charge: Day-to-Day Administration</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-lg);padding:18px 16px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:1.8rem;margin-bottom:8px;">📊</div>
+      <div style="font-family:'Libre Baskerville',serif;font-size:0.92rem;font-weight:700;color:var(--navy);">Mr. P. Kulkarni</div>
+      <div style="font-size:0.72rem;color:var(--primary);font-weight:600;margin:3px 0;">Senior Accountant</div>
+      <div style="font-size:0.7rem;color:var(--text-muted);">Charge: Accounts & Finance</div>
+    </div>
+  </div>
+  <div style="font-size:0.68rem;color:var(--text-light);margin-top:14px;font-family:'JetBrains Mono',monospace;">ℹ️ Officers listed above are entered by EST Section and approved by Principal. For information purposes only.</div>
+</div>
+
+<!-- Quick Access -->
+<section class="qa-section">
+  <div class="qa-inner">
+    <div class="sec-hd" style="color:white; margin-bottom:4px;">Quick <span style="color:#ffd97a;">Access</span></div>
+    <div class="sec-sub">// Navigate to the most used portals and modules</div>
+    <div class="qa-grid">
+      <div class="qa-card" onclick="openM('mStudent')"><span class="qi">🎓</span><div class="qt">Student Portal</div><div class="qd">Profile, results, attendance & form submissions</div></div>
+      <div class="qa-card" onclick="openM('mFaculty')"><span class="qi">👨‍🏫</span><div class="qt">Faculty Panel</div><div class="qd">Department, attendance, approvals & modules</div></div>
+      <div class="qa-card" onclick="openM('mPrincipal')"><span class="qi">👔</span><div class="qt">Principal View</div><div class="qd">Full institutional overview & monitoring</div></div>
+      <div class="qa-card" onclick="openM('mAdmin')"><span class="qi">⚙️</span><div class="qt">Admin Panel</div><div class="qd">Full system configuration & user management</div></div>
+      <div class="qa-card" onclick="openM('mStudent')"><span class="qi">📄</span><div class="qt">Certificates</div><div class="qd">TC, Study & Studying certificates</div></div>
+      <div class="qa-card" onclick="openM('mStudent')"><span class="qi">📊</span><div class="qt">Exam Results</div><div class="qd">Semester results, PDC & attendance shortage</div></div>
+      <div class="qa-card" onclick="openM('mStudent')"><span class="qi">💼</span><div class="qt">Placements</div><div class="qd">Campus placement drives & records</div></div>
+      <div class="qa-card" onclick="openM('mStudent')"><span class="qi">🤝</span><div class="qt">NSS / YRC</div><div class="qd">NSS & Youth Red Cross activities</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="ft-inner">
+    <div class="ft-brand">
+      <div class="ft-logo"><div class="ft-logo-c">GPT</div><div><div class="ft-brand-n">Government Polytechnic Hubli</div></div></div>
+      <p>A premier government polytechnic under the Department of Technical Education, Karnataka. Providing quality technical education in Engineering since 2009.</p>
+      <div class="socials">
+        <a class="soc-a" href="https://www.instagram.com/gpthubliofficial" target="_blank" title="Instagram">📸</a>
+        <a class="soc-a" href="https://www.facebook.com/share/1DebETAJrB/" target="_blank" title="Facebook">👍</a>
+        <a class="soc-a" href="/cdn-cgi/l/email-protection#f99a96978d989a8d9e898d918c9b9590b99e94989095d79a9694" title="Email">✉️</a>
+      </div>
+    </div>
+    <div class="ft-col"><h4>Departments</h4><ul><li><a href="#">Civil Engineering</a></li><li><a href="#">Computer Science Engg</a></li><li><a href="#">Electronics &amp; Comm.</a></li><li><a href="#">Mechanical Engg</a></li></ul></div>
+    <div class="ft-col"><h4>Quick Links</h4><ul><li><a href="#" onclick="openM('mStudent');return false;">Student Portal</a></li><li><a href="#" onclick="openM('mFaculty');return false;">Faculty Login</a></li><li><a href="#" onclick="openM('mAdmin');return false;">Admin Panel</a></li><li><a href="#">Exam Schedule</a></li><li><a href="#">Placements</a></li></ul></div>
+    <div class="ft-col"><h4>Contact Us</h4>
+      <div class="ft-ci"><span class="ico">📍</span><span>Government Polytechnic, Hubli, Karnataka — 580031</span></div>
+      <div class="ft-ci"><span class="ico">📞</span><span><a href="tel:08362277154" style="color:rgba(255,255,255,0.65);text-decoration:none;">0836-2277154</a><br><a href="tel:08362277153" style="color:rgba(255,255,255,0.65);text-decoration:none;">0836-2277153</a></span></div>
+      <div class="ft-ci"><span class="ico">✉️</span><a href="mailto:contactgpthubli@gmail.com" style="color:rgba(255,255,255,0.65);text-decoration:none;">contactgpthubli@gmail.com</a></div>
+    </div>
+  </div>
+  <div class="ft-btm"><span>© 2026 Government Polytechnic Hubli. All rights reserved.</span><span style="color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;font-size:0.65rem;">GPT-CMS · <span class="acc">v2.0</span> · Dept. of Technical Education, Karnataka</span></div>
+</footer>
+
+</div><!-- /landingPage -->
+
+
+<!-- ============================================================ -->
+<!--  LOGIN MODALS  -->
+<!-- ============================================================ -->
+
+<!-- ===== ADMIN MODAL ===== -->
+<div class="overlay" id="mAdmin">
+  <div class="modal" style="width:480px;">
+    <button class="modal-x" onclick="closeM('mAdmin')">✕</button>
+    <div class="modal-icon bl">⚙️</div>
+    <h2>Root Admin</h2>
+    <p class="msub">Super Admin — Full System Control</p>
+    <!-- Tabs -->
+    <div class="role-tabs" style="margin-bottom:20px;">
+      <button class="rtab active" id="adTab1" onclick="switchTab('adLogin','adRegister','adTab1','adTab2')">Login</button>
+      <button class="rtab" id="adTab2" onclick="switchTab('adRegister','adLogin','adTab2','adTab1')">Create Account</button>
+    </div>
+    <!-- Login Panel -->
+    <div id="adLogin">
+      <div class="fg"><label>Username</label><input type="text" placeholder="akshay or akshay@gpthubli.ac.in"  /></div>
+      <div class="fg"><label>Password</label><input type="password" placeholder="Password"  /></div>
+      <button class="btn-block pr" onclick="login('admin')">Login as Root Admin</button>
+      <div class="forgot" onclick="alert('OTP sent to registered Email & WhatsApp!')">Forgot password? Send OTP</div>
+    </div>
+    <!-- Create Account Panel -->
+    <div id="adRegister" style="display:none;">
+      <div class="create-note" style="background:var(--primary-light);border:1px solid rgba(26,79,160,0.2);border-radius:8px;padding:10px 14px;font-size:0.74rem;color:var(--primary);margin-bottom:14px;">⚠️ Creating a new <strong>Root Admin</strong> account requires an existing admin to authorise. New account will have <strong>Full System Access</strong>.</div>
+      <div class="fg"><label>Full Name <span style="color:red">*</span></label><input type="text" placeholder="Enter full name" /></div>
+      <div class="fg"><label>Username <span style="color:red">*</span></label><input type="text" placeholder="Choose a username" /></div>
+      <div class="fg"><label>Email Address <span style="color:red">*</span></label><input type="email" placeholder="Official email address" /></div>
+      <div class="fg"><label>Mobile / WhatsApp <span style="color:red">*</span></label><input type="text" placeholder="+91 XXXXXXXXXX" /></div>
+      <div class="fg"><label>Role <span style="color:red">*</span></label>
+        <select onchange="updateAdminRoleDesc(this)">
+          <option value="">Select Role</option>
+          <option value="root">Root Admin — Full Control</option>
+          <option value="co-admin">Co-Admin — Limited Admin Access</option>
+        </select>
+      </div>
+      <div id="adRoleDesc" style="font-size:0.72rem;color:var(--text-muted);margin:-8px 0 10px;padding:0 2px;"></div>
+      <div class="fg"><label>Set Password <span style="color:red">*</span></label><input type="password" placeholder="Minimum 8 characters" /></div>
+      <div class="fg"><label>Confirm Password <span style="color:red">*</span></label><input type="password" placeholder="Re-enter password" /></div>
+      <button class="btn-block pr" onclick="createAccount('Admin')">Create Admin Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STUDENT MODAL ===== -->
+<div class="overlay" id="mStudent">
+  <div class="modal" style="width:480px;">
+    <button class="modal-x" onclick="closeM('mStudent')">✕</button>
+    <div class="modal-icon gr">🎓</div>
+    <h2>Student Portal</h2>
+    <p class="msub">Academic profile, results & forms</p>
+    <div class="role-tabs" style="margin-bottom:20px;">
+      <button class="rtab active" id="stuTab1" onclick="switchTab('stuLogin','stuRegister','stuTab1','stuTab2')">Login</button>
+      <button class="rtab" id="stuTab2" onclick="switchTab('stuRegister','stuLogin','stuTab2','stuTab1')">Create Account</button>
+    </div>
+    <!-- Login -->
+    <div id="stuLogin">
+      <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter register number" /></div>
+      <div class="fg"><label>Branch</label>
+        <select><option value="">Select Branch</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>Electronics &amp; Communication Engineering</option><option>Mechanical Engineering</option></select>
+      </div>
+      <div class="fg"><label>Password</label><input type="password" placeholder="Enter your password" /></div>
+      <button class="btn-block gr" onclick="login('student')">Login as Student</button>
+      <div class="forgot" onclick="alert('Contact your department admin for password reset.')">Forgot password?</div>
+    </div>
+    <!-- Create Account -->
+    <div id="stuRegister" style="display:none;">
+      <div class="create-note" style="background:var(--green-light);border:1px solid rgba(26,138,74,0.2);border-radius:8px;padding:10px 14px;font-size:0.74rem;color:var(--green);margin-bottom:14px;">📋 Student accounts have <strong>restricted access</strong> — view profile, submit forms (pending admin approval), apply for certificates. <strong>⚠️ Account creation requires Root Admin approval before login is activated.</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Full Name <span style="color:red">*</span></label><input type="text" placeholder="As per records" /></div>
+        <div class="fg"><label>Register Number <span style="color:red">*</span></label><input type="text" placeholder="Enter register number" /></div>
+        <div class="fg"><label>Date of Birth <span style="color:red">*</span></label><input type="date" /></div>
+        <div class="fg"><label>Gender</label><select><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div class="fg"><label>Branch <span style="color:red">*</span></label>
+          <select><option value="">Select Branch</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>Electronics &amp; Communication Engineering</option><option>Mechanical Engineering</option></select>
+        </div>
+        <div class="fg"><label>Year of Admission <span style="color:red">*</span></label><select><option>2025</option><option>2024</option><option>2023</option><option>2022</option></select></div>
+        <div class="fg"><label>Mobile Number <span style="color:red">*</span></label><input type="text" placeholder="+91 XXXXXXXXXX" /></div>
+        <div class="fg"><label>Email Address</label><input type="email" placeholder="Enter email address" /></div>
+      </div>
+      <div class="fg" style="margin-top:2px;"><label>Role Assigned</label>
+        <select disabled style="background:var(--bg);cursor:not-allowed;">
+          <option>Student — Restricted Access (View & Submit only)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Set Password <span style="color:red">*</span></label><input type="password" placeholder="Min. 8 characters" /></div>
+      <button class="btn-block gr" onclick="createAccount('Student')">Create Student Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FACULTY MODAL ===== -->
+<div class="overlay" id="mFaculty">
+  <div class="modal" style="width:500px;">
+    <button class="modal-x" onclick="closeM('mFaculty')">✕</button>
+    <div class="modal-icon or">👨‍🏫</div>
+    <h2>Faculty / Dept. Admin</h2>
+    <p class="msub">Teaching Staff, HOD & Department Admin</p>
+    <div class="role-tabs" style="margin-bottom:20px;">
+      <button class="rtab active" id="facTab1" onclick="switchTab('facLogin','facRegister','facTab1','facTab2')">Login</button>
+      <button class="rtab" id="facTab2" onclick="switchTab('facRegister','facLogin','facTab2','facTab1')">Create Account</button>
+    </div>
+    <!-- Login -->
+    <div id="facLogin">
+      <div class="fg"><label>SSN ID</label><input type="text" placeholder="Enter your SSN ID" /></div>
+      <div class="fg"><label>Branch / Department</label>
+        <select>
+          <option value="">Select Branch / Department</option>
+          <optgroup label="Engineering Branches">
+            <option>Civil Engineering</option>
+            <option>Computer Science Engineering</option>
+            <option>Electronics &amp; Communication Engineering</option>
+            <option>Mechanical Engineering</option>
+          </optgroup>
+          <optgroup label="Administration">
+            <option>Administration</option>
+            <option>EST</option>
+            <option>ACM</option>
+            <option>Accounts</option>
+            <option>Cash</option>
+            <option>Library</option>
+            <option>Stores</option>
+            <option>Exam Cell</option>
+          </optgroup>
+          <optgroup label="Activities">
+            <option>Activities — Placement</option>
+            <option>Activities — NSS</option>
+            <option>Activities — Youth Red Cross</option>
+            <option>Activities — Alumni</option>
+            <option>Activities — Sports</option>
+            <option>Activities — SWO</option>
+            <option>Activities — Student Association</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fg"><label>Password</label><input type="password" placeholder="Enter your password" /></div>
+      <button class="btn-block or" onclick="login('faculty')">Login as Faculty</button>
+      <div class="forgot" onclick="alert('OTP sent to registered Email & WhatsApp!')">Forgot password? Send OTP</div>
+    </div>
+    <!-- Create Account -->
+    <div id="facRegister" style="display:none;">
+      <div class="create-note" style="background:var(--orange-light);border:1px solid rgba(212,96,10,0.2);border-radius:8px;padding:10px 14px;font-size:0.74rem;color:var(--orange);margin-bottom:14px;">👨‍🏫 Assign the correct role below — permissions are automatically set based on role. A temporary password will be assigned and must be changed on first login. <strong>⚠️ Account creation requires Root Admin approval. Account will NOT be active until approved.</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label>Full Name <span style="color:red">*</span></label><input type="text" placeholder="Full name" /></div>
+        <div class="fg"><label>SSN ID <span style="color:red">*</span></label><input type="text" placeholder="Enter staff ID" /></div>
+        <div class="fg"><label>Email Address <span style="color:red">*</span></label><input type="email" placeholder="Official email" /></div>
+        <div class="fg"><label>Mobile / WhatsApp <span style="color:red">*</span></label><input type="text" placeholder="+91 XXXXXXXXXX" /></div>
+        <div class="fg"><label>Branch / Department <span style="color:red">*</span></label>
+          <select>
+            <option value="">Select Branch / Department</option>
+            <optgroup label="Engineering Branches">
+              <option>Civil Engineering</option>
+              <option>Computer Science Engineering</option>
+              <option>Electronics &amp; Communication Engineering</option>
+              <option>Mechanical Engineering</option>
+            </optgroup>
+            <optgroup label="Administration">
+              <option>Administration</option>
+              <option>EST</option>
+              <option>ACM</option>
+              <option>Accounts</option>
+              <option>Cash</option>
+              <option>Library</option>
+              <option>Stores</option>
+              <option>Exam Cell</option>
+            </optgroup>
+            <optgroup label="Activities">
+              <option>Activities — Placement</option>
+              <option>Activities — NSS</option>
+              <option>Activities — Youth Red Cross</option>
+              <option>Activities — Alumni</option>
+              <option>Activities — Sports</option>
+              <option>Activities — SWO</option>
+              <option>Activities — Student Association</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fg"><label>Designation</label><input type="text" placeholder="e.g. Assistant Professor" /></div>
+      </div>
+      <!-- Role selector with descriptions -->
+      <div class="fg"><label>Assign Role <span style="color:red">*</span></label>
+        <select id="facRoleSelect" onchange="updateFacRoleDesc(this)">
+          <option value="">— Select Role —</option>
+          <optgroup label="Academic">
+            <option value="hod">HOD — Head of Department</option>
+            <option value="teaching">Teaching Staff (Lecturer / Asst. Prof)</option>
+            <option value="nonteaching">Non-Teaching Staff (Lab / Technical)</option>
+            <option value="guest">Guest Faculty</option>
+          </optgroup>
+          <optgroup label="Administration">
+            <option value="principal">Principal</option>
+            <option value="registrar">Registrar</option>
+            <option value="superintendent">Superintendent</option>
+            <option value="acm">ACM Staff</option>
+            <option value="exam">Exam Cell Staff</option>
+            <option value="accounts">Accounts Staff</option>
+            <option value="library">Library Staff</option>
+            <option value="stores">Stores Staff</option>
+            <option value="est">EST Staff</option>
+            <option value="cash">Cash / Fees Staff</option>
+          </optgroup>
+          <optgroup label="Activities Officers">
+            <option value="placement">Placement Officer</option>
+            <option value="nss">NSS Officer</option>
+            <option value="yrc">Youth Red Cross Officer</option>
+            <option value="alumni">Alumni Officer</option>
+            <option value="sports">Sports Officer</option>
+            <option value="swo">SWO Officer (Student Welfare)</option>
+          </optgroup>
+        </select>
+      </div>
+      <!-- Dynamic role description badge -->
+      <div id="facRoleDesc" style="display:none;border-radius:8px;padding:10px 14px;font-size:0.73rem;margin:-6px 0 12px;line-height:1.5;"></div>
+      <!-- Module access checkboxes -->
+      <div id="facModules" style="display:none;">
+        <div style="font-size:0.74rem;font-weight:600;color:var(--navy);margin-bottom:8px;">Module Access (auto-set, override if needed):</div>
+        <div id="moduleCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.73rem;"></div>
+      </div>
+      <div class="fg" style="margin-top:10px;"><label>Set Password</label><input type="password" placeholder="Enter a password" /></div>
+      <button class="btn-block or" onclick="createAccount('Faculty')">Create Faculty Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PRINCIPAL MODAL ===== -->
+<div class="overlay" id="mPrincipal">
+  <div class="modal" style="width:480px;">
+    <button class="modal-x" onclick="closeM('mPrincipal')">✕</button>
+    <div class="modal-icon pu">👔</div>
+    <h2>Principal</h2>
+    <p class="msub">Institution-wide monitoring & oversight</p>
+    <div class="role-tabs" style="margin-bottom:20px;">
+      <button class="rtab active" id="priTab1" onclick="switchTab('priLogin','priRegister','priTab1','priTab2')">Login</button>
+      <button class="rtab" id="priTab2" onclick="switchTab('priRegister','priLogin','priTab2','priTab1')">Create Account</button>
+    </div>
+    <!-- Login -->
+    <div id="priLogin">
+      <div class="fg"><label>Principal ID</label><input type="text" placeholder="Enter Principal ID"  /></div>
+      <div class="fg"><label>Password</label><input type="password" placeholder="Enter password"  /></div>
+      <button class="btn-block pu" onclick="login('principal')">Login as Principal</button>
+      <div class="forgot" onclick="alert('OTP sent to registered Email & WhatsApp!')">Forgot password? Send OTP</div>
+    </div>
+    <!-- Create Account -->
+    <div id="priRegister" style="display:none;">
+      <div class="create-note" style="background:var(--purple-light);border:1px solid rgba(91,63,160,0.2);border-radius:8px;padding:10px 14px;font-size:0.74rem;color:var(--purple);margin-bottom:14px;">👔 Principal account has <strong>full view access</strong> across all departments and modules. Can approve EST edits, monitor HOD/faculty activity. <strong>Cannot directly edit data</strong> — approvals only.</div>
+      <div class="fg"><label>Full Name <span style="color:red">*</span></label><input type="text" placeholder="Principal's full name" /></div>
+      <div class="fg"><label>Principal ID <span style="color:red">*</span></label><input type="text" placeholder="Enter principal ID" /></div>
+      <div class="fg"><label>Email Address <span style="color:red">*</span></label><input type="email" placeholder="Official email address" /></div>
+      <div class="fg"><label>Mobile / WhatsApp <span style="color:red">*</span></label><input type="text" placeholder="+91 XXXXXXXXXX" /></div>
+      <div class="fg"><label>Role Assigned</label>
+        <select disabled style="background:var(--bg);cursor:not-allowed;">
+          <option>Principal — Full View + Approval Authority</option>
+        </select>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:0.72rem;color:var(--text-muted);">
+        <strong style="color:var(--navy);display:block;margin-bottom:6px;">Principal Role Permissions:</strong>
+        ✅ View all student data &nbsp; ✅ View all faculty & HOD activity<br>
+        ✅ Approve EST edit requests &nbsp; ✅ Monitor attendance college-wide<br>
+        ✅ Review guest faculty workloads &nbsp; ✅ View all office modules<br>
+        ❌ Cannot directly edit database &nbsp; ❌ Cannot manage system settings
+      </div>
+      <div class="fg"><label>Set Password <span style="color:red">*</span></label><input type="password" placeholder="Minimum 8 characters" /></div>
+      <div class="fg"><label>Confirm Password <span style="color:red">*</span></label><input type="password" placeholder="Re-enter password" /></div>
+      <button class="btn-block pu" onclick="createAccount('Principal')">Create Principal Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH Modal (full) -->
+<div class="overlay" id="mSearch">
+  <div class="modal" style="width:540px;">
+    <button class="modal-x" onclick="closeM('mSearch')">✕</button>
+    <h2 style="font-family:'Libre Baskerville',serif;font-size:1.2rem;color:var(--navy);margin-bottom:5px;">🔍 Student Search</h2>
+    <p class="msub">Search by Register Number</p>
+    <div class="sbar" style="margin-bottom:14px;"><span class="si">🔍</span><input type="text" placeholder="Enter Register Number…" id="fullSearchInput" onkeyup="fullSearch()" /></div>
+    <div id="fullSearchResult"></div>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!--  ADMIN DASHBOARD -->
+<!-- ============================================================ -->
+<div id="dbAdmin" class="db">
+  <div class="db-wrap">
+    <div class="sb">
+      <div class="sb-hdr">
+        <div class="sb-icon">⚙️</div>
+        <div><div class="sb-name">GPT Hubli</div><div class="sb-role">Root Admin</div></div>
+      </div>
+      <div class="sb-menu">
+        <div class="sb-sec">Main</div>
+        <div class="sl act" onclick="showSec('adHome',this)"><span class="sli">🏠</span>Dashboard</div>
+        <div class="sl" onclick="showSec('adApprovals',this)"><span class="sli">✅</span>Approvals<span class="slb">5</span></div>
+        <div class="sl" onclick="showSec('adStudents',this)"><span class="sli">🎓</span>Students</div>
+        <div class="sl" onclick="showSec('adStudentProfile',this)"><span class="sli">📋</span>Student Profile Mgr.</div>
+        <div class="sl" onclick="showSec('adStaffProfile',this)"><span class="sli">👤</span>Staff Profile Mgr.</div>
+        <div class="sl" onclick="showSec('adForms',this)"><span class="sli">📝</span>Form Builder</div>
+        <div class="sl" onclick="showSec('adUsers',this)"><span class="sli">👥</span>User Management</div>
+        <div class="sb-sec">Office Modules</div>
+        <div class="sl" onclick="showSec('adACM',this)"><span class="sli">📋</span>ACM Module</div>
+        <div class="sl" onclick="showSec('adExams',this)"><span class="sli">📚</span>Exams Module</div>
+        <div class="sl" onclick="showSec('adActivities',this)"><span class="sli">🏛️</span>Institute Activities</div>
+        <div class="sl" onclick="showSec('adStaff',this)"><span class="sli">👨‍💼</span>Staff</div>
+        <div class="sl" onclick="showSec('adLibrary',this)"><span class="sli">📚</span>Library</div>
+        <div class="sb-sec">System</div>
+        <div class="sl" onclick="showSec('adRolesPerms',this)"><span class="sli">🔐</span>Roles &amp; Permissions</div>
+        <div class="sl" onclick="showSec('adUserApprovals',this)"><span class="sli">🧑‍💼</span>Account Approvals<span class="slb amber">3</span></div>
+        <div class="sl" onclick="showSec('adGallery',this)"><span class="sli">🖼️</span>Photo Gallery</div>
+        <div class="sl" onclick="showSec('adSettings',this)"><span class="sli">⚙️</span>Settings</div>
+        <div class="sl" onclick="logout()"><span class="sli">🚪</span>Logout</div>
+      </div>
+    </div>
+    <div class="db-main">
+      <div class="db-topbar">
+        <div class="db-title" id="adTitle">Dashboard</div>
+        <div class="db-user">
+          <button class="notif-btn" onclick="toggleNP()">🔔<span class="nb-dot">5</span></button>
+          <div class="ava-upload-wrap" onclick="triggerPhotoUpload('ad')" title="Click to change profile photo">
+            <div class="ava" style="background:var(--primary);" id="adAva">RA</div>
+            <div class="ava-overlay">📷<br>Change</div>
+            <input type="file" id="adPhotoInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'ad')" />
+          </div>
+          <span class="db-uname">Root Admin</span>
+          <button class="btn ol" onclick="logout()" style="padding:6px 12px;font-size:0.72rem;">Logout</button>
+        </div>
+      </div>
+      <div class="db-content">
+
+        <!-- AD HOME -->
+        <div id="adHome">
+          <div class="welcome-card wc" style="background:linear-gradient(120deg,var(--primary),#2a5abf);">
+            <h2>Welcome back, Root Admin 👋</h2>
+            <p>Dashboard is ready for live institutional data.</p>
+          </div>
+          <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 8px;">System Overview</h3>
+            <p style="margin:0;color:var(--text-muted);">No sample approvals or placeholder records are shown here. Use the modules in the sidebar to manage live records.</p>
+          </div>
+        </div>
+
+<!-- AD APPROVALS -->
+        <div id="adApprovals" style="display:none;">
+          <div class="info-box">⚠️ <strong>5 pending approvals</strong> require your action. Approved data is saved to database. Rejected data is discarded and the student is notified automatically.</div>
+          <div class="card">
+            <div class="card-hd"><h3>All Pending Approvals</h3><div class="card-acts"><button class="btn gr" onclick="alert('All approved & notifications sent!')">Approve All</button></div></div>
+            <table>
+              <thead><tr><th>Student</th><th>Reg No.</th><th>Dept.</th><th>Request</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Student</strong></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>CSE</td><td>Address Update</td><td>24 Feb 10:32</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('Approved! DB updated. Student notified via Email+WhatsApp.')">✓ Approve</button><button class="btn re" onclick="alert('Rejected. Student notified.')">✕ Reject</button></div></td></tr>
+                <tr><td><strong>Student</strong></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>MECH</td><td>Phone Update</td><td>24 Feb 09:15</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('Approved!')">✓ Approve</button><button class="btn re" onclick="alert('Rejected!')">✕ Reject</button></div></td></tr>
+                <tr><td><strong>Student</strong></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td>Civil</td><td>TC Application</td><td>23 Feb 16:45</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('Approved!')">✓ Approve</button><button class="btn re" onclick="alert('Rejected!')">✕ Reject</button></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AD STUDENTS -->
+        <div id="adStudents" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>Student Database</h3><div class="card-acts"><button class="btn go" onclick="alert('Upload Excel (.xlsx) student database')">📤 Upload Excel</button><button class="btn pr">+ Add Student</button></div></div>
+            <div style="padding:10px 18px;border-bottom:1px solid var(--border);"><div class="sbar"><span class="si">🔍</span><input type="text" placeholder="Search by name, reg number, branch…" /></div></div>
+            <table><thead><tr><th>Reg. Number</th><th>Name</th><th>Department</th><th>Year</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>2nd Year</td><td><span class="badge active">Active</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>MECH</td><td>2nd Year</td><td><span class="badge active">Active</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Civil</td><td>3rd Year</td><td><span class="badge active">Active</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>1st Year</td><td><span class="badge active">Active</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- AD STUDENT PROFILE MANAGER -->
+        <!-- ============================================================ -->
+        <div id="adStudentProfile" style="display:none;">
+          <div class="info-box">📋 <strong>Student Profile Section Manager</strong> — Add, remove, or rename sections and fields in the Student Profile. Changes take effect <strong>immediately</strong> in the Student login portal. Toggle visibility to show/hide sections without deleting them.</div>
+
+          <!-- Top action bar -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="addStuSection()" style="padding:9px 18px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add New Section</button>
+              <button onclick="saveStuProfile()" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply to Student Login</button>
+            </div>
+            <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Changes auto-sync to student portal immediately on save.</div>
+          </div>
+
+          <!-- Student section builder -->
+          <div id="stuSectionBuilder"></div>
+
+          <!-- Live Preview Panel -->
+          <div class="card" style="margin-top:18px;">
+            <div class="card-hd"><h3>👁️ Live Preview — Student Profile (as student sees it)</h3></div>
+            <div id="stuProfilePreview" style="padding:18px;"></div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- AD STAFF PROFILE MANAGER -->
+        <!-- ============================================================ -->
+        <div id="adStaffProfile" style="display:none;">
+          <div class="info-box">👤 <strong>Staff Profile Section Manager</strong> — Configure profile sections and fields separately for each staff type. Changes apply immediately to their respective login portals upon saving.</div>
+
+          <!-- Staff Type Tabs -->
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" id="spTab_TH" onclick="showStaffProfileTab('TH',this)">👨‍🏫 Teaching Faculty</button>
+            <button class="tab" id="spTab_NT" onclick="showStaffProfileTab('NT',this)">🔧 Non-Teaching</button>
+            <button class="tab" id="spTab_AD" onclick="showStaffProfileTab('AD',this)">🏢 Admin Staff</button>
+            <button class="tab" id="spTab_GF" onclick="showStaffProfileTab('GF',this)">🎓 Guest Faculty</button>
+            <button class="tab" id="spTab_GD" onclick="showStaffProfileTab('GD',this)">🧹 Group D</button>
+          </div>
+
+          <!-- TH: Teaching Faculty -->
+          <div id="spPanel_TH">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="addStaffSection('TH')" style="padding:9px 18px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add Section</button>
+                <button onclick="saveStaffProfile('TH')" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply</button>
+              </div>
+              <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Syncs to Teaching Faculty login on save.</div>
+            </div>
+            <div id="staffBuilder_TH"></div>
+            <div class="card" style="margin-top:18px;"><div class="card-hd"><h3>👁️ Live Preview — Teaching Faculty Profile</h3></div><div id="staffPreview_TH" style="padding:18px;"></div></div>
+          </div>
+
+          <!-- NT: Non-Teaching -->
+          <div id="spPanel_NT" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="addStaffSection('NT')" style="padding:9px 18px;background:var(--teal);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add Section</button>
+                <button onclick="saveStaffProfile('NT')" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply</button>
+              </div>
+              <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Syncs to Non-Teaching Staff login on save.</div>
+            </div>
+            <div id="staffBuilder_NT"></div>
+            <div class="card" style="margin-top:18px;"><div class="card-hd"><h3>👁️ Live Preview — Non-Teaching Staff Profile</h3></div><div id="staffPreview_NT" style="padding:18px;"></div></div>
+          </div>
+
+          <!-- AD: Admin Staff -->
+          <div id="spPanel_AD" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="addStaffSection('AD')" style="padding:9px 18px;background:var(--purple);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add Section</button>
+                <button onclick="saveStaffProfile('AD')" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply</button>
+              </div>
+              <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Syncs to Admin Staff login on save.</div>
+            </div>
+            <div id="staffBuilder_AD"></div>
+            <div class="card" style="margin-top:18px;"><div class="card-hd"><h3>👁️ Live Preview — Admin Staff Profile</h3></div><div id="staffPreview_AD" style="padding:18px;"></div></div>
+          </div>
+
+          <!-- GF: Guest Faculty -->
+          <div id="spPanel_GF" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="addStaffSection('GF')" style="padding:9px 18px;background:var(--orange);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add Section</button>
+                <button onclick="saveStaffProfile('GF')" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply</button>
+              </div>
+              <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Syncs to Guest Faculty login on save.</div>
+            </div>
+            <div id="staffBuilder_GF"></div>
+            <div class="card" style="margin-top:18px;"><div class="card-hd"><h3>👁️ Live Preview — Guest Faculty Profile</h3></div><div id="staffPreview_GF" style="padding:18px;"></div></div>
+          </div>
+
+          <!-- GD: Group D -->
+          <div id="spPanel_GD" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="addStaffSection('GD')" style="padding:9px 18px;background:#6b7280;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">➕ Add Section</button>
+                <button onclick="saveStaffProfile('GD')" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;">💾 Save & Apply</button>
+              </div>
+              <div class="info-box" style="margin:0;padding:8px 14px;font-size:0.72rem;">🔄 Syncs to Group D Staff login on save.</div>
+            </div>
+            <div id="staffBuilder_GD"></div>
+            <div class="card" style="margin-top:18px;"><div class="card-hd"><h3>👁️ Live Preview — Group D Staff Profile</h3></div><div id="staffPreview_GD" style="padding:18px;"></div></div>
+          </div>
+
+        </div>
+
+        <!-- AD FORMS -->
+        <div id="adForms" style="display:none;">
+          <div class="info-box">📝 <strong>Form Builder</strong> — Create custom forms, share with students or staff, and set notification priority.</div>
+
+          <div id="formListView">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);">My Forms</h3>
+              <button class="btn pr" onclick="openCreateFormModal()">+ Create New Form</button>
+            </div>
+            <div class="card">
+              <table>
+                <thead><tr><th>Form Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="formListBody">
+                  <tr id="formEmptyRow"><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong> to build one.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AD ACM -->
+        <div id="adACM" style="display:none;">
+          <!-- ACM Sub-tabs -->
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" onclick="showACMTab('acmCerts',this)">📄 Certificates</button>
+            <button class="tab" onclick="showACMTab('acmRepeaters',this)">🔁 Repeaters</button>
+            <button class="tab" onclick="showACMTab('acmNOC',this)">📃 NOC Generation</button>
+          </div>
+
+          <!-- Certificates Sub-section -->
+          <div id="acmCerts">
+            <div class="two-col">
+              <div class="upload-zone" onclick="alert('Upload Excel student database (.xlsx)')"><div class="uzi">📊</div><p><strong>Upload Student Database</strong></p><p>Drop Excel file here or click to browse</p></div>
+              <div class="upload-zone" onclick="alert('Upload certificate template (.docx / .pdf)')"><div class="uzi">📄</div><p><strong>Upload Certificate Template</strong></p><p>Drop .docx or .pdf template here</p></div>
+            </div>
+            <div class="card" style="margin-bottom:16px;margin-top:16px;">
+              <div class="card-hd"><h3>🔍 Certificate Generator</h3></div>
+              <div style="padding:18px;">
+                <div class="form-row" style="align-items:flex-end;">
+                  <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter Reg. Number" id="certReg" /></div>
+                  <div class="fg"><label>Certificate Type</label><select><option>Transfer Certificate</option><option>Study Certificate</option><option>Studying Certificate</option></select></div>
+                  <button class="btn pr" style="height:40px;margin-top:20px;" onclick="genCert()">Generate →</button>
+                </div>
+              </div>
+            </div>
+            <div id="certOut" style="display:none;" class="cert-prev">
+              <div style="text-align:center;margin-bottom:18px;">
+                <div style="font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Government of Karnataka · Dept. of Technical Education</div>
+                <h3>Government Polytechnic, Hubli</h3>
+                <div class="cert-sub-label">Transfer Certificate</div>
+              </div>
+              <div class="cert-row"><span class="ck">Register Number</span><span class="cv">—</span></div>
+              <div class="cert-row"><span class="ck">Student</span><span class="cv">Student</span></div>
+              <div class="cert-row"><span class="ck">Department</span><span class="cv">Computer Science Engineering</span></div>
+              <div class="cert-row"><span class="ck">Date of Admission</span><span class="cv">01 August 2023</span></div>
+              <div class="cert-row"><span class="ck">Date of Issue</span><span class="cv">25 February 2026</span></div>
+              <div class="cert-row"><span class="ck">Conduct</span><span class="cv">Good</span></div>
+              <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">
+                <button class="btn pr" onclick="window.print()">🖨️ Print A4</button>
+                <button class="btn go" onclick="alert('Print log saved! Date/Time recorded in database.')">💾 Save Log</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Repeaters Sub-section -->
+          <div id="acmRepeaters" style="display:none;">
+            <div class="info-box">🔁 <strong>Repeaters Module</strong> — Track and manage students who are repeating a semester or year. Search by Reg. No. or filter by branch and year.</div>
+            <div class="card">
+              <div class="card-hd">
+                <h3>Repeaters List</h3>
+                <div class="card-acts">
+                  <div class="sbar" style="width:240px;"><span class="si">🔍</span><input type="text" placeholder="Search by Reg. No. or Name…" /></div>
+                  <select style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;margin-left:6px;">
+                    <option>All Branches</option>
+                    <option>Civil Engineering</option>
+                    <option>Computer Science Engineering</option>
+                    <option>Electronics &amp; Comm. Engineering</option>
+                    <option>Mechanical Engineering</option>
+                  </select>
+                  <button class="btn pr" style="margin-left:6px;" onclick="alert('Add Repeater record')">+ Add</button>
+                </div>
+              </div>
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Student</th><th>Branch</th><th>Repeating Sem.</th><th>Year</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                    <td><strong>Student</strong></td>
+                    <td>CSE</td><td>Semester 4</td><td>2025-26</td>
+                    <td>Failed — 2 subjects</td>
+                    <td><span class="badge pending">Repeating</span></td>
+                    <td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td>
+                  </tr>
+                  <tr>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2020CIVIL009</td>
+                    <td><strong>Registered User</strong></td>
+                    <td>Civil</td><td>Semester 5</td><td>2025-26</td>
+                    <td>Medical Leave</td>
+                    <td><span class="badge pending">Repeating</span></td>
+                    <td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td>
+                  </tr>
+                  <tr>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                    <td><strong>Student</strong></td>
+                    <td>MECH</td><td>Semester 3</td><td>2025-26</td>
+                    <td>Attendance Shortage</td>
+                    <td><span class="badge rejected">Detained</span></td>
+                    <td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- NOC Generation Sub-section -->
+          <div id="acmNOC" style="display:none;">
+            <div class="info-box">📃 <strong>NOC (No Objection Certificate) Generation</strong> — Enter register number to auto-fetch student data and generate NOC. All NOCs are logged with date, time and issuing authority.</div>
+            <div class="two-col" style="margin-bottom:16px;">
+              <div class="upload-zone" onclick="alert('Upload NOC template (.docx / .pdf)')"><div class="uzi">📄</div><p><strong>Upload NOC Template</strong></p><p>Drop template here or click to browse</p></div>
+              <div class="card" style="padding:20px;margin:0;">
+                <h3 style="font-family:'Libre Baskerville',serif;font-size:0.9rem;color:var(--navy);margin-bottom:14px;">🔍 NOC Lookup</h3>
+                <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter Reg. No." id="nocReg" /></div>
+                <div class="fg"><label>NOC Purpose</label>
+                  <select>
+                    <option>Higher Education</option>
+                    <option>Employment / Job Application</option>
+                    <option>Bank / Loan Purpose</option>
+                    <option>Scholarship Application</option>
+                    <option>Travel / Visa</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <button class="btn pr" style="width:100%;" onclick="alert('NOC generated! Log saved to database with timestamp.')">Generate NOC →</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>NOC Print Log</h3></div>
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Student</th><th>NOC Purpose</th><th>Issued By</th><th>Date &amp; Time</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>Higher Education</td><td>ACM Staff</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">24 Feb 2026 · 10:30 AM</td><td><button class="btn ol">Re-print</button></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Employment</td><td>ACM Staff</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">22 Feb 2026 · 02:15 PM</td><td><button class="btn ol">Re-print</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AD EXAMS -->
+        <div id="adExams" style="display:none;">
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" onclick="showExamTab('exResults',this)">📊 Results</button>
+            <button class="tab" onclick="showExamTab('exPDC',this)">🎓 PDC</button>
+            <button class="tab" onclick="showExamTab('exAttShort',this)">⚠️ Attendance Shortage</button>
+            <button class="tab" onclick="showExamTab('exFees',this)">💳 Exam Fees</button>
+            <button class="tab" onclick="showExamTab('exKeylist',this)">🗝️ Keylist</button>
+            <button class="tab" onclick="showExamTab('exNotEligible',this)">🚫 Not Eligible</button>
+          </div>
+
+          <!-- Results -->
+          <div id="exResults">
+            <!-- Upload Panel (Root Admin Only) -->
+            <div class="card" style="padding:22px;margin-bottom:16px;border-left:4px solid var(--primary);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);">📤 Upload Result PDF — Root Admin</h3>
+                <span class="badge active">Admin Only</span>
+              </div>
+              <div class="info-box" style="margin-bottom:14px;">Upload the official result PDF. Specify branch and exam session. Students can then search by register number to view their results.</div>
+              <div class="form-row three">
+                <div class="fg"><label>Branch <span style="color:red">*</span></label>
+                  <select id="upBranch">
+                    <option value="">Select Branch</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                    <option value="Computer Science Engineering">Computer Science Engineering</option>
+                    <option value="Electronics &amp; Communication Engg.">Electronics &amp; Communication Engg.</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                  </select>
+                </div>
+                <div class="fg"><label>Semester <span style="color:red">*</span></label>
+                  <select id="upSem">
+                    <option value="">Select Semester</option>
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                    <option value="3">Semester 3</option>
+                    <option value="4">Semester 4</option>
+                    <option value="5">Semester 5</option>
+                    <option value="6">Semester 6</option>
+                  </select>
+                </div>
+                <div class="fg"><label>Exam Session <span style="color:red">*</span></label>
+                  <select id="upSession">
+                    <option value="">Select Session</option>
+                    <option value="APR/MAY 2025">APR/MAY 2025</option>
+                    <option value="NOV/DEC 2025">NOV/DEC 2025</option>
+                    <option value="APR/MAY 2026">APR/MAY 2026</option>
+                    <option value="NOV/DEC 2026">NOV/DEC 2026</option>
+                    <option value="APR/MAY 2027">APR/MAY 2027</option>
+                  </select>
+                </div>
+              </div>
+              <div class="warn-box" style="margin-bottom:12px;">⚠️ After uploading the PDF, you must <strong>manually enter results</strong> for each student below. The PDF is for reference; actual searchable results come from the data entry.</div>
+              <div style="display:flex;gap:10px;align-items:flex-end;">
+                <div class="fg" style="flex:1;margin:0;"><label>Upload Result PDF (Reference Copy)</label><input type="file" accept=".pdf" id="resultPDFFile" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+                <button class="btn pr" style="height:40px;" onclick="uploadResultPDF()">📤 Upload PDF</button>
+              </div>
+            </div>
+
+            <!-- Uploaded PDFs Log -->
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-hd"><h3>📁 Uploaded Result PDFs</h3></div>
+              <table id="uploadedPDFTable"><thead><tr><th>Branch</th><th>Semester</th><th>Exam Session</th><th>Uploaded By</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="pdfLogBody">
+                <tr><td>Computer Science Engineering</td><td>Sem 3</td><td>APR/MAY 2025</td><td>Root Admin</td><td>10 Jan 2026</td><td><div style="display:flex;gap:6px;"><button class="btn pr" onclick="alert('Opening PDF...')">📄 View</button><button class="btn re" onclick="alert('PDF deleted.')">🗑️</button></div></td></tr>
+                <tr><td>Civil Engineering</td><td>Sem 2</td><td>NOV/DEC 2025</td><td>Root Admin</td><td>15 Jan 2026</td><td><div style="display:flex;gap:6px;"><button class="btn pr" onclick="alert('Opening PDF...')">📄 View</button><button class="btn re" onclick="alert('PDF deleted.')">🗑️</button></div></td></tr>
+              </tbody></table>
+            </div>
+
+            <!-- Result Data Entry / Management -->
+            <div class="card">
+              <div class="card-hd">
+                <h3>📊 Result Data — Enter / Manage Student Results</h3>
+                <div class="card-acts">
+                  <select id="filterBranch" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" onchange="filterResults()">
+                    <option value="">All Branches</option>
+                    <option>Civil Engineering</option>
+                    <option>Computer Science Engineering</option>
+                    <option>ECE</option>
+                    <option>Mechanical Engineering</option>
+                  </select>
+                  <select id="filterSem" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" onchange="filterResults()">
+                    <option value="">All Semesters</option>
+                    <option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>
+                    <option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option>
+                  </select>
+                  <button class="btn pr" onclick="openAddResultModal()">+ Add Result</button>
+                </div>
+              </div>
+              <table id="resultMasterTable">
+                <thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Sem.</th><th>Session</th><th>Subjects</th><th>SGPA</th><th>Result</th><th>Actions</th></tr></thead>
+                <tbody id="resultMasterBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PDC -->
+          <div id="exPDC" style="display:none;">
+            <div class="info-box">🎓 <strong>PDC — Provisional Degree Certificate</strong> — Generate PDC for eligible students who have completed all semesters.</div>
+            <!-- Incoming PDC Requests from Students -->
+            <div class="card" style="margin-bottom:16px;border-left:4px solid #be185d;">
+              <div class="card-hd"><h3>📥 Incoming PDC Requests from Students</h3><div class="card-acts"><span class="badge pending">3 Pending</span></div></div>
+              <table>
+                <thead><tr><th>Req. ID</th><th>Student</th><th>Reg. No.</th><th>Branch</th><th>Year of Passing</th><th>Purpose</th><th>Submitted</th><th>Eligibility</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>—</td><td>CSE</td><td>2025</td><td>Job application</td><td>01 Mar 2025</td><td><span class="badge approved">✅ Eligible</span></td><td><div style="display:flex;gap:4px;"><button class="btn pr" onclick="alert('PDC generated & dispatched! Student notified.')">📄 Generate PDC</button><button class="btn re" onclick="alert('Rejected.')">✕</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>GP2022CIVIL018</td><td>Civil</td><td>2025</td><td>Higher studies</td><td>27 Feb 2025</td><td><span class="badge pending">🔍 Verifying</span></td><td><div style="display:flex;gap:4px;"><button class="btn gr" onclick="alert('Marked eligible. Ready to generate PDC.')">✓ Mark Eligible</button><button class="btn re" onclick="alert('Marked ineligible. Student notified with reason.')">✕ Ineligible</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Registered User</strong></td><td>—</td><td>Mech</td><td>2025</td><td>Govt. exam</td><td>22 Feb 2025</td><td><span class="badge re" style="background:#dc2626;color:white;">❌ Backlog</span></td><td><button class="btn re" onclick="alert('Student notified: PDC cannot be issued due to pending backlog in Sem 5.')">Notify Student</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card" style="padding:22px;margin-bottom:16px;border-left:4px solid var(--purple);">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload PDC Format Template</h3>
+              <div class="info-box" style="margin-bottom:14px;">Upload the official PDC certificate format/template (PDF or DOCX). This template will be used to generate PDCs for all eligible students.</div>
+              <div class="fg"><label>Upload PDC Format (PDF / DOCX) <span style="color:red">*</span></label><input type="file" accept=".pdf,.docx" id="pdcFormatFile" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+              <button class="btn pu" onclick="alert('✅ PDC format uploaded! This template will now be used for all PDC generation.')">📤 Upload PDC Template</button>
+            </div>
+            <div class="card" style="padding:22px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">🔍 Generate PDC for Student</h3>
+              <div class="form-row" style="align-items:flex-end;">
+                <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter Reg. No." /></div>
+                <div class="fg"><label>Branch</label><select><option value="">Select</option><option>Civil Engineering</option><option>CSE</option><option>ECE</option><option>Mechanical</option></select></div>
+                <button class="btn pu" style="height:40px;margin-top:20px;" onclick="alert('PDC generated using uploaded template & logged!')">Generate PDC →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attendance Shortage -->
+          <div id="exAttShort" style="display:none;">
+            <div class="warn-box">⚠️ Students below 75% attendance are listed here. Parents are notified via WhatsApp automatically.</div>
+            <div class="card" style="padding:22px;margin-bottom:16px;border-left:4px solid var(--orange);">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload Attendance Shortage Format</h3>
+              <div class="info-box" style="margin-bottom:14px;">Upload the official attendance shortage notice template (PDF/DOCX) to generate shortage notices for students.</div>
+              <div class="fg"><label>Upload Shortage Format (PDF / DOCX) <span style="color:red">*</span></label><input type="file" accept=".pdf,.docx" id="attShortFormatFile" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+              <button class="btn go" onclick="alert('✅ Attendance shortage format uploaded!')">📤 Upload Format</button>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>Attendance Shortage List</h3><div class="card-acts"><button class="btn go" onclick="alert('Shortage list exported using uploaded format!')">📄 Export List (PDF)</button></div></div>
+              <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Subject</th><th>Attendance %</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>Computer Networks</td><td><span style="color:var(--red);font-weight:700;">74%</span></td><td><span class="badge rejected">Shortage</span></td><td><button class="btn go" onclick="alert('Shortage notice generated using uploaded format!')">📄 Notice</button></td></tr>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2023CIVIL005</td><td><strong>Student</strong></td><td>Civil</td><td>Structural Analysis</td><td><span style="color:var(--red);font-weight:700;">68%</span></td><td><span class="badge rejected">Shortage</span></td><td><button class="btn go" onclick="alert('Shortage notice generated!')">📄 Notice</button></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <!-- Exam Fees -->
+          <div id="exFees" style="display:none;">
+            <div class="card">
+              <div class="card-hd"><h3>Exam Fees Records</h3><div class="card-acts"><button class="btn go">📤 Upload Fee Data</button></div></div>
+              <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Sem.</th><th>Amount (₹)</th><th>Paid Date</th><th>Receipt No.</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>3</td><td>₹ 850</td><td>12 Jan 2026</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">EXF-2026-00341</td><td><span class="badge approved">Paid</span></td></tr>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>4</td><td>₹ 850</td><td>—</td><td>—</td><td><span class="badge rejected">Unpaid</span></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <!-- Keylist -->
+          <div id="exKeylist" style="display:none;">
+            <div class="info-box">🗝️ <strong>Keylist</strong> — Manage the answer key list for each exam. Upload or manually enter keys per subject and semester. Used for result verification and re-evaluation.</div>
+            <div class="card">
+              <div class="card-hd"><h3>Answer Key List</h3><div class="card-acts"><button class="btn go" onclick="alert('Upload keylist Excel/PDF')">📤 Upload Keylist</button><button class="btn pr">+ Add Key Entry</button></div></div>
+              <div style="padding:14px 18px; border-bottom:1px solid var(--border);">
+                <div class="form-row" style="align-items:flex-end;">
+                  <div class="fg"><label>Branch</label><select><option value="">All Branches</option><option>Civil Engineering</option><option>CSE</option><option>ECE</option><option>Mechanical</option></select></div>
+                  <div class="fg"><label>Semester</label><select><option value="">All Semesters</option><option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option><option>Sem 5</option><option>Sem 6</option></select></div>
+                  <div class="fg"><label>Exam Year</label><select><option>2025-26</option><option>2024-25</option></select></div>
+                  <button class="btn pr" style="height:40px;margin-top:20px;">Filter →</button>
+                </div>
+              </div>
+              <table><thead><tr><th>Subject Code</th><th>Subject Name</th><th>Branch</th><th>Semester</th><th>Total Questions</th><th>Uploaded By</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">CS301</td><td><strong>Data Structures</strong></td><td>CSE</td><td>Sem 3</td><td>60 Qns</td><td>Exam Cell</td><td>10 Jan 2026</td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">CV201</td><td><strong>Structural Analysis</strong></td><td>Civil</td><td>Sem 4</td><td>55 Qns</td><td>Exam Cell</td><td>11 Jan 2026</td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">MA201</td><td><strong>Engineering Mathematics</strong></td><td>All</td><td>Sem 2</td><td>70 Qns</td><td>Exam Cell</td><td>09 Jan 2026</td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <!-- Not Eligible -->
+          <div id="exNotEligible" style="display:none;">
+            <div class="warn-box">🚫 <strong>Not Eligible List</strong> — Students who are <strong>not eligible to appear</strong> for examinations due to attendance shortage, fee defaulting, or disciplinary reasons. This list is auto-generated and can be manually reviewed.</div>
+            <div class="card">
+              <div class="card-hd">
+                <h3>Not Eligible Students</h3>
+                <div class="card-acts">
+                  <select style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;">
+                    <option>All Reasons</option>
+                    <option>Attendance Shortage</option>
+                    <option>Fee Defaulter</option>
+                    <option>Disciplinary</option>
+                  </select>
+                  <button class="btn go" style="margin-left:6px;" onclick="alert('Export Not Eligible list as PDF/Excel')">📤 Export List</button>
+                </div>
+              </div>
+              <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Sem.</th><th>Reason</th><th>Attendance</th><th>Fee Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2023CIVIL005</td>
+                  <td><strong>Student</strong></td><td>Civil</td><td>4</td>
+                  <td><span class="badge rejected">Attendance</span></td>
+                  <td><span style="color:var(--red);font-weight:700;">68%</span></td>
+                  <td><span class="badge approved">Paid</span></td>
+                  <td><button class="btn ol" onclick="alert('Mark eligible (requires HOD approval)')">Override</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                  <td><strong>Student</strong></td><td>CSE</td><td>4</td>
+                  <td><span class="badge pending">Fee Defaulter</span></td>
+                  <td><span style="color:var(--green);font-weight:700;">79%</span></td>
+                  <td><span class="badge rejected">Unpaid</span></td>
+                  <td><button class="btn ol" onclick="alert('Mark eligible after fee payment confirmation')">Override</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                  <td><strong>Student</strong></td><td>MECH</td><td>3</td>
+                  <td><span class="badge rejected">Attendance + Fee</span></td>
+                  <td><span style="color:var(--red);font-weight:700;">61%</span></td>
+                  <td><span class="badge rejected">Unpaid</span></td>
+                  <td><button class="btn ol" onclick="alert('Both issues must be resolved before override')">Override</button></td>
+                </tr>
+              </tbody></table>
+              <div style="padding:12px 18px;font-size:0.72rem;color:var(--text-muted);">⚠️ Overrides require HOD approval. All changes are logged and notified to Principal.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AD ACTIVITIES -->
+        <div id="adActivities" style="display:none;">
+          <div class="mod-grid">
+            <div class="mod-card bl"><div class="mi">💼</div><h4>Placement</h4><p>Campus placement drives, company data & student records</p><div class="mc">47</div></div>
+            <div class="mod-card re"><div class="mi">🤝</div><h4>NSS</h4><p>NSS volunteer database, camp records & activities</p><div class="mc">124</div></div>
+            <div class="mod-card or"><div class="mi">🏥</div><h4>Youth Red Cross</h4><p>YRC activities, blood donation camps & events</p><div class="mc">86</div></div>
+            <div class="mod-card gr"><div class="mi">🎓</div><h4>Alumni</h4><p>Alumni network, registration & engagement data</p><div class="mc">320</div></div>
+            <div class="mod-card go"><div class="mi">🏆</div><h4>Sports</h4><p>Sports events, achievements & team records</p><div class="mc">18</div></div>
+            <div class="mod-card pu"><div class="mi">🛡️</div><h4>Student Welfare</h4><p>SWO grievances, welfare schemes & tracking</p><div class="mc">23</div></div>
+            <div class="mod-card te"><div class="mi">🤜</div><h4>Student Association</h4><p>Association events, members & activities</p><div class="mc">Active</div></div>
+          </div>
+        </div>
+
+        <!-- AD STAFF -->
+        <div id="adStaff" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>Staff Directory</h3><div class="card-acts"><button class="btn pr">+ Add Staff</button></div></div>
+            <table><thead><tr><th>SSN ID</th><th>Name</th><th>Designation</th><th>Department</th><th>Staff Type</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2015001</td><td><strong>Staff Member</strong></td><td>HOD</td><td>Civil</td><td><span class="badge active">Teaching</span></td><td><span class="badge approved">Active</span></td><td><button class="btn ol">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2016042</td><td><strong>Staff Member</strong></td><td>Asst. Prof</td><td>CSE</td><td><span class="badge active">Teaching</span></td><td><span class="badge approved">Active</span></td><td><button class="btn ol">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2019011</td><td><strong>Mr. B. Naik</strong></td><td>Guest Faculty</td><td>ECE</td><td><span class="badge info">Guest</span></td><td><span class="badge approved">Active</span></td><td><button class="btn ol">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2020031</td><td><strong>Mr. K. Reddy</strong></td><td>Accountant</td><td>Admin</td><td><span class="badge pending">Non-Teaching</span></td><td><span class="badge approved">Active</span></td><td><button class="btn ol">View</button></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- AD USERS -->
+        <div id="adUsers" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>User Management &amp; Role Permissions</h3><div class="card-acts"><button class="btn pr">+ Add User</button></div></div>
+            <table><thead><tr><th>User</th><th>Role</th><th>Dept.</th><th>Permitted Modules</th><th>Status</th><th>Configure</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Admin</strong></td><td><span class="badge active">Root Admin</span></td><td>All</td><td>All Modules</td><td><span class="badge approved">Active</span></td><td><button class="btn ol">Configure</button></td></tr>
+              <tr><td><strong>Principal</strong></td><td><span class="badge info">Principal</span></td><td>All</td><td>View All (No Edit)</td><td><span class="badge approved">Active</span></td><td><button class="btn ol">Configure</button></td></tr>
+              <tr><td><strong>Staff Member</strong></td><td><span class="badge pending">HOD</span></td><td>Civil</td><td>Civil Profile, Forms, Activities, Attendance</td><td><span class="badge approved">Active</span></td><td><button class="btn ol">Configure</button></td></tr>
+              <tr><td><strong>Staff Member</strong></td><td><span class="badge pending">Faculty</span></td><td>CSE</td><td>CSE Profile, Attendance (own subjects)</td><td><span class="badge approved">Active</span></td><td><button class="btn ol">Configure</button></td></tr>
+              <tr><td><strong>Mr. B. Naik</strong></td><td><span class="badge info">Guest Faculty</span></td><td>ECE</td><td>Workload Upload only</td><td><span class="badge approved">Active</span></td><td><button class="btn ol">Configure</button></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- AD LIBRARY -->
+        <div id="adLibrary" style="display:none;">
+          <div class="info-box">📚 <strong>Library Management</strong> — Upload and manage e-books (PDF). Students can view and download approved books directly from their dashboard.</div>
+          <div class="card" style="padding:22px;margin-bottom:16px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload New E-Book</h3>
+            <div class="form-row">
+              <div class="fg"><label>Book Name <span style="color:red">*</span></label><input type="text" id="libBookName" placeholder="e.g. Data Structures using C" /></div>
+              <div class="fg"><label>Author Name <span style="color:red">*</span></label><input type="text" id="libAuthor" placeholder="e.g. Reema Thareja" /></div>
+            </div>
+            <div class="form-row three">
+              <div class="fg"><label>Subject Code</label><input type="text" id="libSubCode" placeholder="e.g. CS301" /></div>
+              <div class="fg"><label>Book Type</label>
+                <select id="libType"><option value="Textbook">Textbook</option><option value="Reference">Reference</option><option value="Lab Manual">Lab Manual</option><option value="Notes">Notes</option></select>
+              </div>
+              <div class="fg"><label>Semester</label>
+                <select id="libSem"><option value="">All Semesters</option><option value="Sem 1">Sem 1</option><option value="Sem 2">Sem 2</option><option value="Sem 3">Sem 3</option><option value="Sem 4">Sem 4</option><option value="Sem 5">Sem 5</option><option value="Sem 6">Sem 6</option></select>
+              </div>
+            </div>
+            <div class="fg"><label>Applicable Branches <span style="color:red">*</span> <span style="font-size:0.68rem;color:var(--text-muted);">(Hold Ctrl/Cmd to select multiple)</span></label>
+              <select id="libBranches" multiple style="height:100px;padding:8px;">
+                <option value="Civil Engineering">Civil Engineering</option>
+                <option value="Computer Science Engineering">Computer Science Engineering</option>
+                <option value="Electronics &amp; Communication Engineering">Electronics &amp; Communication Engineering</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                <option value="All Branches">All Branches (Common)</option>
+              </select>
+            </div>
+            <div class="fg"><label>Upload PDF File <span style="color:red">*</span></label>
+              <input type="file" accept=".pdf" id="libPDFFile" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" />
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn pr" onclick="uploadLibraryBook()">📤 Upload Book → Principal Approval</button>
+              <button class="btn ol" onclick="document.getElementById('libBookName').value='';document.getElementById('libAuthor').value='';">Clear</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">
+              <h3>📖 E-Book Repository</h3>
+              <div class="card-acts">
+                <select id="libBranchFilter" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="">All Branches</option>
+                  <option>Civil Engineering</option><option>Computer Science Engineering</option>
+                  <option>Electronics &amp; Communication Engineering</option><option>Mechanical Engineering</option>
+                </select>
+                <div class="sbar" style="width:200px;"><span class="si">🔍</span><input type="text" placeholder="Search book…" /></div>
+              </div>
+            </div>
+            <table>
+              <thead><tr><th>Book Name</th><th>Author</th><th>Branch(es)</th><th>Sem</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="libTableBody">
+                <tr><td><strong>Data Structures using C</strong></td><td>Reema Thareja</td><td>CSE</td><td>Sem 3</td><td><span class="badge active">Textbook</span></td><td><span class="badge approved">Approved</span></td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Opening PDF…')">📖 View</button><button class="btn go" onclick="alert('Download started…')">⬇️ Download</button><button class="btn re" onclick="alert('Deleted')">🗑️</button></div></td></tr>
+                <tr><td><strong>Database Management Systems</strong></td><td>Ramakrishnan &amp; Gehrke</td><td>CSE, ECE</td><td>Sem 3</td><td><span class="badge active">Textbook</span></td><td><span class="badge approved">Approved</span></td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Opening PDF…')">📖 View</button><button class="btn go" onclick="alert('Download started…')">⬇️ Download</button><button class="btn re" onclick="alert('Deleted')">🗑️</button></div></td></tr>
+                <tr><td><strong>Engineering Mathematics — III</strong></td><td>B.S. Grewal</td><td>All Branches</td><td>Sem 3</td><td><span class="badge info">Reference</span></td><td><span class="badge approved">Approved</span></td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Opening PDF…')">📖 View</button><button class="btn go" onclick="alert('Download started…')">⬇️ Download</button><button class="btn re" onclick="alert('Deleted')">🗑️</button></div></td></tr>
+                <tr style="background:var(--accent-light);"><td><strong>Fluid Mechanics (New Upload)</strong></td><td>R.K. Bansal</td><td>Civil, Mechanical</td><td>Sem 4</td><td><span class="badge info">Reference</span></td><td><span class="badge pending">Pending Principal Approval</span></td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Preview…')">👁️ Preview</button><button class="btn re" onclick="alert('Deleted')">🗑️</button></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AD ROLES & PERMISSIONS -->
+        <div id="adRolesPerms" style="display:none;">
+          <div class="info-box">🔐 <strong>Roles &amp; Permissions Control Panel</strong> — Centrally manage what each role can access. Changes take effect immediately after saving. Only Root Admin can modify these settings.</div>
+
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-hd"><h3>Role Hierarchy</h3></div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;background:#fff3e0;border:1.5px solid var(--accent);border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">👑</span><div><strong style="color:var(--navy);">Root Admin</strong><div style="font-size:0.72rem;color:var(--text-muted);">Highest authority — full system access, user management, config, all approvals</div></div>
+                <span class="badge" style="background:#fff3e0;color:var(--accent);margin-left:auto;">Level 1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:var(--purple-light);border:1.5px solid var(--purple);border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">👔</span><div><strong style="color:var(--navy);">Principal</strong><div style="font-size:0.72rem;color:var(--text-muted);">Final authority — approve committee/officers/EST edits, view all modules, cannot directly edit DB</div></div>
+                <span class="badge info" style="margin-left:auto;">Level 2</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff8f0;border:1.5px solid #8b4000;border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">📜</span><div><strong style="color:var(--navy);">Registrar</strong><div style="font-size:0.72rem;color:var(--text-muted);">Highest office authority — official records, certificates, correspondence, documentation</div></div>
+                <span class="badge" style="background:#fff8f0;color:#8b4000;margin-left:auto;">Level 3 (Office)</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:var(--orange-light);border:1.5px solid var(--orange);border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">🎓</span><div><strong style="color:var(--navy);">HOD</strong><div style="font-size:0.72rem;color:var(--text-muted);">Department head — full view of own branch (students, faculty), approve forms, manage attendance</div></div>
+                <span class="badge pending" style="margin-left:auto;">Level 4</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:var(--primary-light);border:1.5px solid var(--primary);border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">👨‍🏫</span><div><strong style="color:var(--navy);">Teaching Staff</strong><div style="font-size:0.72rem;color:var(--text-muted);">Own branch only — attendance for own subjects, view dept. student profiles, submit forms</div></div>
+                <span class="badge active" style="margin-left:auto;">Level 5</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:var(--teal-light);border:1.5px solid var(--teal);border-radius:8px;padding:12px 16px;">
+                <span style="font-size:1.3rem;">🏢</span><div><strong style="color:var(--navy);">Office Roles (ACM/EST/Exam/Library/Accounts…)</strong><div style="font-size:0.72rem;color:var(--text-muted);">Access only their designated module. ACM → ACM only, Library → Library only, etc.</div></div>
+                <span class="badge" style="background:var(--teal-light);color:var(--teal);margin-left:auto;">Level 5 (Office)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">
+              <h3>Module Access Matrix</h3>
+              <div class="card-acts"><button class="btn pr" onclick="alert('✅ Permissions saved successfully!')">💾 Save Changes</button></div>
+            </div>
+            <div style="overflow-x:auto;padding:0 0 8px;">
+              <table style="min-width:900px;">
+                <thead>
+                  <tr>
+                    <th>Module / Feature</th>
+                    <th style="text-align:center;">Root Admin</th>
+                    <th style="text-align:center;">Principal</th>
+                    <th style="text-align:center;">Registrar</th>
+                    <th style="text-align:center;">HOD</th>
+                    <th style="text-align:center;">Teaching Staff</th>
+                    <th style="text-align:center;">ACM</th>
+                    <th style="text-align:center;">EST</th>
+                    <th style="text-align:center;">Exam Cell</th>
+                    <th style="text-align:center;">Library</th>
+                  </tr>
+                </thead>
+                <tbody id="permMatrixBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AD ACCOUNT APPROVALS -->
+        <div id="adUserApprovals" style="display:none;">
+          <div class="warn-box">🔒 <strong>Account Creation Approval</strong> — All new account registrations (Faculty, Student, any role) must be approved by Root Admin before they are created in the database. Unapproved accounts cannot login.</div>
+          <div class="card">
+            <div class="card-hd"><h3>Pending Account Requests</h3><div class="card-acts"><button class="btn gr" onclick="alert('All pending accounts approved!')">✓ Approve All</button></div></div>
+            <table>
+              <thead><tr><th>Name</th><th>Role Requested</th><th>Dept. / Branch</th><th>SSN / Reg. No.</th><th>Mobile</th><th>Requested On</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Prof. A. Desai</strong></td><td><span class="badge pending">Teaching Staff</span></td><td>ECE</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2026001</td><td>98XXXXXXXX</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">28 Feb 2026</td>
+                  <td><div style="display:flex;gap:5px;">
+                    <button class="btn gr" onclick="alert('✅ Account approved! Login credentials sent via Email & WhatsApp.')">✓ Approve</button>
+                    <button class="btn re" onclick="alert('❌ Rejected. Applicant notified.')">✕ Reject</button>
+                    <button class="btn ol" onclick="alert('Full details: Prof. A. Desai, ECE, Teaching Staff, Mobile: 98XXXXXXXX')">👁️ View</button>
+                  </div></td>
+                </tr>
+                <tr>
+                  <td><strong>Student</strong></td><td><span class="badge active">Student</span></td><td>CSE</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>97XXXXXXXX</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">28 Feb 2026</td>
+                  <td><div style="display:flex;gap:5px;">
+                    <button class="btn gr" onclick="alert('✅ Student account approved!')">✓ Approve</button>
+                    <button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button>
+                    <button class="btn ol" onclick="alert('Student: Student, CSE 1st Year')">👁️ View</button>
+                  </div></td>
+                </tr>
+                <tr>
+                  <td><strong>Staff Member</strong></td><td><span class="badge info">Library Staff</span></td><td>Library</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2026003</td><td>99XXXXXXXX</td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">27 Feb 2026</td>
+                  <td><div style="display:flex;gap:5px;">
+                    <button class="btn gr" onclick="alert('✅ Library Staff account approved!')">✓ Approve</button>
+                    <button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button>
+                    <button class="btn ol" onclick="alert('Library Staff: Staff Member')">👁️ View</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-hd"><h3>Recently Approved Accounts</h3></div>
+            <table>
+              <thead><tr><th>Name</th><th>Role</th><th>Dept.</th><th>Approved By</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Staff Member</strong></td><td><span class="badge pending">HOD</span></td><td>Civil</td><td>Root Admin</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">20 Feb 2026</td><td><span class="badge approved">Active</span></td></tr>
+                <tr><td><strong>Student</strong></td><td><span class="badge active">Student</span></td><td>CSE</td><td>Root Admin</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">15 Jan 2026</td><td><span class="badge approved">Active</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AD SETTINGS -->
+        <div id="adSettings" style="display:none;">
+          <!-- PHOTO UPLOAD -->
+          <div class="card" style="padding:22px;margin-bottom:18px;">
+            <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:14px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">📷 Admin Profile Photo</div>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div class="photo-circle" id="adProfilePhotoCircle">📷</div>
+              <div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--navy);margin-bottom:6px;">Upload Your Photo</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Accepted: JPG, JPEG, PNG · Max size: <strong>100 KB</strong></div>
+                <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--primary);color:white;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;">
+                  📁 Choose Photo
+                  <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'ad')" />
+                </label>
+                <div id="adPhotoMsg" style="margin-top:8px;font-size:0.72rem;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card" style="padding:22px;">
+              <div class="card-hd" style="border:none;padding:0 0 14px 0;"><h3>🔐 Change Credentials (OTP)</h3></div>
+              <div class="fg"><label>Current Password</label><input type="password" placeholder="Current password" /></div>
+              <div class="fg"><label>New Password</label><input type="password" placeholder="New password" /></div>
+              <div class="fg"><label>OTP Verification</label><input type="text" placeholder="OTP via Email / WhatsApp" /></div>
+              <button class="btn pr" onclick="alert('OTP sent to registered Email & WhatsApp!')">Send OTP & Update</button>
+            </div>
+            <div class="card" style="padding:22px;">
+              <div class="card-hd" style="border:none;padding:0 0 14px 0;"><h3>⚙️ System Settings</h3></div>
+              <div class="fg"><label>College Name</label><input type="text" value="Government Polytechnic, Hubli" /></div>
+              <div class="fg"><label>Notification Email</label><input type="text" value="contactgpthubli@gmail.com" /></div>
+              <div class="fg"><label>WhatsApp API Number</label><input type="text" value="+91 XXXXXXXXXX" /></div>
+              <button class="btn go">Save Settings</button>
+            </div>
+          </div>
+
+          <!-- ===== INSTITUTION BRANDING ===== -->
+          <div class="card" style="padding:22px;margin-top:18px;">
+            <div class="card-hd" style="border:none;padding:0 0 14px 0;"><h3>🏛️ Institution Branding — Upload Logo & College Photo</h3></div>
+            <div class="info-box">📌 Upload the official college logo and hero/banner photo. These will appear in the site header and home page hero section for all users.</div>
+            <div class="two-col" style="margin-top:14px;">
+              <!-- Logo Upload -->
+              <div>
+                <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:10px;">🔵 College Logo</div>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+                  <div id="logoPreviewBox" style="width:80px;height:80px;border-radius:50%;background:var(--primary);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                    <span style="color:white;font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;text-align:center;line-height:1.3;">GPT<br>HUBLI</span>
+                  </div>
+                  <div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">Current logo shown. Upload new to replace.</div>
+                    <label style="display:inline-block;padding:8px 16px;background:var(--primary);color:white;border-radius:7px;cursor:pointer;font-size:0.78rem;font-weight:700;">
+                      📁 Choose Logo File
+                      <input type="file" accept="image/*" style="display:none;" onchange="previewLogoUpload(this)" />
+                    </label>
+                  </div>
+                </div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">✅ Accepted: PNG, JPG, SVG · Recommended: 200×200px or square</div>
+                <button class="btn go" style="margin-top:10px;width:100%;" onclick="alert('✅ Logo uploaded & applied successfully! Header logo updated.')">💾 Save Logo</button>
+              </div>
+
+              <!-- College Photo Upload -->
+              <div>
+                <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:10px;">🏫 College Hero / Banner Photo</div>
+                <div id="collegePhotoPreview" onclick="document.getElementById('collegePhotoPicker').click()" style="width:100%;height:130px;background:linear-gradient(135deg,var(--navy),var(--primary));border-radius:var(--radius);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;margin-bottom:10px;border:2px dashed var(--border);">
+                  <div style="text-align:center;color:white;">
+                    <div style="font-size:2rem;margin-bottom:4px;">🏫</div>
+                    <div style="font-size:0.72rem;opacity:0.8;">Click to upload college photo</div>
+                  </div>
+                </div>
+                <input type="file" id="collegePhotoPicker" accept="image/*" style="display:none;" onchange="previewCollegePhoto(this)" />
+                <div style="font-size:0.68rem;color:var(--text-muted);">✅ Accepted: JPG, PNG · Recommended: 1920×1080px landscape</div>
+                <button class="btn go" style="margin-top:10px;width:100%;" onclick="alert('✅ College photo uploaded & set as hero background!')">💾 Save College Photo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ADMIN: PHOTO GALLERY MANAGER ===== -->
+        <div id="adGallery" style="display:none;">
+          <div class="info-box">🖼️ <strong>Photo Gallery Manager</strong> — Upload and manage photos that appear in the college Photo Gallery. All users (Faculty, Students, Principal) can view these photos in their respective dashboards.</div>
+
+          <!-- Upload Section -->
+          <div class="card" style="padding:22px;margin-bottom:18px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload New Photos</h3>
+            <div class="gallery-upload-box" onclick="document.getElementById('galleryFilePicker').click()">
+              <div style="font-size:2.5rem;margin-bottom:8px;">🖼️</div>
+              <div style="font-weight:700;color:var(--primary);margin-bottom:4px;">Click to Upload Photos</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">JPG, PNG accepted · Multiple files allowed</div>
+              <input type="file" id="galleryFilePicker" accept="image/*" multiple style="display:none;" onchange="uploadGalleryImages(this)" />
+            </div>
+            <div class="form-row" style="margin-top:14px;">
+              <div class="fg"><label>Photo Caption / Event Name</label><input type="text" id="galleryCaption" placeholder="e.g. Annual Sports Day 2026" /></div>
+              <div class="fg"><label>Category</label>
+                <select id="galleryCategory" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;outline:none;">
+                  <option>Campus Life</option>
+                  <option>Sports Events</option>
+                  <option>Cultural Programs</option>
+                  <option>Convocation & Results</option>
+                  <option>NSS / YRC Activities</option>
+                  <option>Workshops & Seminars</option>
+                  <option>Alumni Meet</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="margin-top:4px;" onclick="addGalleryItem()">➕ Add to Gallery</button>
+          </div>
+
+          <!-- Gallery Grid -->
+          <div class="card">
+            <div class="card-hd">
+              <h3>Gallery Photos <span id="galleryCount" style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">(0 photos)</span></h3>
+              <div class="card-acts">
+                <select id="galleryCatFilter" onchange="filterGallery()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;">
+                  <option value="">All Categories</option>
+                  <option>Campus Life</option>
+                  <option>Sports Events</option>
+                  <option>Cultural Programs</option>
+                  <option>Convocation & Results</option>
+                  <option>NSS / YRC Activities</option>
+                  <option>Workshops & Seminars</option>
+                  <option>Alumni Meet</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="padding:16px;">
+              <div id="adminGalleryGrid" class="gallery-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">
+                  <div style="font-size:2.5rem;margin-bottom:10px;">🖼️</div>
+                  <div style="font-weight:700;">No photos yet</div>
+                  <p style="font-size:0.78rem;margin-top:6px;">Upload photos above to build the college gallery.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div><!-- /dbAdmin -->
+
+
+<!-- ============================================================ -->
+<!--  FACULTY DASHBOARD  -->
+<!-- ============================================================ -->
+<div id="dbFaculty" class="db">
+  <div class="db-wrap">
+    <div class="sb">
+      <div class="sb-hdr" style="background:var(--orange);">
+        <div class="sb-icon">👨‍🏫</div>
+        <div><div class="sb-name">GPT Hubli</div><div class="sb-role" style="color:rgba(255,255,255,0.7);">Faculty Panel</div></div>
+      </div>
+      <div class="sb-menu">
+        <div class="sb-sec" data-fac-sec="overview">Overview</div>
+        <div class="sl act" data-fac="home" onclick="showSec('facHome',this)"><span class="sli">🏠</span>Dashboard</div>
+        <div class="sl" data-fac="myprofile" onclick="showSec('facMyProfile',this)"><span class="sli">👤</span>My Profile</div>
+        <div class="sl" data-fac="submitforms" onclick="showSec('facSubmitForms',this)"><span class="sli">📋</span>Submit Forms<span class="slb" id="facFormsCount" style="display:none;">0</span></div>
+        <div class="sl" data-fac="approvals" onclick="showSec('facApprovals',this)"><span class="sli">✅</span>Approvals<span class="slb">3</span></div>
+
+        <div class="sb-sec" data-fac-sec="student">Student</div>
+        <div class="sl" data-fac="stuprofile" onclick="showSec('facStuProfile',this)"><span class="sli">👤</span>Student Profile</div>
+        <div class="sl" data-fac="attendance" onclick="showSec('facAttendance',this)"><span class="sli">🗓️</span>Attendance Mgmt.</div>
+        <div class="sl" data-fac="timetable" onclick="showSec('facTimetable',this)"><span class="sli">📅</span>Upload Timetable</div>
+        <div class="sl" data-fac="results" onclick="showSec('facResults',this)"><span class="sli">📊</span>Results Mgmt.</div>
+
+        <div class="sb-sec" data-fac-sec="office">Office</div>
+        <div class="sl" data-fac="acm" onclick="showSec('facACM',this)"><span class="sli">📋</span>ACM Module</div>
+        <div class="sl" data-fac="exam" onclick="showSec('facExamModule',this)"><span class="sli">📚</span>Exam Module</div>
+        <div class="sl" data-fac="office" onclick="showSec('facOffice',this)"><span class="sli">🏢</span>Office Modules</div>
+        <div class="sl" data-fac="est" onclick="showSec('facEST',this)"><span class="sli">👨‍💼</span>EST Module</div>
+        <div class="sl" data-fac="cash" onclick="showSec('facCash',this)"><span class="sli">💵</span>Cash / Fees</div>
+        <div class="sl" data-fac="search" onclick="showSec('facSearch',this)"><span class="sli">🔍</span>Student Search</div>
+
+        <div class="sb-sec" data-fac-sec="other">Other</div>
+        <div class="sl" data-fac="staff" onclick="showSec('facStaff',this)"><span class="sli">👥</span>Staff</div>
+        <div class="sl" data-fac="activities" onclick="showSec('facActivities',this)"><span class="sli">🏛️</span>Activities</div>
+        <div class="sl" data-fac="gallery" onclick="showSec('facGallery',this)"><span class="sli">🖼️</span>Photo Gallery</div>
+
+        <!-- Role-specific items (shown only for relevant demo logins) -->
+        <div class="sl" data-fac="placement" style="display:none" onclick="showSec('facPlacement',this)"><span class="sli">💼</span>Placement Cell</div>
+        <div class="sl" data-fac="nss" style="display:none" onclick="showSec('facNSS',this)"><span class="sli">🤝</span>NSS</div>
+        <div class="sl" data-fac="yrc" style="display:none" onclick="showSec('facYRC',this)"><span class="sli">🩸</span>Youth Red Cross</div>
+        <div class="sl" data-fac="alumni" style="display:none" onclick="showSec('facAlumni',this)"><span class="sli">🎓</span>Alumni Cell</div>
+        <div class="sl" data-fac="sports" style="display:none" onclick="showSec('facSports',this)"><span class="sli">🏅</span>Sports</div>
+        <div class="sl" data-fac="welfare" style="display:none" onclick="showSec('facWelfare',this)"><span class="sli">🛡️</span>Student Welfare</div>
+        <div class="sl" data-fac="studentassoc" style="display:none" onclick="showSec('facStudentAssoc',this)"><span class="sli">🧑‍🤝‍🧑</span>Student Association</div>
+        <div class="sl" data-fac="stores" style="display:none" onclick="showSec('facStores',this)"><span class="sli">🏪</span>Stores</div>
+        <div class="sl" data-fac="accounts" style="display:none" onclick="showSec('facCash',this)"><span class="sli">📒</span>Accounts</div>
+        <div class="sl" data-fac="libupload" style="display:none" onclick="showSec('facLibraryUpload',this)"><span class="sli">📚</span>E-Book Upload</div>
+
+        <div class="sl" onclick="logout()"><span class="sli">🚪</span>Logout</div>
+      </div>
+    </div>
+    <div class="db-main">
+      <div class="db-topbar">
+        <div class="db-title" id="facTitle">Faculty Dashboard</div>
+        <div class="db-user">
+          <button class="notif-btn" onclick="toggleNP()">🔔<span class="nb-dot">3</span></button>
+          <div class="ava-upload-wrap" onclick="triggerPhotoUpload('fac')" title="Click to change profile photo">
+            <div class="ava" style="background:var(--orange);" id="facAva">SP</div>
+            <div class="ava-overlay">📷<br>Change</div>
+            <input type="file" id="facPhotoInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'fac')" />
+          </div>
+          <span class="db-uname">Staff Member</span>
+          <button class="btn ol" onclick="logout()" style="padding:6px 12px;font-size:0.72rem;">Logout</button>
+        </div>
+      </div>
+      <div class="db-content">
+
+        <!-- FAC HOME -->
+        <div id="facHome">
+          <div class="welcome-card wc" style="background:linear-gradient(120deg,#7a2d0a,var(--orange));">
+            <h2>Welcome, Staff Member 👋</h2>
+            <p>Civil Engineering · HOD / Department Admin · 3 pending approvals</p>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-ico bl">🎓</div><div><div class="kpi-num">312</div><div class="kpi-lbl">Dept. Students</div></div></div>
+            <div class="kpi"><div class="kpi-ico go">👨‍💼</div><div><div class="kpi-num">14</div><div class="kpi-lbl">Dept. Faculty</div></div></div>
+            <div class="kpi"><div class="kpi-ico re">✅</div><div><div class="kpi-num">3</div><div class="kpi-lbl">Pending Approvals</div></div></div>
+            <div class="kpi"><div class="kpi-ico gr">🗓️</div><div><div class="kpi-num">Today</div><div class="kpi-lbl">Attendance Pending</div><div class="kpi-trend dn">⚠ Mark attendance</div></div></div>
+          </div>
+        </div>
+
+        <!-- FAC APPROVALS -->
+        <div id="facApprovals" style="display:none;">
+          <div class="info-box">📋 Form submissions from your department require your approval before data is saved to the database.</div>
+          <div class="card">
+            <div class="card-hd"><h3>Department Approvals</h3></div>
+            <div class="app-item"><div class="app-av" style="background:var(--teal);">AM</div><div class="app-info"><div class="app-name">Student</div><div class="app-desc">NSS Registration · Civil · 2 hrs ago</div></div><div class="app-btns"><button class="btn gr" onclick="alert('Approved!')">✓</button><button class="btn re" onclick="alert('Rejected!')">✕</button></div></div>
+            <div class="app-item"><div class="app-av" style="background:var(--purple);">BG</div><div class="app-info"><div class="app-name">Student</div><div class="app-desc">Guest Faculty Workload Submission · ECE · 4 hrs ago</div></div><div class="app-btns"><button class="btn gr" onclick="alert('Approved! EST can now view workload.')">✓ Approve — EST Notified</button><button class="btn re" onclick="alert('Rejected!')">✕</button></div></div>
+            <div class="app-item"><div class="app-av" style="background:var(--green);">SK</div><div class="app-info"><div class="app-name">Staff Member</div><div class="app-desc">Sports Activity Record · Civil</div></div><div class="app-btns"><button class="btn gr" onclick="alert('Approved!')">✓</button><button class="btn re" onclick="alert('Rejected!')">✕</button></div></div>
+          </div>
+        </div>
+
+        <!-- ===== STAFF MY PROFILE ===== -->
+        <div id="facMyProfile" style="display:none;">
+          <div class="info-box">👤 <strong>My Staff Profile</strong> — Fill in your details accurately. After editing, submit for <strong>Principal approval</strong>. Data is saved to the database only after Principal approves. Fields marked <span style="color:red">*</span> are mandatory.</div>
+
+          <!-- PHOTO UPLOAD SECTION -->
+          <div class="card" style="padding:20px 24px;margin-bottom:16px;">
+            <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:14px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">📷 Staff Profile Photo</div>
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div class="photo-circle" id="facProfilePhotoCircle">📷</div>
+              <div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--navy);margin-bottom:6px;">Upload Your Photo</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Accepted: JPG, JPEG, PNG · Max size: <strong>100 KB</strong></div>
+                <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--orange);color:white;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;">
+                  📁 Choose Photo
+                  <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'fac')" />
+                </label>
+                <div id="facPhotoMsg" style="margin-top:8px;font-size:0.72rem;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DYNAMIC STAFF SECTIONS added by Root Admin -->
+          <div id="facDynamicStaffSections"></div>
+
+          <!-- Profile category tabs -->
+          <div class="tabs" id="myProfileTabs">
+            <button class="tab act" onclick="showMyProfileTab('mpTeaching',this)">👨‍🏫 Teaching Staff</button>
+            <button class="tab" onclick="showMyProfileTab('mpNonTeaching',this)">👷 Non-Teaching</button>
+            <button class="tab" onclick="showMyProfileTab('mpAdmin',this)">🗂️ Admin Staff</button>
+            <button class="tab" onclick="showMyProfileTab('mpGuest',this)">🧑‍💼 Guest Faculty</button>
+            <button class="tab" onclick="showMyProfileTab('mpTeachingPost',this)">📊 Teaching Posts</button>
+            <button class="tab" onclick="showMyProfileTab('mpNonTeachingPost',this)">📊 Non-Teaching Posts</button>
+            <button class="tab" onclick="showMyProfileTab('mpAdminPost',this)">📊 Admin Posts</button>
+          </div>
+
+          <!-- ===== TEACHING STAFF PROFILE ===== -->
+          <div id="mpTeaching">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">👨‍🏫 Teaching Staff Profile</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Approval required by Principal before saving to database</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpTeachingForm')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Teaching Staff')">📤 Submit for Principal Approval</button>
+                  <button class="btn go" onclick="addProfileColumn('mpTeachingExtra')">➕ Add Column</button>
+                </div>
+              </div>
+              <div id="mpTeachingForm">
+                <div class="form-row three">
+                  <div class="fg"><label>S.No.</label><input type="number" value="1" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Inst. Code <span style="color:red">*</span></label><input type="text" value="GPTH001" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Institution <span style="color:red">*</span></label><input type="text" value="Government Polytechnic Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>DDO Code</label><input type="text" placeholder="e.g. DDO/2025/001" class="pf-field" readonly /></div>
+                  <div class="fg"><label>HOA</label><input type="text" placeholder="Head of Account code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Employee Name <span style="color:red">*</span></label><input type="text" value="Staff Member" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>KGID No. <span style="color:red">*</span></label><input type="text" placeholder="Karnataka Govt. ID No." class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Branch <span style="color:red">*</span></label><input type="text" value="Civil Engineering" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Designation <span style="color:red">*</span></label><input type="text" value="HOD / Professor" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Group</label><input type="text" placeholder="e.g. Group A" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Present Basic Pay <span style="color:red">*</span></label><input type="text" placeholder="e.g. ₹56,100" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Scale of Pay</label><input type="text" placeholder="e.g. 56100-177500" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Gender <span style="color:red">*</span></label>
+                    <select class="pf-field" disabled><option>Male</option><option>Female</option><option>Other</option></select>
+                  </div>
+                  <div class="fg"><label>Physically Handicapped</label>
+                    <select class="pf-field" disabled><option>No</option><option>Yes</option></select>
+                  </div>
+                  <div class="fg"><label>Category (CAT) <span style="color:red">*</span></label>
+                    <select class="pf-field" disabled><option value="">-- Select --</option><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select>
+                  </div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Caste</label><input type="text" placeholder="Caste name" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Age</label><input type="number" placeholder="e.g. 42" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Date of Birth <span style="color:red">*</span></label><input type="date" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Service Join Date <span style="color:red">*</span></label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Reporting Date to This College</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Place of Work</label><input type="text" value="Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Length of Service</label><input type="text" placeholder="e.g. 15 Years 4 Months" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Residence Address <span style="color:red">*</span></label><input type="text" placeholder="Full address" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Pin Code</label><input type="text" placeholder="e.g. 580031" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Phone Number</label><input type="tel" placeholder="Landline" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Mobile Number <span style="color:red">*</span></label><input type="tel" placeholder="10-digit mobile" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Taluk Name</label><input type="text" placeholder="e.g. Hubli" class="pf-field" readonly /></div>
+                  <div class="fg"><label>District <span style="color:red">*</span></label><input type="text" placeholder="e.g. Dharwad" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Qualification <span style="color:red">*</span></label><input type="text" placeholder="e.g. B.E., M.Tech, Ph.D" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Aadhaar Number <span style="color:red">*</span></label><input type="text" placeholder="12-digit Aadhaar" maxlength="12" class="pf-field" readonly /></div>
+                  <div class="fg"><label>PAN Number <span style="color:red">*</span></label><input type="text" placeholder="e.g. ABCDE1234F" maxlength="10" class="pf-field" readonly /></div>
+                </div>
+                <!-- Extra columns added dynamically -->
+                <div id="mpTeachingExtra" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;"></div>
+              </div>
+              <div class="warn-box" style="margin-top:14px;">⚠️ Data is saved to the database <strong>only after Principal approval</strong>. Submitted data will appear as "Pending" until approved.</div>
+            </div>
+          </div>
+
+          <!-- ===== NON-TEACHING STAFF PROFILE ===== -->
+          <div id="mpNonTeaching" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">👷 Non-Teaching Staff Profile</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Approval required by Principal before saving to database</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpNonTeachingForm')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Non-Teaching Staff')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addProfileColumn('mpNonTeachingExtra')">➕ Add Column</button>
+                </div>
+              </div>
+              <div id="mpNonTeachingForm">
+                <div class="form-row three">
+                  <div class="fg"><label>S.No.</label><input type="number" value="1" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Inst. Code *</label><input type="text" value="GPTH001" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Institution *</label><input type="text" value="Government Polytechnic Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>DDO Code</label><input type="text" placeholder="DDO Code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>HOA</label><input type="text" placeholder="Head of Account" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Employee Name *</label><input type="text" placeholder="Full name" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>KGID No. *</label><input type="text" placeholder="KGID Number" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Branch *</label><input type="text" placeholder="Department" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Designation *</label><input type="text" placeholder="e.g. Lab Technician" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Group</label><input type="text" placeholder="Group B/C/D" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Present Basic Pay *</label><input type="text" placeholder="e.g. ₹29,600" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Scale of Pay</label><input type="text" placeholder="Pay scale range" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Gender *</label><select class="pf-field" disabled><option>Male</option><option>Female</option><option>Other</option></select></div>
+                  <div class="fg"><label>Physically Handicapped</label><select class="pf-field" disabled><option>No</option><option>Yes</option></select></div>
+                  <div class="fg"><label>Category (CAT) *</label><select class="pf-field" disabled><option value="">-- Select --</option><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Caste</label><input type="text" placeholder="Caste" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Age</label><input type="number" placeholder="Age" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Date of Birth *</label><input type="date" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Service Join Date *</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Reporting Date to This College</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Place of Work</label><input type="text" value="Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Length of Service</label><input type="text" placeholder="e.g. 8 Years 2 Months" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Residence Address *</label><input type="text" placeholder="Full address" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Pin Code</label><input type="text" placeholder="Pin code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Phone Number</label><input type="tel" placeholder="Landline" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Mobile Number *</label><input type="tel" placeholder="Mobile" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Taluk Name</label><input type="text" placeholder="Taluk" class="pf-field" readonly /></div>
+                  <div class="fg"><label>District *</label><input type="text" placeholder="District" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Qualification *</label><input type="text" placeholder="Highest qualification" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Aadhaar Number *</label><input type="text" placeholder="12-digit Aadhaar" maxlength="12" class="pf-field" readonly /></div>
+                  <div class="fg"><label>PAN Number *</label><input type="text" placeholder="PAN" maxlength="10" class="pf-field" readonly /></div>
+                </div>
+                <div id="mpNonTeachingExtra" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;"></div>
+              </div>
+              <div class="warn-box" style="margin-top:14px;">⚠️ Data saved to DB only after Principal approval.</div>
+            </div>
+          </div>
+
+          <!-- ===== ADMIN STAFF PROFILE ===== -->
+          <div id="mpAdmin" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">🗂️ Admin Staff Profile</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Approval required by Principal before saving to database</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpAdminForm')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Admin Staff')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addProfileColumn('mpAdminExtra')">➕ Add Column</button>
+                </div>
+              </div>
+              <div id="mpAdminForm">
+                <div class="form-row three">
+                  <div class="fg"><label>S.No.</label><input type="number" value="1" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Inst. Code *</label><input type="text" value="GPTH001" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Institution *</label><input type="text" value="Government Polytechnic Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>DDO Code</label><input type="text" placeholder="DDO Code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>HOA</label><input type="text" placeholder="Head of Account" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Employee Name *</label><input type="text" placeholder="Full name" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>KGID No. *</label><input type="text" placeholder="KGID Number" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Branch *</label><input type="text" placeholder="Section/Department" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Designation *</label><input type="text" placeholder="e.g. Jr. Superintendent" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Group</label><input type="text" placeholder="Group A/B/C" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Present Basic Pay *</label><input type="text" placeholder="Basic pay" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Scale of Pay</label><input type="text" placeholder="Pay scale" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Gender *</label><select class="pf-field" disabled><option>Male</option><option>Female</option><option>Other</option></select></div>
+                  <div class="fg"><label>Physically Handicapped</label><select class="pf-field" disabled><option>No</option><option>Yes</option></select></div>
+                  <div class="fg"><label>Category (CAT) *</label><select class="pf-field" disabled><option value="">-- Select --</option><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Caste</label><input type="text" placeholder="Caste" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Age</label><input type="number" placeholder="Age" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Date of Birth *</label><input type="date" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Service Join Date *</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Reporting Date to This College</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Place of Work</label><input type="text" value="Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Length of Service</label><input type="text" placeholder="e.g. 10 Years" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Residence Address *</label><input type="text" placeholder="Full address" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Pin Code</label><input type="text" placeholder="Pin code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Phone Number</label><input type="tel" placeholder="Landline" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Mobile Number *</label><input type="tel" placeholder="Mobile" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Taluk Name</label><input type="text" placeholder="Taluk" class="pf-field" readonly /></div>
+                  <div class="fg"><label>District *</label><input type="text" placeholder="District" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Qualification *</label><input type="text" placeholder="Qualification" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Aadhaar Number *</label><input type="text" placeholder="12-digit Aadhaar" maxlength="12" class="pf-field" readonly /></div>
+                  <div class="fg"><label>PAN Number *</label><input type="text" placeholder="PAN" maxlength="10" class="pf-field" readonly /></div>
+                </div>
+                <div id="mpAdminExtra" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;"></div>
+              </div>
+              <div class="warn-box" style="margin-top:14px;">⚠️ Data saved to DB only after Principal approval.</div>
+            </div>
+          </div>
+
+          <!-- ===== GUEST FACULTY PROFILE ===== -->
+          <div id="mpGuest" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">🧑‍💼 Guest Faculty Profile</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Approval required by Principal before saving to database</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpGuestForm')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Guest Faculty')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addProfileColumn('mpGuestExtra')">➕ Add Column</button>
+                </div>
+              </div>
+              <div id="mpGuestForm">
+                <div class="form-row three">
+                  <div class="fg"><label>S.No.</label><input type="number" value="1" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Inst. Code *</label><input type="text" value="GPTH001" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Institution *</label><input type="text" value="Government Polytechnic Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>DDO Code</label><input type="text" placeholder="DDO Code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>HOA</label><input type="text" placeholder="Head of Account" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Employee Name *</label><input type="text" placeholder="Full name" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>KGID No.</label><input type="text" placeholder="KGID (if applicable)" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Name of Branch *</label><input type="text" placeholder="Department" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Designation *</label><input type="text" value="Guest Faculty" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Group</label><input type="text" placeholder="Group" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Present Basic Pay</label><input type="text" placeholder="Honorarium / Pay" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Scale of Pay</label><input type="text" placeholder="Pay scale" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Gender *</label><select class="pf-field" disabled><option>Male</option><option>Female</option><option>Other</option></select></div>
+                  <div class="fg"><label>Physically Handicapped</label><select class="pf-field" disabled><option>No</option><option>Yes</option></select></div>
+                  <div class="fg"><label>Category (CAT) *</label><select class="pf-field" disabled><option value="">-- Select --</option><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Caste</label><input type="text" placeholder="Caste" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Age</label><input type="number" placeholder="Age" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Date of Birth *</label><input type="date" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Service Join Date</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Reporting Date to This College</label><input type="date" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Place of Work</label><input type="text" value="Hubli" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Length of Service</label><input type="text" placeholder="e.g. 2 Years" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Residence Address *</label><input type="text" placeholder="Full address" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Pin Code</label><input type="text" placeholder="Pin code" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Phone Number</label><input type="tel" placeholder="Landline" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Mobile Number *</label><input type="tel" placeholder="Mobile" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row three">
+                  <div class="fg"><label>Taluk Name</label><input type="text" placeholder="Taluk" class="pf-field" readonly /></div>
+                  <div class="fg"><label>District *</label><input type="text" placeholder="District" class="pf-field" readonly /></div>
+                  <div class="fg"><label>Qualification *</label><input type="text" placeholder="Qualification" class="pf-field" readonly /></div>
+                </div>
+                <div class="form-row">
+                  <div class="fg"><label>Aadhaar Number *</label><input type="text" placeholder="12-digit Aadhaar" maxlength="12" class="pf-field" readonly /></div>
+                  <div class="fg"><label>PAN Number *</label><input type="text" placeholder="PAN" maxlength="10" class="pf-field" readonly /></div>
+                </div>
+                <div id="mpGuestExtra" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;"></div>
+              </div>
+              <div class="warn-box" style="margin-top:14px;">⚠️ Data saved to DB only after Principal approval.</div>
+            </div>
+          </div>
+
+          <!-- ===== TEACHING STAFF POST STRENGTH ===== -->
+          <div id="mpTeachingPost" style="display:none;">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">📊 Teaching Staff Post Strength</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Edit and submit for Principal approval</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpTeachPostTable')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Teaching Staff Post')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addPostColumn('mpTeachPostRow','mpTeachPostHead')">➕ Add Column</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table id="mpTeachPostTable">
+                  <thead>
+                    <tr id="mpTeachPostHead">
+                      <th>Inst Code</th><th>Name of Institute</th><th>Program</th>
+                      <th>Sanctioned Post</th><th>Working (Filled)</th><th>Vacant</th>
+                      <th>Faculty Deputed Out</th><th>Inst. Code (Deputed Out)</th>
+                      <th>Faculty Deputed In</th><th>Inst. Code (Deputed In)</th>
+                      <th>On Deputation (Higher Studies)</th><th>On Maternity Leave</th>
+                      <th>Total Working</th><th>Principal (Regular/Incharge + Branch)</th><th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mpTeachPostRow">
+                    <tr>
+                      <td><input type="text" value="GPTH001" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Govt. Polytechnic Hubli" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Diploma Engineering" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="28" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="22" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="6" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="—" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="2" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="GPTH002" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="1" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="23" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Regular — CE" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="Remarks" class="pf-field tbl-inp" readonly /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button class="btn ol" style="margin-top:10px;" onclick="addPostRow('mpTeachPostRow',15)">+ Add Row</button>
+            </div>
+          </div>
+
+          <!-- ===== NON-TEACHING STAFF POST STRENGTH ===== -->
+          <div id="mpNonTeachingPost" style="display:none;">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">📊 Non-Teaching Staff Post Strength</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Edit and submit for Principal approval</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpNonTeachPostTable')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Non-Teaching Staff Post')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addPostColumn('mpNonTeachPostRow','mpNonTeachPostHead')">➕ Add Column</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table id="mpNonTeachPostTable">
+                  <thead>
+                    <tr id="mpNonTeachPostHead">
+                      <th>Inst. Code</th><th>Name of Institution</th><th>Taluk</th><th>District</th>
+                      <th>Branch Name</th><th>Designation</th><th>Sanctioned Post</th>
+                      <th>Working (Filled)</th><th>Vacant</th>
+                      <th>Staff Deputed Out</th><th>Inst. Code (Deputed Out)</th>
+                      <th>Staff Deputed In</th><th>Inst. Code (Deputed In)</th>
+                      <th>Present Working Strength</th><th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mpNonTeachPostRow">
+                    <tr>
+                      <td><input type="text" value="GPTH001" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Govt. Polytechnic Hubli" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Hubli" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Dharwad" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Workshop" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Lab Technician" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="10" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="8" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="2" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="—" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="—" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="8" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="Remarks" class="pf-field tbl-inp" readonly /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button class="btn ol" style="margin-top:10px;" onclick="addPostRow('mpNonTeachPostRow',15)">+ Add Row</button>
+            </div>
+          </div>
+
+          <!-- ===== ADMIN STAFF POST STRENGTH ===== -->
+          <div id="mpAdminPost" style="display:none;">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">📊 Administration Staff Post Strength</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 0;">Edit and submit for Principal approval</p></div>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn ol" onclick="toggleProfileEdit('mpAdminPostTable')">✏️ Edit</button>
+                  <button class="btn pr" onclick="submitProfileApproval('Admin Staff Post')">📤 Submit for Approval</button>
+                  <button class="btn go" onclick="addPostColumn('mpAdminPostRow','mpAdminPostHead')">➕ Add Column</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table id="mpAdminPostTable">
+                  <thead>
+                    <tr id="mpAdminPostHead">
+                      <th>Inst. Code</th><th>Name of Institution</th><th>Taluk</th><th>District</th>
+                      <th>Branch Name</th><th>Designation</th><th>Sanctioned Post</th>
+                      <th>Working (Filled)</th><th>Vacant</th>
+                      <th>Staff Deputed Out</th><th>Inst. Code (Deputed Out)</th>
+                      <th>Staff Deputed In</th><th>Inst. Code (Deputed In)</th>
+                      <th>Present Working Strength</th><th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mpAdminPostRow">
+                    <tr>
+                      <td><input type="text" value="GPTH001" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Govt. Polytechnic Hubli" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Hubli" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Dharwad" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Administration" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" value="Jr. Superintendent" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="6" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="5" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="1" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="—" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="0" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="—" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="number" value="5" class="pf-field tbl-inp" readonly /></td>
+                      <td><input type="text" placeholder="Remarks" class="pf-field tbl-inp" readonly /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button class="btn ol" style="margin-top:10px;" onclick="addPostRow('mpAdminPostRow',15)">+ Add Row</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FAC SUBMIT FORMS (shared forms for all staff) -->
+        <div id="facSubmitForms" style="display:none;">
+          <div class="info-box">📋 <strong>Forms Shared With You</strong> — Forms shared by Root Admin appear here. High-priority forms are marked with ⚠️ or 🚨.</div>
+          <div id="facSharedFormsList">
+            <div id="facFormsEmpty" style="text-align:center;padding:48px;color:var(--text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+              <div style="font-weight:700;font-size:0.9rem;">No forms shared with you yet</div>
+              <p style="font-size:0.78rem;margin-top:6px;">When Root Admin shares a form, it will appear here instantly.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC STUDENT PROFILE -->
+        <div id="facStuProfile" style="display:none;">
+          <!-- Branch tabs: restricted by default, unlocked for all-branch roles via JS -->
+          <div id="stuProfileBranchTabs" class="tabs">
+            <button class="tab act" onclick="showStuBranch('Civil',this)">Civil Engg.</button>
+            <button class="tab" id="stuTabCSE" onclick="showStuBranch('CSE',this)">CSE</button>
+            <button class="tab" id="stuTabECE" onclick="showStuBranch('ECE',this)">ECE</button>
+            <button class="tab" id="stuTabMech" onclick="showStuBranch('Mech',this)">Mechanical</button>
+          </div>
+          <div id="stuProfileViewOnly" style="display:none;">
+            <div class="info-box" style="margin-bottom:12px;">👁️ <strong>View Only</strong> — You can view all student data but cannot edit any records.</div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <h3 id="stuProfileBranchTitle">Civil Engineering — Student List</h3>
+              <div class="card-acts"><div class="sbar" style="width:220px;"><span class="si">🔍</span><input type="text" placeholder="Search students…" /></div></div>
+            </div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Year</th><th>Attendance</th><th>CGPA</th><th>Status</th><th>View</th></tr></thead>
+            <tbody id="stuProfileTableBody">
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Civil</td><td>3rd Year</td><td>88%</td><td>7.4</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student profile: Student\nReg: GP2022CIVIL018\nBranch: Civil Engg.\nCGPA: 7.4 | Attendance: 88%')">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2023CIVIL005</td><td><strong>Student</strong></td><td>Civil</td><td>2nd Year</td><td>76%</td><td>6.8</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student profile: Student\nReg: GP2023CIVIL005\nBranch: Civil Engg.\nCGPA: 6.8 | Attendance: 76%')">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2024CIVIL031</td><td><strong>Student</strong></td><td>Civil</td><td>1st Year</td><td>91%</td><td>8.1</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student profile: Student\nReg: GP2024CIVIL031\nBranch: Civil Engg.\nCGPA: 8.1 | Attendance: 91%')">View</button></td></tr>
+              <tr style="display:none" class="branch-CSE"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>2nd Year</td><td>82%</td><td>7.9</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student: Student | CSE | CGPA: 7.9')">View</button></td></tr>
+              <tr style="display:none" class="branch-CSE"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>3rd Year</td><td>79%</td><td>8.3</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student: Student | CSE | CGPA: 8.3')">View</button></td></tr>
+              <tr style="display:none" class="branch-ECE"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>2nd Year</td><td>85%</td><td>7.2</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student: Staff Member | ECE | CGPA: 7.2')">View</button></td></tr>
+              <tr style="display:none" class="branch-ECE"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>ECE</td><td>3rd Year</td><td>90%</td><td>8.6</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student: Student | ECE | CGPA: 8.6')">View</button></td></tr>
+              <tr style="display:none" class="branch-Mech"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>Mech</td><td>2nd Year</td><td>74%</td><td>6.5</td><td><span class="badge pending">Low Att.</span></td><td><button class="btn ol" onclick="alert('Student: Student | Mech | CGPA: 6.5')">View</button></td></tr>
+              <tr style="display:none" class="branch-Mech"><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Registered User</strong></td><td>Mech</td><td>3rd Year</td><td>88%</td><td>7.7</td><td><span class="badge approved">Active</span></td><td><button class="btn ol" onclick="alert('Student: Registered User | Mech | CGPA: 7.7')">View</button></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- FAC ATTENDANCE MANAGEMENT -->
+        <div id="facAttendance" style="display:none;">
+          <div class="warn-box">⚠️ <strong>Restricted Access:</strong> Only Teaching Staff can access Attendance Management. You can only view & manage attendance for your assigned subjects. HOD is notified of all modifications.</div>
+          <div id="attStep1">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:16px;">📋 Setup Attendance Session</h3>
+              <div class="form-row">
+                <div class="fg"><label>Branch</label><select id="attBranch"><option value="">Select Branch</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>Electronics &amp; Communication Engineering</option><option>Mechanical Engineering</option></select></div>
+                <div class="fg"><label>Subject</label><select id="attSubject"><option value="">Select Subject</option><option>Data Structures (CS301)</option><option>Database Systems (CS302)</option><option>Computer Networks (CS303)</option><option>Engineering Maths (MA201)</option></select></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Date</label><input type="date" id="attDate" /></div>
+                <div class="fg"><label>Time</label><input type="time" id="attTime" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Class Type</label><select id="attClassType" onchange="toggleBatch()"><option>Regular Class</option><option>Batch-wise Class</option></select></div>
+                <div class="fg" id="batchField" style="display:none;"><label>Batch</label><select><option>Batch 1</option><option>Batch 2</option></select></div>
+              </div>
+              <div class="info-box" style="margin-top:4px;">ℹ️ <strong>Note:</strong> Student information (Parent mobile, Batch) is collected <strong>one time only</strong> by the subject lecturer and persists till semester end.</div>
+              <div style="display:flex;gap:10px;margin-top:8px;">
+                <button class="btn pr" onclick="startAttendance()">Start Attendance →</button>
+                <button class="btn go" onclick="showSec('facStuInfo',null)">📝 Update Student Info</button>
+                <button class="btn re" onclick="alert('Semester ended for this subject. Data archived.')">🔒 End Semester</button>
+              </div>
+            </div>
+          </div>
+          <!-- Attendance marking UI -->
+          <div id="attMarkUI" style="display:none;">
+            <div class="card">
+              <div class="card-hd">
+                <h3 id="attSessionLabel">Attendance — CS301 · 25 Feb 2026 · 09:00 AM</h3>
+                <div class="card-acts">
+                  <button class="btn go" onclick="submitAtt()">Submit Attendance</button>
+                  <button class="btn ol" onclick="document.getElementById('attMarkUI').style.display='none';document.getElementById('attStep1').style.display='block';">← Back</button>
+                </div>
+              </div>
+              <div class="warn-box" style="margin:10px 18px 0;"><b>⏳ Wait Option:</b> Marking "Wait" gives a 1-hour window (till 6:00 PM). If not updated, the student is automatically marked <b>Absent</b>. Staff will be reminded every hour.</div>
+              <div class="att-grid" id="attGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC STU INFO (for one-time data collection) -->
+        <div id="facStuInfo" style="display:none;">
+          <div class="card" style="padding:22px;">
+            <div class="card-hd" style="border:none;padding:0 0 16px 0;"><h3>📝 Update Student Information (One-time)</h3></div>
+            <div class="info-box">This data (Parent Mobile & Batch) is collected once and used for all attendance cycles till semester end. Enter Reg. No. to auto-fetch student details.</div>
+            <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;">
+              <div class="fg" style="flex:1;margin:0;"><label>Register Number</label><input type="text" id="stuInfoReg" placeholder="Enter Reg. No." /></div>
+              <button class="btn pr" style="height:40px;" onclick="fetchStuInfo()">Fetch →</button>
+            </div>
+            <div id="stuInfoFields" style="display:none;">
+              <div class="form-row">
+                <div class="fg"><label>Student (Auto)</label><input type="text" id="siName" readonly style="background:var(--bg);" /></div>
+                <div class="fg"><label>Father's Name (Auto)</label><input type="text" id="siFather" readonly style="background:var(--bg);" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Parent Mobile Number <span style="color:red;">*</span></label><input type="text" id="siMobile" placeholder="Enter parent mobile (mandatory)" /></div>
+                <div class="fg"><label>Batch <span style="color:red;">*</span></label><select id="siBatch"><option value="">Select Batch (mandatory)</option><option>Batch 1</option><option>Batch 2</option></select></div>
+              </div>
+              <button class="btn gr" onclick="alert('Student info saved! Persists till semester end.')">💾 Save Info</button>
+            </div>
+          </div>
+          <button class="btn ol" style="margin-top:10px;" onclick="showSec('facAttendance',null)">← Back to Attendance</button>
+        </div>
+
+        <!-- FAC ACM -->
+        <div id="facACM" style="display:none;">
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" onclick="showFacACMTab('facAcmCerts',this)">📄 Certificates</button>
+            <button class="tab" onclick="showFacACMTab('facAcmRepeaters',this)">🔁 Repeaters</button>
+            <button class="tab" onclick="showFacACMTab('facAcmNOC',this)">📃 NOC Generation</button>
+          </div>
+
+          <!-- Certificates -->
+          <div id="facAcmCerts">
+            <!-- Incoming Student Certificate Requests -->
+            <div class="card" style="margin-bottom:16px;border-left:4px solid #1d4ed8;">
+              <div class="card-hd"><h3>📥 Incoming Certificate Requests from Students</h3><div class="card-acts"><span class="badge pending" id="acmCertBadge">4 Pending</span></div></div>
+              <table>
+                <thead><tr><th>Req. ID</th><th>Student</th><th>Reg. No.</th><th>Certificate Type</th><th>Purpose</th><th>Submitted On</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>—</td><td><span class="badge info">NOC</span></td><td>Internship at ISRO</td><td>28 Feb 2025</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:4px;"><button class="btn gr" onclick="alert('NOC approved! Student notified via WhatsApp & Email.')">✓ Approve</button><button class="btn re" onclick="alert('Rejected. Reason sent to student.')">✕</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>GP2024CIVIL031</td><td><span class="badge active">TC</span></td><td>Admission in another college</td><td>25 Feb 2025</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:4px;"><button class="btn gr" onclick="alert('TC approved! Student notified.')">✓ Approve</button><button class="btn re" onclick="alert('Rejected.')">✕</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>GP2023CIVIL005</td><td><span class="badge go">Study Cert.</span></td><td>Bank loan</td><td>20 Feb 2025</td><td><span class="badge active">In Progress</span></td><td><div style="display:flex;gap:4px;"><button class="btn pr" onclick="alert('Certificate ready! Student notified.')">📄 Mark Ready</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>—</td><td><span class="badge go">Studying Cert.</span></td><td>Railway concession</td><td>15 Feb 2025</td><td><span class="badge approved">Ready</span></td><td><div style="display:flex;gap:4px;"><button class="btn ol" onclick="alert('Certificate collected by student.')">✅ Collected</button></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="two-col">
+              <div class="upload-zone" onclick="alert('Upload Excel student database')"><div class="uzi">📊</div><p><strong>Upload Student Database</strong></p><p>Excel file import</p></div>
+              <div class="upload-zone" onclick="alert('Upload certificate template')"><div class="uzi">📄</div><p><strong>Upload Certificate Template</strong></p><p>.docx or .pdf</p></div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="card-hd"><h3>Generate Certificate</h3></div>
+              <div style="padding:16px;">
+                <div class="form-row" style="align-items:flex-end;">
+                  <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter Reg. No." /></div>
+                  <div class="fg"><label>Certificate Type</label><select><option>Transfer Certificate</option><option>Study Certificate</option><option>Studying Certificate</option></select></div>
+                  <button class="btn pr" style="height:40px;margin-top:20px;" onclick="alert('Certificate generated! Ready to print.')">Generate →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Repeaters (same as Root Admin ACM) -->
+          <div id="facAcmRepeaters" style="display:none;">
+            <div class="info-box">🔁 <strong>Repeaters Module</strong> — Track and manage students who are repeating a semester or year.</div>
+            <div class="card">
+              <div class="card-hd">
+                <h3>Repeaters List</h3>
+                <div class="card-acts">
+                  <div class="sbar" style="width:220px;"><span class="si">🔍</span><input type="text" placeholder="Search by Reg. No. or Name…" /></div>
+                  <select style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;margin-left:6px;">
+                    <option>All Branches</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>Electronics &amp; Comm. Engineering</option><option>Mechanical Engineering</option>
+                  </select>
+                  <button class="btn pr" style="margin-left:6px;" onclick="alert('Add Repeater record')">+ Add</button>
+                </div>
+              </div>
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Student</th><th>Branch</th><th>Repeating Sem.</th><th>Year</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>Semester 4</td><td>2025-26</td><td>Failed — 2 subjects</td><td><span class="badge pending">Repeating</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2020CIVIL009</td><td><strong>Registered User</strong></td><td>Civil</td><td>Semester 5</td><td>2025-26</td><td>Medical Leave</td><td><span class="badge pending">Repeating</span></td><td><div style="display:flex;gap:5px;"><button class="btn ol">View</button><button class="btn pr">Edit</button></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- NOC Generation (same as Root Admin ACM) -->
+          <div id="facAcmNOC" style="display:none;">
+            <div class="info-box">📃 <strong>NOC (No Objection Certificate) Generation</strong> — Student NOC requests appear below. Review and approve/reject, or generate manually. All NOCs are logged with date, time and issuing authority.</div>
+            <!-- Incoming NOC Requests -->
+            <div class="card" style="margin-bottom:16px;border-left:4px solid #1d4ed8;">
+              <div class="card-hd"><h3>📥 Student NOC Requests</h3><div class="card-acts"><span class="badge pending">2 Pending</span></div></div>
+              <table>
+                <thead><tr><th>Req. ID</th><th>Student</th><th>Reg. No.</th><th>Purpose</th><th>Event / Org.</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>—</td><td>Internship</td><td>ISRO, Bengaluru</td><td>15 Mar 2025</td><td>30 Apr 2025</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:4px;"><button class="btn pr" onclick="alert('NOC generated & sent to student!\nRef: NOC/GPH/2025/082')">📄 Generate & Approve</button><button class="btn re" onclick="alert('Rejected. Reason sent to student.')">✕</button></div></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>—</td><td>Sports Event</td><td>State Kho-Kho Championship</td><td>05 Mar 2025</td><td>08 Mar 2025</td><td><span class="badge pending">Pending</span></td><td><div style="display:flex;gap:4px;"><button class="btn pr" onclick="alert('NOC generated!\nRef: NOC/GPH/2025/077')">📄 Generate & Approve</button><button class="btn re" onclick="alert('Rejected.')">✕</button></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="two-col" style="margin-bottom:16px;">
+              <div class="upload-zone" onclick="alert('Upload NOC template (.docx / .pdf)')"><div class="uzi">📄</div><p><strong>Upload NOC Template</strong></p><p>Drop template here or click to browse</p></div>
+              <div class="card" style="padding:20px;margin:0;">
+                <h3 style="font-family:'Libre Baskerville',serif;font-size:0.9rem;color:var(--navy);margin-bottom:14px;">🔍 NOC Lookup</h3>
+                <div class="fg"><label>Register Number</label><input type="text" placeholder="Enter Reg. No." /></div>
+                <div class="fg"><label>NOC Purpose</label>
+                  <select><option>Higher Education</option><option>Employment / Job Application</option><option>Bank / Loan Purpose</option><option>Scholarship Application</option><option>Travel / Visa</option><option>Other</option></select>
+                </div>
+                <button class="btn pr" style="width:100%;" onclick="alert('NOC generated! Log saved to database with timestamp.')">Generate NOC →</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>NOC Print Log</h3></div>
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Student</th><th>NOC Purpose</th><th>Issued By</th><th>Date &amp; Time</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>Higher Education</td><td>ACM Staff</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">24 Feb 2026 · 10:30 AM</td><td><button class="btn ol">Re-print</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC EXAM MODULE -->
+        <div id="facExamModule" style="display:none;">
+          <div class="info-box">📚 <strong>Exam Module</strong> — Manage exam-related records for your department. PDC and Attendance Shortage formats can be uploaded as PDF templates.</div>
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" onclick="showFacExamTab('facExKeylist',this)">🗝️ Keylist</button>
+            <button class="tab" onclick="showFacExamTab('facExNotEligible',this)">🚫 Not Eligible</button>
+            <button class="tab" onclick="showFacExamTab('facExPDC',this)">🎓 PDC</button>
+            <button class="tab" onclick="showFacExamTab('facExAttShort',this)">⚠️ Attendance Shortage</button>
+          </div>
+
+          <!-- Keylist -->
+          <div id="facExKeylist">
+            <div class="info-box">🗝️ <strong>Keylist</strong> — Upload or manage answer key lists for exam subjects.</div>
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload Keylist</h3>
+              <div class="form-row">
+                <div class="fg"><label>Subject Name <span style="color:red">*</span></label><input type="text" placeholder="e.g. Data Structures" /></div>
+                <div class="fg"><label>Subject Code</label><input type="text" placeholder="e.g. CS301" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Semester</label><select><option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option><option>Sem 5</option><option>Sem 6</option></select></div>
+                <div class="fg"><label>Exam Session</label><select><option>APR/MAY 2026</option><option>NOV/DEC 2025</option><option>APR/MAY 2025</option></select></div>
+              </div>
+              <div class="fg"><label>Upload Keylist (PDF/Image)</label><input type="file" accept=".pdf,.jpg,.png" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+              <button class="btn pr" onclick="alert('✅ Keylist uploaded successfully!')">📤 Upload Keylist</button>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>Uploaded Keylists</h3></div>
+              <table><thead><tr><th>Subject</th><th>Code</th><th>Semester</th><th>Session</th><th>Uploaded</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Data Structures</strong></td><td>CS301</td><td>Sem 3</td><td>NOV/DEC 2025</td><td>22 Feb 2026</td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Opening keylist…')">📄 View</button><button class="btn re">🗑️</button></div></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <!-- Not Eligible -->
+          <div id="facExNotEligible" style="display:none;">
+            <div class="info-box">🚫 <strong>Not Eligible List</strong> — Students with attendance below 75% who are not eligible to appear for exams.</div>
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <div class="form-row" style="align-items:flex-end;">
+                <div class="fg"><label>Branch</label><select><option>All Branches</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>ECE</option><option>Mechanical Engineering</option></select></div>
+                <div class="fg"><label>Semester</label><select><option>All Semesters</option><option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option><option>Sem 5</option><option>Sem 6</option></select></div>
+                <button class="btn pr" style="height:40px;margin-top:20px;" onclick="alert('List generated!')">Generate List →</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>Not Eligible Students</h3><div class="card-acts"><button class="btn go" onclick="alert('List exported to PDF!')">📄 Export PDF</button></div></div>
+              <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Sem</th><th>Attendance %</th><th>Shortage Subjects</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>MECH</td><td>Sem 3</td><td style="color:var(--red);font-weight:700;">62%</td><td>3 subjects</td><td><span class="badge rejected">Not Eligible</span></td></tr>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>Sem 4</td><td style="color:var(--red);font-weight:700;">71%</td><td>1 subject</td><td><span class="badge rejected">Not Eligible</span></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <!-- PDC with upload -->
+          <div id="facExPDC" style="display:none;">
+            <div class="info-box">🎓 <strong>PDC — Provisional Degree Certificate</strong> — Student PDC requests appear below. Verify eligibility, then generate PDC. Upload the official PDC format below.</div>
+
+            <!-- ✅ Incoming PDC Requests from Students -->
+            <div class="card" style="margin-bottom:18px;border-left:4px solid #be185d;">
+              <div class="card-hd">
+                <h3>📥 Student PDC Requests</h3>
+                <div class="card-acts"><span class="badge pending" style="background:#be185d;color:white;font-size:0.72rem;padding:4px 10px;">3 Pending</span></div>
+              </div>
+              <table>
+                <thead>
+                  <tr><th>Req. ID</th><th>Student</th><th>Reg. No.</th><th>Branch</th><th>Year of Passing</th><th>Purpose</th><th>Submitted On</th><th>Eligibility</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                    <td><strong>Student</strong></td>
+                    <td>—</td>
+                    <td>CSE</td><td>2025</td>
+                    <td>Job application</td>
+                    <td>01 Mar 2025</td>
+                    <td><span class="badge approved">✅ Eligible</span></td>
+                    <td>
+                      <div style="display:flex;gap:4px;">
+                        <button class="btn pr" onclick="alert('PDC generated for Student (—)!\nRef: PDC/GPH/2025/088\nStudent notified via WhatsApp & Email.')">📄 Generate PDC</button>
+                        <button class="btn re" onclick="alert('Request rejected. Reason sent to student.')">✕ Reject</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                    <td><strong>Student</strong></td>
+                    <td>GP2022CIVIL018</td>
+                    <td>Civil</td><td>2025</td>
+                    <td>Higher studies</td>
+                    <td>27 Feb 2025</td>
+                    <td><span class="badge pending">🔍 Verifying</span></td>
+                    <td>
+                      <div style="display:flex;gap:4px;">
+                        <button class="btn gr" onclick="this.closest('tr').cells[7].innerHTML='<span class=\'badge approved\'>✅ Eligible</span>';alert('Student marked as eligible. Ready to generate PDC.')">✓ Mark Eligible</button>
+                        <button class="btn re" onclick="alert('Marked ineligible. Student notified:\nPDC cannot be issued — please clear all pending requirements.')">✕ Ineligible</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr style="background:#fff5f5;">
+                    <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td>
+                    <td><strong>Registered User</strong></td>
+                    <td>—</td>
+                    <td>Mech</td><td>2025</td>
+                    <td>Govt. exam</td>
+                    <td>22 Feb 2025</td>
+                    <td><span class="badge" style="background:#dc2626;color:white;">❌ Backlog</span></td>
+                    <td>
+                      <button class="btn re" onclick="alert('Student notified:\nPDC cannot be issued — Pending backlog in Sem 5.\nPlease clear the backlog and reapply.')">📩 Notify Student</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card" style="padding:22px;margin-bottom:16px;border-left:4px solid var(--purple);">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload PDC Format</h3>
+              <div class="info-box" style="margin-bottom:14px;">Upload the official PDC template (PDF/DOCX). This format will be used to generate PDCs for all eligible students.</div>
+              <div class="fg"><label>Upload PDC Template (PDF/DOCX) <span style="color:red">*</span></label><input type="file" accept=".pdf,.docx" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+              <button class="btn pu" onclick="alert('✅ PDC format uploaded! Now use lookup below to generate student PDCs.')">📤 Upload PDC Format</button>
+            </div>
+            <div class="card" style="padding:22px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">🔍 PDC Lookup &amp; Generate</h3>
+              <div class="fg"><label>Register Number <span style="color:red">*</span></label><input type="text" placeholder="Enter Reg. No. to generate PDC" /></div>
+              <button class="btn pu" onclick="alert('PDC generated using uploaded format! Ready to print and issue.')">Generate PDC →</button>
+            </div>
+          </div>
+
+          <!-- Attendance Shortage with upload -->
+          <div id="facExAttShort" style="display:none;">
+            <div class="info-box">⚠️ <strong>Attendance Shortage</strong> — Manage students with attendance below 75%. Upload the official shortage format below.</div>
+            <div class="card" style="padding:22px;margin-bottom:16px;border-left:4px solid var(--orange);">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload Attendance Shortage Format</h3>
+              <div class="info-box" style="margin-bottom:14px;">Upload the official attendance shortage notice template (PDF/DOCX) to be used for generating shortage notices.</div>
+              <div class="fg"><label>Upload Shortage Format (PDF/DOCX) <span style="color:red">*</span></label><input type="file" accept=".pdf,.docx" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" /></div>
+              <button class="btn go" onclick="alert('✅ Attendance shortage format uploaded!')">📤 Upload Format</button>
+            </div>
+            <div class="card">
+              <div class="card-hd">
+                <h3>Students with Attendance Shortage</h3>
+                <div class="card-acts">
+                  <select style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                    <option>All Branches</option><option>Civil Engineering</option><option>Computer Science Engineering</option><option>ECE</option><option>Mechanical Engineering</option>
+                  </select>
+                  <button class="btn go" onclick="alert('Shortage list exported to PDF using uploaded format!')">📄 Export Shortage List</button>
+                </div>
+              </div>
+              <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Sem</th><th>Overall Att. %</th><th>Subjects Below 75%</th><th>Fine</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>MECH</td><td>Sem 3</td><td style="color:var(--red);font-weight:700;">62%</td><td>Physics, Maths, Drawing</td><td>₹ 2000</td><td><button class="btn go" onclick="alert('Shortage notice generated using uploaded format!')">📄 Generate Notice</button></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC OFFICE MODULES -->
+        <div id="facOffice" style="display:none;">
+          <div class="mod-grid">
+            <div class="mod-card bl"><div class="mi">📚</div><h4>Exams Module</h4><p>Results, PDC, Attendance Shortage, Exam Fees</p></div>
+            <div class="mod-card go"><div class="mi">💰</div><h4>Accounts</h4><p>Department accounts & financial records</p></div>
+            <div class="mod-card te"><div class="mi">📖</div><h4>Library</h4><p>Library records, book issues & returns</p></div>
+            <div class="mod-card pu"><div class="mi">📦</div><h4>Stores</h4><p>Department stores & inventory</p></div>
+          </div>
+        </div>
+
+        <!-- FAC EST MODULE -->
+        <div id="facEST" style="display:none;">
+          <div class="info-box">🔒 <strong>EST Module:</strong> EST staff can <strong>view</strong> and <strong>add/remove</strong> employee records. All additions and removals require <strong>Principal approval</strong> before the database is updated.</div>
+          <div class="tabs">
+            <button class="tab act" onclick="showESTTab('estTeaching',this)">👨‍🏫 Teaching Staff</button>
+            <button class="tab" onclick="showESTTab('estNonTeaching',this)">👷 Non-Teaching</button>
+            <button class="tab" onclick="showESTTab('estAdmin',this)">🏢 Admin Staff</button>
+            <button class="tab" onclick="showESTTab('estGuest',this)">🎓 Guest Faculty</button>
+            <button class="tab" onclick="showESTTab('estGroupD',this)">🧹 Group D / Outsource</button>
+            <button class="tab" onclick="showESTTab('estCommittees',this)">🏛️ Committees</button>
+            <button class="tab" onclick="showESTTab('estOfficers',this)">👔 Officers</button>
+          </div>
+
+          <!-- Teaching Staff -->
+          <div id="estTeaching">
+            <div class="card">
+              <div class="card-hd">
+                <h3>Teaching Staff <span id="estTHCount" class="slb" style="background:var(--primary);margin-left:6px;"></span></h3>
+                <div class="card-acts">
+                  <button class="btn pr" onclick="openAddEmpModal('TH')">➕ Add Employee</button>
+                  <button class="btn ol" onclick="alert('Exporting Teaching Staff data...')">⬇️ Export</button>
+                </div>
+              </div>
+              <div class="info-box" style="margin:10px 18px;">👁️ Click any row to view full details. Use <strong>➕ Add Employee</strong> to add new staff or <strong>🗑</strong> to remove. All changes need Principal approval.</div>
+              <div style="overflow-x:auto;"><table class="est-ro"><thead><tr>
+                <th>S.No.</th><th>Name</th><th>KGID</th><th>Branch</th><th>Designation</th><th>Group</th><th>Basic Pay</th><th>Gender</th><th>DOB</th><th>Category</th><th>Join Date</th><th>Mobile</th><th>Status</th><th>Action</th>
+              </tr></thead><tbody id="estTHBody"></tbody></table></div>
+            </div>
+          </div>
+
+          <!-- Non-Teaching -->
+          <div id="estNonTeaching" style="display:none;">
+            <div class="card">
+              <div class="card-hd">
+                <h3>Non-Teaching Staff <span id="estNTCount" class="slb" style="background:var(--teal);margin-left:6px;"></span></h3>
+                <div class="card-acts">
+                  <button class="btn pr" onclick="openAddEmpModal('NT')">➕ Add Employee</button>
+                  <button class="btn ol" onclick="alert('Exporting Non-Teaching Staff data...')">⬇️ Export</button>
+                </div>
+              </div>
+              <div class="info-box" style="margin:10px 18px;">👁️ Click any row to view full details. Use <strong>➕ Add Employee</strong> to add new staff or <strong>🗑</strong> to remove.</div>
+              <div style="overflow-x:auto;"><table class="est-ro"><thead><tr>
+                <th>S.No.</th><th>Name</th><th>KGID</th><th>Dept.</th><th>Designation</th><th>Group</th><th>Basic Pay</th><th>Gender</th><th>DOB</th><th>Category</th><th>Join Date</th><th>Mobile</th><th>Status</th><th>Action</th>
+              </tr></thead><tbody id="estNTBody"></tbody></table></div>
+            </div>
+          </div>
+
+          <!-- Admin Staff -->
+          <div id="estAdmin" style="display:none;">
+            <div class="card">
+              <div class="card-hd">
+                <h3>Administrative Staff <span id="estADCount" class="slb" style="background:var(--purple);margin-left:6px;"></span></h3>
+                <div class="card-acts">
+                  <button class="btn pr" onclick="openAddEmpModal('AD')">➕ Add Employee</button>
+                  <button class="btn ol" onclick="alert('Exporting Admin Staff data...')">⬇️ Export</button>
+                </div>
+              </div>
+              <div class="info-box" style="margin:10px 18px;">👁️ Click any row to view full details. Use <strong>➕ Add Employee</strong> to add new staff or <strong>🗑</strong> to remove.</div>
+              <div style="overflow-x:auto;"><table class="est-ro"><thead><tr>
+                <th>S.No.</th><th>Name</th><th>KGID</th><th>Office</th><th>Designation</th><th>Group</th><th>Basic Pay</th><th>Gender</th><th>DOB</th><th>Category</th><th>Join Date</th><th>Mobile</th><th>Status</th><th>Action</th>
+              </tr></thead><tbody id="estADBody"></tbody></table></div>
+            </div>
+          </div>
+
+          <!-- Guest Faculty -->
+          <div id="estGuest" style="display:none;">
+            <div class="card">
+              <div class="card-hd">
+                <h3>Guest Faculty <span id="estGFCount" class="slb" style="background:var(--orange);margin-left:6px;"></span></h3>
+                <div class="card-acts">
+                  <button class="btn pr" onclick="openAddEmpModal('GF')">➕ Add Employee</button>
+                  <button class="btn ol" onclick="alert('Exporting Guest Faculty data...')">⬇️ Export</button>
+                </div>
+              </div>
+              <div class="info-box" style="margin:10px 18px;">👁️ Click any row to view full details. Use <strong>➕ Add Employee</strong> to add new staff or <strong>🗑</strong> to remove.</div>
+              <div style="overflow-x:auto;"><table class="est-ro"><thead><tr>
+                <th>S.No.</th><th>Name</th><th>Dept.</th><th>Designation</th><th>Basic Pay</th><th>Gender</th><th>DOB</th><th>Category</th><th>Join Date</th><th>Mobile</th><th>Qualification</th><th>Status</th><th>Action</th>
+              </tr></thead><tbody id="estGFBody"></tbody></table></div>
+            </div>
+          </div>
+
+          <!-- Group D -->
+          <div id="estGroupD" style="display:none;">
+            <div class="card">
+              <div class="card-hd">
+                <h3>Group D / Outsource <span id="estGDCount" class="slb" style="background:#44403c;margin-left:6px;"></span></h3>
+                <div class="card-acts">
+                  <button class="btn pr" onclick="openAddEmpModal('GD')">➕ Add Employee</button>
+                  <button class="btn ol" onclick="alert('Exporting Group D data...')">⬇️ Export</button>
+                </div>
+              </div>
+              <div class="info-box" style="margin:10px 18px;">👁️ Click any row to view full details. Use <strong>➕ Add Employee</strong> to add new staff or <strong>🗑</strong> to remove.</div>
+              <div style="overflow-x:auto;"><table class="est-ro"><thead><tr>
+                <th>S.No.</th><th>Name</th><th>Type</th><th>Role / Designation</th><th>Agency</th><th>Pay</th><th>Gender</th><th>DOB</th><th>Category</th><th>Join Date</th><th>Mobile</th><th>Status</th><th>Action</th>
+              </tr></thead><tbody id="estGDBody"></tbody></table></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- EST COMMITTEES MANAGEMENT (inline below EST sections) -->
+        <div id="estCommittees" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+            <div>
+              <div class="info-box" style="margin:0;">🏛️ <strong>Committee Management</strong> — Click a committee to view members or add new ones. New members are marked <strong>Pending</strong> until Principal approves.</div>
+            </div>
+            <button onclick="openNewCommitteeModal()" style="flex-shrink:0;padding:10px 18px;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:var(--shadow-sm);" onmouseover="this.style.background='var(--navy)'" onmouseout="this.style.background='var(--primary)'">
+              🏛️ + Add New Committee
+            </button>
+          </div>
+          <div class="warn-box" style="margin-bottom:14px;">⚠️ Principal must approve each member before it appears publicly on the website.</div>
+          <div id="cmCardsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:0;"></div>
+        </div>
+
+        <!-- EST OFFICERS MANAGEMENT -->
+          <!-- Committee cards grid -->
+          <div id="cmCardsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:0;"></div>
+        </div>
+
+        <!-- EST OFFICERS MANAGEMENT -->
+        <div id="estOfficers" style="display:none;">
+          <div class="info-box">👔 <strong>Officers Management</strong> — Enter officer details here. After Principal approves, it appears on the public home page (About Us section) for student information.</div>
+          <div class="card" style="padding:22px;margin-bottom:16px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">➕ Add / Update Officer</h3>
+            <div class="form-row">
+              <div class="fg"><label>Officer Name <span style="color:red">*</span></label><input type="text" placeholder="Full name" /></div>
+              <div class="fg"><label>Designation <span style="color:red">*</span></label><input type="text" placeholder="e.g. Principal, Registrar" /></div>
+            </div>
+            <div class="fg"><label>Charge / Portfolio <span style="color:red">*</span></label><input type="text" placeholder="e.g. Head of Institution, Office Records & Documentation" /></div>
+            <div class="fg"><label>Department / Office</label>
+              <select><option value="">Select</option><option>Principal Office</option><option>Administration</option><option>Accounts</option><option>EST</option><option>ACM</option><option>Library</option><option>Exam Cell</option></select>
+            </div>
+            <div class="warn-box" style="margin-bottom:12px;">⚠️ After submission, Principal must approve before it appears on the public page.</div>
+            <button class="btn pr" onclick="alert('✅ Officer submitted for Principal approval. Will appear publicly once approved.')">Submit for Principal Approval →</button>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h3>Current Officers (Pending / Approved)</h3></div>
+            <table>
+              <thead><tr><th>Name</th><th>Designation</th><th>Charge</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Dr. P.K. Sharma</strong></td><td>Principal</td><td>Head of Institution</td><td><span class="badge approved">Approved</span></td><td><button class="btn ol" onclick="alert('Edit request sent to Principal for approval.')">✏️ Edit</button></td></tr>
+                <tr><td><strong>Mr. S. Kulkarni</strong></td><td>Registrar</td><td>Office Records &amp; Documentation</td><td><span class="badge approved">Approved</span></td><td><button class="btn ol" onclick="alert('Edit request sent.')">✏️ Edit</button></td></tr>
+                <tr><td><strong>Mrs. L. Desai</strong></td><td>Office Superintendent</td><td>Day-to-Day Administration</td><td><span class="badge pending">Pending Principal Approval</span></td><td><button class="btn re" onclick="alert('Request withdrawn.')">🗑️ Withdraw</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- FAC CASH / FEES -->
+        <div id="facCash" style="display:none;">
+          <div class="card" style="padding:22px; margin-bottom:16px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">💵 Fees Search</h3>
+            <div class="info-box">ℹ️ Enter Register Number to view fee payment details. Only limited fields are displayed for privacy.</div>
+            <div style="display:flex;gap:10px;align-items:flex-end;">
+              <div class="fg" style="flex:1;margin:0;"><label>Register Number</label><input type="text" id="feesReg" placeholder="Enter Register Number" /></div>
+              <button class="btn pr" style="height:40px;" onclick="searchFees()">Search →</button>
+            </div>
+          </div>
+          <div id="feesResult" style="display:none;" class="card">
+            <div class="card-hd"><h3>Fee Details</h3></div>
+            <table>
+              <thead><tr><th>Student</th><th>Fees Paid (₹)</th><th>Fees Paid Date</th><th>Receipt Number</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Student</strong></td><td>₹ 12,500</td><td>15 Aug 2025</td><td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;">RCP-2025-08-00412</td></tr>
+              </tbody>
+            </table>
+            <div style="padding:12px 18px;font-size:0.72rem;color:var(--text-muted);">⚠️ Note: Only Name, Amount, Date & Receipt Number are displayed. Other student data is restricted.</div>
+          </div>
+        </div>
+
+        <!-- FAC SEARCH -->
+        <div id="facSearch" style="display:none;">
+          <div class="card" style="padding:22px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">🔍 Student Search</h3>
+            <div class="sbar" style="margin-bottom:14px;"><span class="si">🔍</span><input type="text" placeholder="Enter Register Number…" id="facSearchInput" onkeyup="facSearch()" /></div>
+            <div id="facSearchResult"></div>
+          </div>
+        </div>
+
+        <!-- FAC STAFF -->
+        <div id="facStaff" style="display:none;">
+          <div class="mod-grid" style="grid-template-columns:repeat(2,1fr);">
+            <div class="mod-card bl"><div class="mi">👥</div><h4>Staff Details</h4><p>Department staff information & records</p></div>
+            <div class="mod-card go"><div class="mi">📋</div><h4>Invigilation</h4><p>Exam invigilation duties & scheduling</p></div>
+            <div class="mod-card pu"><div class="mi">⭐</div><h4>360° Feedback</h4><p>Staff performance feedback management</p></div>
+            <div class="mod-card re"><div class="mi">📊</div><h4>Attendance Report</h4><p>Monthly student attendance summaries by subject</p></div>
+          </div>
+        </div>
+
+        <!-- FAC ACTIVITIES -->
+        <div id="facActivities" style="display:none;">
+          <div class="mod-grid">
+            <div class="mod-card bl"><div class="mi">💼</div><h4>Placement</h4><p>Department placement data & records</p><div class="mc">47</div></div>
+            <div class="mod-card re"><div class="mi">🤝</div><h4>NSS</h4><p>NSS volunteers & activity records</p><div class="mc">124</div></div>
+            <div class="mod-card or"><div class="mi">🏥</div><h4>Youth Red Cross</h4><p>YRC activities & events</p><div class="mc">86</div></div>
+            <div class="mod-card gr"><div class="mi">🎓</div><h4>Alumni</h4><p>Alumni network & updates</p><div class="mc">320</div></div>
+            <div class="mod-card go"><div class="mi">🏆</div><h4>Sports</h4><p>Sports events & achievements</p><div class="mc">18</div></div>
+            <div class="mod-card pu"><div class="mi">🛡️</div><h4>Student Welfare</h4><p>SWO cases & welfare schemes</p><div class="mc">23</div></div>
+          </div>
+        </div>
+
+        <!-- ===== PLACEMENT SECTION ===== -->
+        <div id="facPlacement" style="display:none;">
+          <div class="info-box">💼 <strong>Placement Cell</strong> — Manage campus recruitment drives, company visits, student placement records and offer letters.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #1a4fa0;"><div style="font-size:1.8rem;font-weight:800;color:#1a4fa0;">47</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Students Placed</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #10b981;"><div style="font-size:1.8rem;font-weight:800;color:#10b981;">12</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Companies Visited</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #f59e0b;"><div style="font-size:1.8rem;font-weight:800;color:#f59e0b;">8</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Upcoming Drives</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #be185d;"><div style="font-size:1.8rem;font-weight:800;color:#be185d;">₹3.2L</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Avg. Package</div></div>
+          </div>
+          <div class="tabs" id="placementTabs">
+            <button class="tab act" onclick="showPlacementTab('plDrives',this)">🏢 Recruitment Drives</button>
+            <button class="tab" onclick="showPlacementTab('plRecords',this)">📋 Placement Records</button>
+            <button class="tab" onclick="showPlacementTab('plCalendar',this)">📅 Campus Calendar</button>
+            <button class="tab" onclick="showPlacementTab('plUpload',this)">📤 Upload / Register</button>
+          </div>
+          <div id="plDrives" class="card">
+            <div class="card-hd"><h3>Active & Upcoming Recruitment Drives</h3><div class="card-acts"><button class="btn pr" onclick="showPlacementTab('plUpload',document.querySelector('#placementTabs .tab:last-child'))">+ Add Drive</button></div></div>
+            <table><thead><tr><th>Company</th><th>Sector</th><th>Drive Date</th><th>Eligible Branches</th><th>Min. CGPA</th><th>Package</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Infosys Ltd.</strong></td><td>IT / Software</td><td>15 Mar 2026</td><td>CSE, ECE</td><td>6.5</td><td>₹3.6 LPA</td><td><span class="badge active">Registrations Open</span></td><td><button class="btn ol" onclick="alert('View drive details')">View</button></td></tr>
+              <tr><td><strong>L&T Construction</strong></td><td>Core / Civil</td><td>22 Mar 2026</td><td>Civil, Mech</td><td>6.0</td><td>₹3.2 LPA</td><td><span class="badge active">Registrations Open</span></td><td><button class="btn ol" onclick="alert('View drive details')">View</button></td></tr>
+              <tr><td><strong>Wipro Technologies</strong></td><td>IT / Software</td><td>05 Apr 2026</td><td>CSE, ECE, Mech</td><td>7.0</td><td>₹4.0 LPA</td><td><span class="badge info">Upcoming</span></td><td><button class="btn ol" onclick="alert('View drive details')">View</button></td></tr>
+              <tr><td><strong>Bosch India</strong></td><td>Automotive / Core</td><td>18 Apr 2026</td><td>Mech, ECE</td><td>6.5</td><td>₹3.8 LPA</td><td><span class="badge info">Upcoming</span></td><td><button class="btn ol" onclick="alert('View drive details')">View</button></td></tr>
+              <tr><td><strong>TCS (BPS)</strong></td><td>Business Process</td><td>02 May 2026</td><td>All Branches</td><td>5.5</td><td>₹2.8 LPA</td><td><span class="badge pending">Planning</span></td><td><button class="btn ol" onclick="alert('View drive details')">View</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="plRecords" style="display:none;" class="card">
+            <div class="card-hd"><h3>Student Placement Records — 2024-25</h3><div class="card-acts"><button class="btn go" onclick="alert('Exporting to Excel…')">⬇️ Export</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Student</th><th>Branch</th><th>Company</th><th>Role</th><th>Package</th><th>Offer Date</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>Infosys</td><td>Systems Engineer</td><td>₹3.6 LPA</td><td>Dec 2024</td><td><span class="badge approved">Joined</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>ECE</td><td>Bosch India</td><td>Associate Engineer</td><td>₹3.8 LPA</td><td>Jan 2025</td><td><span class="badge approved">Joined</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Civil</td><td>L&T Construction</td><td>Site Engineer</td><td>₹3.2 LPA</td><td>Feb 2025</td><td><span class="badge active">Offer Letter Issued</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Registered User</strong></td><td>Mech</td><td>Wipro</td><td>Tech Support</td><td>₹3.0 LPA</td><td>Mar 2025</td><td><span class="badge pending">Offer Awaited</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="plCalendar" style="display:none;padding:20px;" class="card">
+            <div class="card-hd"><h3>📅 Campus Recruitment Calendar — 2025-26</h3></div>
+            <table><thead><tr><th>Month</th><th>Company</th><th>Type</th><th>Branches</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>March 2026</td><td>Infosys, L&T</td><td>On-Campus Drive</td><td>CSE, ECE, Civil, Mech</td><td><span class="badge active">Confirmed</span></td></tr>
+              <tr><td>April 2026</td><td>Wipro, Bosch</td><td>On-Campus Drive</td><td>CSE, ECE, Mech</td><td><span class="badge active">Confirmed</span></td></tr>
+              <tr><td>May 2026</td><td>TCS, Cognizant</td><td>Pool Campus</td><td>All Branches</td><td><span class="badge info">Tentative</span></td></tr>
+              <tr><td>June 2026</td><td>KPTCL, PWD</td><td>Govt. Recruitment</td><td>Civil, Electrical</td><td><span class="badge pending">Planning</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="plUpload" style="display:none;padding:22px;" class="card">
+            <h3 style="font-size:0.95rem;margin-bottom:16px;">➕ Register New Drive / Placement Record</h3>
+            <div class="form-row"><div class="fg"><label>Company Name *</label><input type="text" placeholder="e.g. Infosys Ltd." /></div><div class="fg"><label>Sector / Industry *</label><input type="text" placeholder="e.g. IT / Software" /></div></div>
+            <div class="form-row three"><div class="fg"><label>Drive Date *</label><input type="date" /></div><div class="fg"><label>Package Offered</label><input type="text" placeholder="e.g. ₹3.6 LPA" /></div><div class="fg"><label>Min. CGPA Required</label><input type="number" step="0.1" placeholder="e.g. 6.5" /></div></div>
+            <div class="fg"><label>Eligible Branches</label><select multiple style="height:80px;padding:8px;border:1.5px solid var(--border);border-radius:7px;width:100%;"><option>Civil Engineering</option><option>CSE</option><option>ECE</option><option>Mechanical</option><option>All Branches</option></select></div>
+            <div class="fg"><label>Job Description / Notes</label><textarea rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Brief description of the role and eligibility criteria…"></textarea></div>
+            <button class="btn pr" onclick="alert('Drive registered successfully! Students will be notified.')">💾 Save Drive Record</button>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid var(--primary);">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:var(--primary);">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Posts appear <strong>live</strong> in students' Institute Activities feed with registration/response options.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="pl_post_title" placeholder="e.g. Infosys Campus Drive — Registrations Open" /></div>
+              <div class="fg"><label>Date / Last Date *</label><input type="date" id="pl_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="pl_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Details about the drive, eligibility, what to bring, etc."></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="pl_post_venue" placeholder="e.g. Seminar Hall, Block A" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="pl_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register / Apply</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <button class="btn pr" style="background:var(--primary);" onclick="postActivityAnnouncement('placement','💼','Placement Cell')">🚀 Post to Student Portal</button>
+            </div>
+            <div id="pl_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <!-- Posted announcements list -->
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="pl_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== NSS SECTION ===== -->
+        <div id="facNSS" style="display:none;">
+          <div class="info-box">🤝 <strong>NSS — National Service Scheme</strong> — Manage NSS volunteers, camps, activities, attendance and certificates.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">124</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Enrolled Volunteers</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #0e7490;"><div style="font-size:1.8rem;font-weight:800;color:#0e7490;">6</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Camps This Year</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b45309;"><div style="font-size:1.8rem;font-weight:800;color:#b45309;">38</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Activities Conducted</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #7e22ce;"><div style="font-size:1.8rem;font-weight:800;color:#7e22ce;">89</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Certificates Issued</div></div>
+          </div>
+          <div class="tabs" id="nssTabs">
+            <button class="tab act" onclick="showNSSTab('nssVolunteers',this)">👥 Volunteers</button>
+            <button class="tab" onclick="showNSSTab('nssCamps',this)">⛺ Camps</button>
+            <button class="tab" onclick="showNSSTab('nssActivities',this)">📋 Activities Log</button>
+            <button class="tab" onclick="showNSSTab('nssCerts',this)">🏅 Certificates</button>
+          </div>
+          <div id="nssVolunteers" class="card">
+            <div class="card-hd"><h3>NSS Volunteer Register</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add new volunteer')">+ Enroll Volunteer</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Year</th><th>Enroll Date</th><th>Hours Completed</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>2nd Year</td><td>Jun 2023</td><td>120 hrs</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2023CIVIL005</td><td><strong>Student</strong></td><td>Civil</td><td>2nd Year</td><td>Jun 2023</td><td>95 hrs</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>2nd Year</td><td>Jun 2023</td><td>140 hrs</td><td><span class="badge active">Best Volunteer</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2024CIVIL031</td><td><strong>Student</strong></td><td>Civil</td><td>1st Year</td><td>Aug 2024</td><td>40 hrs</td><td><span class="badge approved">Active</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="nssCamps" style="display:none;" class="card">
+            <div class="card-hd"><h3>NSS Camp Records</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add camp record')">+ Add Camp</button></div></div>
+            <table><thead><tr><th>Camp Name</th><th>Location</th><th>Duration</th><th>Volunteers</th><th>Activities</th><th>Report</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Village Development Camp</strong></td><td>Dharwad Village</td><td>7 days (Dec 2024)</td><td>42</td><td>Cleanliness, Health awareness, Tree plantation</td><td><button class="btn ol" onclick="alert('View camp report')">📄 View</button></td></tr>
+              <tr><td><strong>Blood Donation Camp</strong></td><td>GPT Hubli Campus</td><td>1 day (Jan 2025)</td><td>80</td><td>Blood donation drive — 65 units collected</td><td><button class="btn ol" onclick="alert('View report')">📄 View</button></td></tr>
+              <tr><td><strong>Swachh Bharat Drive</strong></td><td>Hubli City</td><td>2 days (Feb 2025)</td><td>55</td><td>City cleanliness, Awareness rally</td><td><button class="btn ol" onclick="alert('View report')">📄 View</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="nssActivities" style="display:none;" class="card">
+            <div class="card-hd"><h3>Activities Log</h3><div class="card-acts"><button class="btn pr" onclick="alert('Log new activity')">+ Log Activity</button></div></div>
+            <table><thead><tr><th>Activity</th><th>Date</th><th>Participants</th><th>Venue</th><th>Officer Remark</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Tree Plantation Drive</strong></td><td>05 Aug 2024</td><td>60</td><td>GPT Campus</td><td>Planted 200 saplings</td></tr>
+              <tr><td><strong>Digital Literacy Workshop</strong></td><td>14 Sep 2024</td><td>35</td><td>Computer Lab</td><td>Taught basic computing to village elders</td></tr>
+              <tr><td><strong>Road Safety Awareness</strong></td><td>11 Jan 2025</td><td>45</td><td>NH-48 Junction</td><td>Rally + poster display</td></tr>
+            </tbody></table>
+          </div>
+          <div id="nssCerts" style="display:none;" class="card">
+            <div class="card-hd"><h3>NSS Certificates Issued</h3><div class="card-acts"><button class="btn pr" onclick="alert('Issue new certificate')">+ Issue Certificate</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Hours</th><th>Certificate No.</th><th>Issue Date</th><th>Download</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>240 hrs</td><td>NSS/GPH/2025/001</td><td>Mar 2025</td><td><button class="btn go" onclick="alert('Downloading certificate…')">⬇️ Download</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>210 hrs</td><td>NSS/GPH/2025/002</td><td>Mar 2025</td><td><button class="btn go" onclick="alert('Downloading certificate…')">⬇️ Download</button></td></tr>
+            </tbody></table>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid var(--green);">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:var(--green);">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Students will see this live in their Institute Activities feed and can register/volunteer.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="nss_post_title" placeholder="e.g. NSS Annual Camp — Volunteer Registration Open" /></div>
+              <div class="fg"><label>Date *</label><input type="date" id="nss_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="nss_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Activity details, eligibility, what students need to do…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="nss_post_venue" placeholder="e.g. Adopted Village, Dharwad" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="nss_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register / Volunteer</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:var(--green);margin-top:6px;" onclick="postActivityAnnouncement('nss','🤝','NSS Officer')">🚀 Post to Student Portal</button>
+            <div id="nss_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="nss_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== YOUTH RED CROSS SECTION ===== -->
+        <div id="facYRC" style="display:none;">
+          <div class="info-box">🩸 <strong>Youth Red Cross (YRC)</strong> — Manage YRC members, blood donation camps, first aid training and humanitarian activities.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #dc2626;"><div style="font-size:1.8rem;font-weight:800;color:#dc2626;">68</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">YRC Members</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b91c1c;"><div style="font-size:1.8rem;font-weight:800;color:#b91c1c;">4</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Blood Donation Camps</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #0e7490;"><div style="font-size:1.8rem;font-weight:800;color:#0e7490;">12</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">First Aid Sessions</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">210</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Blood Units Collected</div></div>
+          </div>
+          <div class="tabs" id="yrcTabs">
+            <button class="tab act" onclick="showYRCTab('yrcMembers',this)">👥 Members</button>
+            <button class="tab" onclick="showYRCTab('yrcBlood',this)">🩸 Blood Donation</button>
+            <button class="tab" onclick="showYRCTab('yrcFirstAid',this)">🏥 First Aid Training</button>
+            <button class="tab" onclick="showYRCTab('yrcEvents',this)">📋 Events</button>
+          </div>
+          <div id="yrcMembers" class="card">
+            <div class="card-hd"><h3>YRC Member Register</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add new member')">+ Add Member</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Blood Group</th><th>Join Date</th><th>Role</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>B+</td><td>Aug 2023</td><td>Unit Leader</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>O+</td><td>Aug 2023</td><td>Member</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2024CIVIL031</td><td><strong>Student</strong></td><td>Civil</td><td>A+</td><td>Aug 2024</td><td>Junior Member</td><td><span class="badge approved">Active</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="yrcBlood" style="display:none;" class="card">
+            <div class="card-hd"><h3>Blood Donation Camp Records</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add camp record')">+ Add Camp</button></div></div>
+            <table><thead><tr><th>Camp Date</th><th>Venue</th><th>Blood Bank Partner</th><th>Donors</th><th>Units Collected</th><th>Report</th></tr></thead>
+            <tbody>
+              <tr><td>14 Jun 2024</td><td>GPT Hubli Auditorium</td><td>KIMS Blood Bank</td><td>52</td><td>48 units</td><td><button class="btn ol">📄 View</button></td></tr>
+              <tr><td>15 Jan 2025</td><td>GPT Hubli Campus</td><td>District Hospital</td><td>65</td><td>60 units</td><td><button class="btn ol">📄 View</button></td></tr>
+              <tr><td>01 Jun 2025</td><td>GPT Hubli Campus</td><td>KIMS Blood Bank</td><td>—</td><td>—</td><td><span class="badge info">Upcoming</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="yrcFirstAid" style="display:none;" class="card">
+            <div class="card-hd"><h3>First Aid Training Sessions</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add training session')">+ Add Session</button></div></div>
+            <table><thead><tr><th>Session</th><th>Date</th><th>Trainer</th><th>Participants</th><th>Topics Covered</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Basic First Aid</strong></td><td>20 Sep 2024</td><td>Dr. Anjali Rao (KIMS)</td><td>45</td><td>CPR, Wound care, Fracture handling</td></tr>
+              <tr><td><strong>Disaster Response Training</strong></td><td>10 Nov 2024</td><td>Civil Defence Team</td><td>38</td><td>Evacuation, Stretcher use, Fire response</td></tr>
+            </tbody></table>
+          </div>
+          <div id="yrcEvents" style="display:none;" class="card">
+            <div class="card-hd"><h3>YRC Events & Activities</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add event')">+ Add Event</button></div></div>
+            <table><thead><tr><th>Event</th><th>Date</th><th>Type</th><th>Participants</th><th>Outcome</th></tr></thead>
+            <tbody>
+              <tr><td><strong>World Red Cross Day</strong></td><td>08 May 2024</td><td>Awareness</td><td>200</td><td>Rally + Blood pledge campaign</td></tr>
+              <tr><td><strong>Eye Donation Awareness</strong></td><td>25 Aug 2024</td><td>Health Camp</td><td>80</td><td>30 eye donation pledges</td></tr>
+              <tr><td><strong>Thalassemia Screening</strong></td><td>15 Feb 2025</td><td>Health Camp</td><td>120</td><td>Free screening for 120 students</td></tr>
+            </tbody></table>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid var(--red);">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:var(--red);">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Students will see this live in their Institute Activities feed and can register / pledge.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="yrc_post_title" placeholder="e.g. Blood Donation Camp — March 8" /></div>
+              <div class="fg"><label>Date *</label><input type="date" id="yrc_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="yrc_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Camp details, eligibility, what students need to bring…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="yrc_post_venue" placeholder="e.g. College Auditorium" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="yrc_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register / Participate</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Pledge / Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:var(--red);margin-top:6px;" onclick="postActivityAnnouncement('yrc','🏥','YRC Officer')">🚀 Post to Student Portal</button>
+            <div id="yrc_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="yrc_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ALUMNI SECTION ===== -->
+        <div id="facAlumni" style="display:none;">
+          <div class="info-box">🎓 <strong>Alumni Cell</strong> — Maintain alumni directory, batch records, track contributions, manage mentorship and alumni events.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #3730a3;"><div style="font-size:1.8rem;font-weight:800;color:#3730a3;">1,240</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Registered Alumni</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #0e7490;"><div style="font-size:1.8rem;font-weight:800;color:#0e7490;">18</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Batches (2006–2024)</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">45</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Mentors Active</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b45309;"><div style="font-size:1.8rem;font-weight:800;color:#b45309;">3</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Events This Year</div></div>
+          </div>
+          <!-- Alumni tabs: row 1 - existing -->
+          <div class="tabs" id="alumniTabs" style="width:100%;flex-wrap:nowrap;overflow-x:auto;margin-bottom:6px;">
+            <button class="tab act" onclick="showAlumniTab('alDirectory',this)">📒 Alumni Directory</button>
+            <button class="tab" onclick="showAlumniTab('alBatch',this)">🎓 Batch Records</button>
+            <button class="tab" onclick="showAlumniTab('alMentor',this)">🤝 Mentorship</button>
+            <button class="tab" onclick="showAlumniTab('alEvents',this)">📅 Events</button>
+          </div>
+          <!-- Alumni tabs: row 2 - new member management -->
+          <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+            <button class="tab" id="alTabAddMember" style="background:#ede9fe;color:#3730a3;border:1.5px solid #c4b5fd;font-weight:700;font-size:0.75rem;" onclick="showAlumniTab('alAddMember',this)">➕ Add Alumni Member</button>
+            <button class="tab" id="alTabAllMembers" style="background:#ede9fe;color:#3730a3;border:1.5px solid #c4b5fd;font-weight:700;font-size:0.75rem;" onclick="showAlumniTab('alAllMembers',this)">👥 All Members</button>
+            <button class="tab" id="alPendingTab" style="background:#ede9fe;color:#3730a3;border:1.5px solid #c4b5fd;font-weight:700;font-size:0.75rem;" onclick="showAlumniTab('alPending',this)">⏳ Pending Requests <span id="alPendingBadge" style="display:none;background:#dc2626;color:white;border-radius:10px;padding:1px 7px;font-size:0.65rem;margin-left:4px;">0</span></button>
+            <button class="tab" id="alTabCommittee" style="background:#fef3c7;color:#b45309;border:1.5px solid #fde68a;font-weight:700;font-size:0.75rem;" onclick="showAlumniTab('alCommittee',this)">🏛️ Committee Info</button>
+            <button class="tab" id="alTabDonation" style="background:#dcfce7;color:#15803d;border:1.5px solid #86efac;font-weight:700;font-size:0.75rem;" onclick="showAlumniTab('alDonation',this)">💰 Donation</button>
+          </div>
+          <div id="alDirectory" class="card">
+            <div class="card-hd"><h3>Alumni Directory</h3><div class="card-acts"><div class="sbar" style="width:200px;"><span class="si">🔍</span><input type="text" placeholder="Search alumni…" /></div><button class="btn pr" onclick="alert('Add alumni record')">+ Add Alumni</button></div></div>
+            <table><thead><tr><th>Name</th><th>Batch</th><th>Branch</th><th>Current Employer</th><th>Designation</th><th>City</th><th>Contact</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Rajesh Patil</strong></td><td>2018</td><td>CSE</td><td>Infosys</td><td>Senior Engineer</td><td>Bengaluru</td><td><button class="btn ol" onclick="alert('Contact: rajesh.patil@email.com | 98XXXXXXXX')">📞</button></td></tr>
+              <tr><td><strong>Registered User</strong></td><td>2016</td><td>Civil</td><td>PWD Karnataka</td><td>Asst. Executive Engineer</td><td>Hubli</td><td><button class="btn ol" onclick="alert('Contact: sunita.k@email.com')">📞</button></td></tr>
+              <tr><td><strong>Student</strong></td><td>2020</td><td>ECE</td><td>Bosch</td><td>R&D Engineer</td><td>Bengaluru</td><td><button class="btn ol" onclick="alert('Contact: arjun.desai@email.com')">📞</button></td></tr>
+              <tr><td><strong>Registered User</strong></td><td>2019</td><td>Mech</td><td>BEML</td><td>Production Engineer</td><td>Bengaluru</td><td><button class="btn ol" onclick="alert('Contact: kavitha.r@email.com')">📞</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="alBatch" style="display:none;" class="card">
+            <div class="card-hd"><h3>Batch-wise Summary</h3></div>
+            <table><thead><tr><th>Batch Year</th><th>Students Passed</th><th>Placed</th><th>Higher Studies</th><th>Alumni Registered</th><th>Representative</th></tr></thead>
+            <tbody>
+              <tr><td><strong>2024</strong></td><td>185</td><td>142</td><td>28</td><td>98</td><td>Pending</td></tr>
+              <tr><td><strong>2023</strong></td><td>192</td><td>158</td><td>22</td><td>145</td><td>Student</td></tr>
+              <tr><td><strong>2022</strong></td><td>178</td><td>161</td><td>14</td><td>155</td><td>Student</td></tr>
+              <tr><td><strong>2020</strong></td><td>165</td><td>148</td><td>10</td><td>130</td><td>Student</td></tr>
+            </tbody></table>
+          </div>
+          <div id="alMentor" style="display:none;" class="card">
+            <div class="card-hd"><h3>Mentorship Program</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add mentor')">+ Enroll Mentor</button></div></div>
+            <table><thead><tr><th>Mentor Name</th><th>Batch</th><th>Industry</th><th>Students Mentoring</th><th>Sessions Done</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Rajesh Patil</strong></td><td>2018</td><td>IT / Software</td><td>5 students</td><td>8 sessions</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td><strong>Registered User</strong></td><td>2016</td><td>Civil / Govt.</td><td>3 students</td><td>5 sessions</td><td><span class="badge approved">Active</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="alEvents" style="display:none;" class="card">
+            <div class="card-hd"><h3>Alumni Events</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add event')">+ Plan Event</button></div></div>
+            <table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invitees</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Annual Alumni Meet 2025</strong></td><td>15 Dec 2025</td><td>GPT Auditorium</td><td>All Alumni</td><td><span class="badge info">Planning</span></td></tr>
+              <tr><td><strong>Industry Talk — CSE Alumni</strong></td><td>20 Mar 2026</td><td>Seminar Hall</td><td>CSE Batch 2022–24</td><td><span class="badge active">Confirmed</span></td></tr>
+            </tbody></table>
+          </div>
+
+          <!-- ADD ALUMNI MEMBER TAB -->
+          <div id="alAddMember" style="display:none;" class="card">
+            <div class="card-hd"><h3>&#10133; Add Alumni Member</h3><div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">Enter register number to fetch student data from DB</span></div></div>
+            <div style="padding:18px;">
+              <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:18px;">
+                <div class="fg" style="flex:1;margin:0;">
+                  <label>Register Number <span style="color:red">*</span></label>
+                  <input type="text" id="alAddRegNo" placeholder="Enter register number" oninput="this.value=this.value.toUpperCase()" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;" />
+                </div>
+                <button class="btn pr" style="height:42px;margin-bottom:1px;" onclick="alFetchStudent()">&#128269; Fetch Data</button>
+              </div>
+              <div id="alFetchedPreview" style="display:none;background:var(--primary-light);border:1.5px solid var(--primary);border-radius:10px;padding:14px 18px;margin-bottom:18px;">
+                <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--primary);margin-bottom:8px;">Student Found in Database &#10003;</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:0.78rem;">
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">Name</span><div style="font-weight:700;" id="alPrevName">&#8212;</div></div>
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">Branch</span><div style="font-weight:700;" id="alPrevDept">&#8212;</div></div>
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">Year</span><div style="font-weight:700;" id="alPrevYear">&#8212;</div></div>
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">CGPA</span><div style="font-weight:700;" id="alPrevCGPA">&#8212;</div></div>
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">Attendance</span><div style="font-weight:700;" id="alPrevAtt">&#8212;</div></div>
+                  <div><span style="color:var(--text-muted);font-size:0.68rem;">Father's Name</span><div style="font-weight:700;" id="alPrevFather">&#8212;</div></div>
+                </div>
+              </div>
+              <div id="alFetchError" style="display:none;color:var(--red);font-size:0.78rem;margin-bottom:14px;padding:10px 14px;background:#fee2e2;border-radius:8px;border:1px solid #fca5a5;">&#9888;&#65039; Register number not found in student database. Please check and try again.</div>
+              <div class="form-row">
+                <div class="fg">
+                  <label>Receipt Number <span style="color:red">*</span></label>
+                  <input type="text" id="alAddReceiptNo" placeholder="e.g. ALM/2026/0041" style="font-family:'JetBrains Mono',monospace;" />
+                </div>
+                <div class="fg">
+                  <label>Alumni Status <span style="color:red">*</span></label>
+                  <input type="text" id="alAddStatus" placeholder="e.g. Life Member, Active Member, Donor&#8230;" />
+                </div>
+              </div>
+              <div class="fg">
+                <label>Remarks / Notes <span style="font-size:0.68rem;color:var(--text-muted);">(optional)</span></label>
+                <input type="text" id="alAddRemarks" placeholder="Any additional notes&#8230;" />
+              </div>
+              <div style="display:flex;gap:10px;margin-top:6px;">
+                <button class="btn pr" style="background:#3730a3;" onclick="alSubmitAddMember()">&#10003; Add to Alumni Register</button>
+                <button class="btn ol" onclick="alClearAddForm()">&#10005; Clear</button>
+              </div>
+              <div id="alAddFeedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            </div>
+          </div>
+
+          <!-- ALL ALUMNI MEMBERS TAB -->
+          <div id="alAllMembers" style="display:none;" class="card">
+            <div class="card-hd">
+              <h3>&#128101; All Alumni Members</h3>
+              <div class="card-acts">
+                <div class="sbar" style="width:200px;"><span class="si">&#128269;</span><input type="text" placeholder="Search members&#8230;" oninput="alSearchMembers(this.value)" /></div>
+                <span id="alMemberCount" style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;"></span>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Receipt No.</th><th>Status</th><th>Remarks</th><th>Date Added</th><th>Actions</th></tr></thead>
+                <tbody id="alMembersTableBody"></tbody>
+              </table>
+            </div>
+            <div id="alMembersEmpty" style="padding:32px;text-align:center;color:var(--text-muted);font-size:0.8rem;display:none;">No alumni members added yet. Use the Add Alumni Member tab.</div>
+          </div>
+
+          <!-- PENDING REQUESTS TAB -->
+          <div id="alPending" style="display:none;" class="card">
+            <div class="card-hd"><h3>&#9203; Pending Alumni Requests</h3><div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">Students who submitted their Receipt No. for verification</span></div></div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Receipt No. Submitted</th><th>Requested On</th><th>Action</th></tr></thead>
+                <tbody id="alPendingTableBody"></tbody>
+              </table>
+            </div>
+            <div id="alPendingEmpty" style="padding:32px;text-align:center;color:var(--text-muted);font-size:0.8rem;">No pending requests at the moment.</div>
+          </div>
+
+          <!-- COMMITTEE INFO TAB -->
+          <div id="alCommittee" style="display:none;" class="card">
+            <div class="card-hd">
+              <h3>🏛️ Alumni Committee Members</h3>
+              <div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">This list is visible to all students in the portal</span></div>
+            </div>
+            <div style="padding:18px 18px 0;">
+              <div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.78rem;color:#b45309;">
+                &#9432; Students can view this committee list in their Alumni section. Add members who are part of the Alumni Association Executive Committee.
+              </div>
+              <div class="form-row" style="margin-bottom:10px;">
+                <div class="fg"><label>Full Name <span style="color:red">*</span></label><input type="text" id="alCmtName" placeholder="e.g. Rajesh Patil" /></div>
+                <div class="fg"><label>Designation <span style="color:red">*</span></label><input type="text" id="alCmtDesig" placeholder="e.g. Senior Engineer, Infosys" /></div>
+              </div>
+              <div class="form-row" style="margin-bottom:10px;">
+                <div class="fg"><label>Role in Alumni Committee <span style="color:red">*</span></label><input type="text" id="alCmtRole" placeholder="e.g. President, Secretary, Treasurer, Joint Secretary..." /></div>
+                <div class="fg"><label>Contact Number <span style="color:red">*</span></label><input type="text" id="alCmtContact" placeholder="e.g. +91 98XXXXXXXX" /></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:18px;">
+                <button class="btn pr" style="background:#b45309;" onclick="alAddCommitteeMember()">➕ Add to Committee</button>
+                <button class="btn ol" onclick="alClearCmtForm()">✕ Clear</button>
+              </div>
+              <div id="alCmtFeedback" style="margin-bottom:12px;font-size:0.78rem;"></div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>#</th><th>Name</th><th>Designation</th><th>Committee Role</th><th>Contact</th><th>Action</th></tr></thead>
+                <tbody id="alCommitteeTableBody"></tbody>
+              </table>
+            </div>
+            <div id="alCommitteeEmpty" style="padding:32px;text-align:center;color:var(--text-muted);font-size:0.8rem;">No committee members added yet.</div>
+          </div>
+
+          <!-- DONATION TAB -->
+          <div id="alDonation" style="display:none;" class="card">
+            <div class="card-hd">
+              <h3>💰 Alumni Donation Portal</h3>
+              <div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">Donation details are visible to all students</span></div>
+            </div>
+            <div style="padding:18px;">
+              <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.78rem;color:#15803d;">
+                &#9432; Add your UPI QR code and payment details below. Students will see this in their Alumni section and can donate to support the Alumni Network.
+              </div>
+              <div class="form-row">
+                <div class="fg">
+                  <label>Donation Purpose / Title <span style="color:red">*</span></label>
+                  <input type="text" id="alDonTitle" placeholder="e.g. Alumni Network Annual Fund 2026" />
+                </div>
+                <div class="fg">
+                  <label>UPI ID <span style="color:red">*</span></label>
+                  <input type="text" id="alDonUPI" placeholder="e.g. alumniGPTHubli@upi" style="font-family:'JetBrains Mono',monospace;" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="fg">
+                  <label>Bank Name</label>
+                  <input type="text" id="alDonBank" placeholder="e.g. State Bank of India" />
+                </div>
+                <div class="fg">
+                  <label>Account Number</label>
+                  <input type="text" id="alDonAccNo" placeholder="e.g. XXXX XXXX XXXX" style="font-family:'JetBrains Mono',monospace;" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="fg">
+                  <label>IFSC Code</label>
+                  <input type="text" id="alDonIFSC" placeholder="e.g. SBIN0001234" style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;" />
+                </div>
+                <div class="fg">
+                  <label>Account Holder Name</label>
+                  <input type="text" id="alDonAccName" placeholder="e.g. GPT Hubli Alumni Association" />
+                </div>
+              </div>
+              <div class="fg">
+                <label>Description / Message to Donors</label>
+                <textarea rows="2" id="alDonDesc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="e.g. Your contribution helps fund student scholarships, alumni meets and skill development programs..."></textarea>
+              </div>
+              <!-- QR Upload -->
+              <div style="margin-top:14px;">
+                <label style="display:block;font-size:0.78rem;font-weight:600;margin-bottom:6px;">UPI QR Code Image <span style="color:var(--text-muted);font-weight:400;">(Upload PNG/JPG)</span></label>
+                <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+                  <label style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 18px;border:2px dashed var(--border);border-radius:10px;background:var(--bg);font-size:0.78rem;color:var(--text-muted);transition:all 0.2s;" onmouseover="this.style.borderColor='#15803d'" onmouseout="this.style.borderColor='var(--border)'">
+                    <span style="font-size:1.4rem;">&#128247;</span> Click to Upload QR Code
+                    <input type="file" id="alDonQRInput" accept="image/*" style="display:none;" onchange="alLoadQR(this)" />
+                  </label>
+                  <div id="alDonQRPreview" style="display:none;text-align:center;">
+                    <img id="alDonQRImg" src="" style="width:140px;height:140px;object-fit:contain;border:2px solid var(--border);border-radius:10px;background:white;padding:6px;" />
+                    <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">QR Preview</div>
+                    <button class="btn re" style="font-size:0.65rem;padding:3px 10px;margin-top:4px;" onclick="alRemoveQR()">Remove</button>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:16px;">
+                <button class="btn pr" style="background:#15803d;" onclick="alSaveDonation()">💾 Save &amp; Publish to Students</button>
+                <button class="btn ol" onclick="alClearDonation()">✕ Clear</button>
+              </div>
+              <div id="alDonFeedback" style="margin-top:10px;font-size:0.78rem;"></div>
+              <!-- Live preview -->
+              <div id="alDonLivePreview" style="display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:18px;">
+                <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">&#128064; Student-Facing Preview</div>
+                <div id="alDonPreviewCard"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid #3730a3;">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:#3730a3;">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Students will see this live in their Institute Activities feed and can register for events.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="alumni_post_title" placeholder="e.g. Alumni Industry Talk — March 20" /></div>
+              <div class="fg"><label>Date *</label><input type="date" id="alumni_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="alumni_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Event details, guest speakers, who should attend…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="alumni_post_venue" placeholder="e.g. Seminar Hall, GPT Hubli" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="alumni_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register to Attend</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:#3730a3;margin-top:6px;" onclick="postActivityAnnouncement('alumni','🎓','Alumni Cell')">🚀 Post to Student Portal</button>
+            <div id="alumni_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="alumni_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SPORTS SECTION ===== -->
+        <div id="facSports" style="display:none;">
+          <div class="info-box">🏅 <strong>Sports Section</strong> — Manage sports events, team rosters, achievements, inter-college participation and equipment.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #065f46;"><div style="font-size:1.8rem;font-weight:800;color:#065f46;">18</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Events This Year</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b45309;"><div style="font-size:1.8rem;font-weight:800;color:#b45309;">8</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Sports Teams</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #1a4fa0;"><div style="font-size:1.8rem;font-weight:800;color:#1a4fa0;">12</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Medals Won</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #dc2626;"><div style="font-size:1.8rem;font-weight:800;color:#dc2626;">210</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Student Participants</div></div>
+          </div>
+          <div class="tabs" id="sportsTabs">
+            <button class="tab act" onclick="showSportsTab('spEvents',this)">🏆 Events</button>
+            <button class="tab" onclick="showSportsTab('spTeams',this)">👥 Teams</button>
+            <button class="tab" onclick="showSportsTab('spAchievements',this)">🥇 Achievements</button>
+            <button class="tab" onclick="showSportsTab('spEquipment',this)">🎽 Equipment</button>
+          </div>
+          <div id="spEvents" class="card">
+            <div class="card-hd"><h3>Sports Events</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add sports event')">+ Add Event</button></div></div>
+            <table><thead><tr><th>Event</th><th>Sport</th><th>Date</th><th>Level</th><th>Participants</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>GPT Sports Meet 2025</strong></td><td>Multiple</td><td>Jan 2025</td><td>Intra-College</td><td>210</td><td><span class="badge approved">Completed</span></td></tr>
+              <tr><td><strong>District Cricket Tournament</strong></td><td>Cricket</td><td>Feb 2025</td><td>District Level</td><td>15</td><td><span class="badge active">Runner-Up 🥈</span></td></tr>
+              <tr><td><strong>State Kho-Kho Championship</strong></td><td>Kho-Kho</td><td>Mar 2025</td><td>State Level</td><td>12</td><td><span class="badge info">Quarterfinals</span></td></tr>
+              <tr><td><strong>Inter-Polytechnic Athletics</strong></td><td>Athletics</td><td>Apr 2026</td><td>State Level</td><td>20</td><td><span class="badge pending">Upcoming</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="spTeams" style="display:none;" class="card">
+            <div class="card-hd"><h3>Sports Teams & Rosters</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add team')">+ New Team</button></div></div>
+            <table><thead><tr><th>Sport</th><th>Team Captain</th><th>Members</th><th>Coach</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>🏏 Cricket</td><td>Student (CSE)</td><td>15</td><td>Mr. P. Naik</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td>⚽ Football</td><td>Student (Civil)</td><td>14</td><td>Mr. S. More</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td>🏐 Volleyball</td><td>Staff Member (ECE)</td><td>12</td><td>Mr. R. Patil</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td>🏃 Athletics</td><td>Student (Civil)</td><td>20</td><td>Mr. A. Hegde</td><td><span class="badge approved">Active</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="spAchievements" style="display:none;" class="card">
+            <div class="card-hd"><h3>Sports Achievements</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add achievement')">+ Record Achievement</button></div></div>
+            <table><thead><tr><th>Student</th><th>Sport</th><th>Event</th><th>Level</th><th>Medal / Award</th><th>Year</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Student</strong></td><td>Cricket</td><td>District Tournament</td><td>District</td><td>🥇 Best Batsman</td><td>2025</td></tr>
+              <tr><td><strong>Student</strong></td><td>Athletics (100m)</td><td>Inter-Polytechnic</td><td>State</td><td>🥈 Silver Medal</td><td>2024</td></tr>
+              <tr><td><strong>GPT Cricket Team</strong></td><td>Cricket</td><td>District Championship</td><td>District</td><td>🥈 Runner-Up Trophy</td><td>2025</td></tr>
+            </tbody></table>
+          </div>
+          <div id="spEquipment" style="display:none;" class="card">
+            <div class="card-hd"><h3>Sports Equipment Register</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add equipment')">+ Add Item</button></div></div>
+            <table><thead><tr><th>Item</th><th>Qty Available</th><th>Qty Issued</th><th>Condition</th><th>Last Serviced</th></tr></thead>
+            <tbody>
+              <tr><td>Cricket Kit (Full Set)</td><td>3</td><td>1</td><td><span class="badge approved">Good</span></td><td>Dec 2024</td></tr>
+              <tr><td>Footballs</td><td>8</td><td>4</td><td><span class="badge approved">Good</span></td><td>Jan 2025</td></tr>
+              <tr><td>Volleyball Net & Balls</td><td>2</td><td>1</td><td><span class="badge active">Fair</span></td><td>Nov 2024</td></tr>
+              <tr><td>Badminton Racquets</td><td>12</td><td>6</td><td><span class="badge pending">Needs Replacement</span></td><td>Oct 2023</td></tr>
+            </tbody></table>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid #065f46;">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:#065f46;">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Students will see this live and can register for trials or sports events.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="sports_post_title" placeholder="e.g. Cricket Team Trials — March 10" /></div>
+              <div class="fg"><label>Date *</label><input type="date" id="sports_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="sports_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Event details, eligibility, what to bring…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="sports_post_venue" placeholder="e.g. Sports Ground, GPT Hubli" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="sports_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register / Join Team</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:#065f46;margin-top:6px;" onclick="postActivityAnnouncement('sports','🏆','Sports Officer')">🚀 Post to Student Portal</button>
+            <div id="sports_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="sports_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== STUDENT WELFARE SECTION ===== -->
+        <div id="facWelfare" style="display:none;">
+          <div class="info-box">🛡️ <strong>Student Welfare Office</strong> — Handle grievances, scholarships, counseling, student support cases and welfare schemes.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #7e22ce;"><div style="font-size:1.8rem;font-weight:800;color:#7e22ce;">23</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Open Cases</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">142</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Scholarship Beneficiaries</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #0e7490;"><div style="font-size:1.8rem;font-weight:800;color:#0e7490;">18</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Counseling Sessions</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b45309;"><div style="font-size:1.8rem;font-weight:800;color:#b45309;">8</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Welfare Schemes Active</div></div>
+          </div>
+          <div class="tabs" id="welfareTabs">
+            <button class="tab act" onclick="showWelfareTab('wfGrievance',this)">📝 Grievances</button>
+            <button class="tab" onclick="showWelfareTab('wfScholarship',this)">🎓 Scholarships</button>
+            <button class="tab" onclick="showWelfareTab('wfCounseling',this)">💬 Counseling</button>
+            <button class="tab" onclick="showWelfareTab('wfSchemes',this)">🛡️ Welfare Schemes</button>
+          </div>
+          <div id="wfGrievance" class="card">
+            <div class="card-hd"><h3>Student Grievance Records</h3><div class="card-acts"><button class="btn pr" onclick="alert('Log new grievance')">+ Log Grievance</button></div></div>
+            <table><thead><tr><th>Ticket ID</th><th>Student</th><th>Branch</th><th>Category</th><th>Filed On</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GRV/2025/014</td><td>Student</td><td>CSE</td><td>Fee Related</td><td>10 Feb 2025</td><td><span class="badge pending">Open</span></td><td><button class="btn ol" onclick="alert('View grievance details')">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GRV/2025/013</td><td>Student</td><td>Civil</td><td>Hostel</td><td>05 Feb 2025</td><td><span class="badge active">In Progress</span></td><td><button class="btn ol">View</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GRV/2025/008</td><td>Staff Member</td><td>ECE</td><td>Academic</td><td>20 Jan 2025</td><td><span class="badge approved">Resolved</span></td><td><button class="btn ol">View</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="wfScholarship" style="display:none;" class="card">
+            <div class="card-hd"><h3>Scholarship Tracking</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add scholarship record')">+ Add Record</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Student</th><th>Branch</th><th>Scheme</th><th>Amount</th><th>Academic Year</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>Student</td><td>CSE</td><td>Post-Matric SC/ST</td><td>₹18,000</td><td>2024-25</td><td><span class="badge approved">Disbursed</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>Student</td><td>Mech</td><td>OBC Scholarship</td><td>₹12,000</td><td>2024-25</td><td><span class="badge active">Processing</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2024CIVIL031</td><td>Student</td><td>Civil</td><td>Merit-cum-Means</td><td>₹15,000</td><td>2024-25</td><td><span class="badge pending">Applied</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="wfCounseling" style="display:none;" class="card">
+            <div class="card-hd"><h3>Counseling Sessions</h3><div class="card-acts"><button class="btn pr" onclick="alert('Schedule session')">+ Schedule Session</button></div></div>
+            <table><thead><tr><th>Session ID</th><th>Student</th><th>Type</th><th>Counselor</th><th>Date</th><th>Outcome</th></tr></thead>
+            <tbody>
+              <tr><td>COUN/025/001</td><td>Anonymous</td><td>Academic Stress</td><td>Dr. P. Rao</td><td>12 Jan 2025</td><td>Referred to HOD for attendance relief</td></tr>
+              <tr><td>COUN/025/002</td><td>Anonymous</td><td>Financial Hardship</td><td>SWO</td><td>20 Jan 2025</td><td>Scholarship form submitted</td></tr>
+            </tbody></table>
+          </div>
+          <div id="wfSchemes" style="display:none;" class="card">
+            <div class="card-hd"><h3>Active Welfare Schemes</h3></div>
+            <table><thead><tr><th>Scheme Name</th><th>Applicable To</th><th>Benefit</th><th>Deadline</th><th>Beneficiaries</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Post-Matric SC/ST Scholarship</strong></td><td>SC/ST Students</td><td>Full fee waiver + stipend</td><td>31 Oct 2025</td><td>42</td></tr>
+              <tr><td><strong>OBC Scholarship</strong></td><td>OBC Students</td><td>50% fee reimbursement</td><td>31 Oct 2025</td><td>55</td></tr>
+              <tr><td><strong>Merit-cum-Means Aid</strong></td><td>All (based on merit)</td><td>₹15,000/year</td><td>30 Nov 2025</td><td>28</td></tr>
+              <tr><td><strong>Free Bus Pass</strong></td><td>All Students</td><td>KSRTC bus pass</td><td>Rolling</td><td>180</td></tr>
+            </tbody></table>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid #7e22ce;">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:#7e22ce;">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Students will see this live — ideal for scholarship deadlines, counseling notices, welfare scheme updates.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="welfare_post_title" placeholder="e.g. NSP Scholarship — Last Date March 10" /></div>
+              <div class="fg"><label>Date / Deadline *</label><input type="date" id="welfare_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="welfare_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Scheme details, eligibility, documents required, who to contact…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue / Contact</label><input type="text" id="welfare_post_venue" placeholder="e.g. SWO Office, Room 12" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="welfare_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="register">Apply / Register</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:#7e22ce;margin-top:6px;" onclick="postActivityAnnouncement('welfare','🛡️','Student Welfare Office')">🚀 Post to Student Portal</button>
+            <div id="welfare_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="welfare_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== STUDENT ASSOCIATION SECTION ===== -->
+        <div id="facStudentAssoc" style="display:none;">
+          <div class="info-box">🧑‍🤝‍🧑 <strong>Student Association</strong> — Manage student association committee, events, meeting minutes, budget and proposals.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #4a044e;"><div style="font-size:1.8rem;font-weight:800;color:#4a044e;">12</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Committee Members</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #1a4fa0;"><div style="font-size:1.8rem;font-weight:800;color:#1a4fa0;">9</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Events This Year</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">₹82K</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Annual Budget</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #b45309;"><div style="font-size:1.8rem;font-weight:800;color:#b45309;">4</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Pending Proposals</div></div>
+          </div>
+          <div class="tabs" id="sassocTabs">
+            <button class="tab act" onclick="showSAssocTab('saCommittee',this)">👥 Committee</button>
+            <button class="tab" onclick="showSAssocTab('saEvents',this)">🎉 Events</button>
+            <button class="tab" onclick="showSAssocTab('saMeetings',this)">📋 Meeting Minutes</button>
+            <button class="tab" onclick="showSAssocTab('saBudget',this)">💰 Budget</button>
+            <button class="tab" onclick="showSAssocTab('saProposals',this)">📝 Proposals</button>
+          </div>
+          <div id="saCommittee" class="card">
+            <div class="card-hd"><h3>Student Association Committee 2025-26</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add member')">+ Add Member</button></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Branch</th><th>Position</th><th>Contact</th><th>Term</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>🏆 President</td><td>98XXXXXXXX</td><td>2025-26</td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Civil</td><td>Vice President</td><td>97XXXXXXXX</td><td>2025-26</td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>Secretary</td><td>96XXXXXXXX</td><td>2025-26</td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>Treasurer</td><td>95XXXXXXXX</td><td>2025-26</td></tr>
+            </tbody></table>
+          </div>
+          <div id="saEvents" style="display:none;" class="card">
+            <div class="card-hd"><h3>Events Organized</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add event')">+ Plan Event</button></div></div>
+            <table><thead><tr><th>Event</th><th>Type</th><th>Date</th><th>Venue</th><th>Budget Used</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Fresher's Welcome 2025</strong></td><td>Cultural</td><td>Aug 2025</td><td>Auditorium</td><td>₹18,000</td><td><span class="badge approved">Completed</span></td></tr>
+              <tr><td><strong>Tech Fest — TechGPT</strong></td><td>Technical</td><td>Jan 2026</td><td>Campus</td><td>₹25,000</td><td><span class="badge approved">Completed</span></td></tr>
+              <tr><td><strong>Annual Day 2026</strong></td><td>Cultural</td><td>Mar 2026</td><td>Auditorium</td><td>—</td><td><span class="badge info">Planning</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="saMeetings" style="display:none;" class="card">
+            <div class="card-hd"><h3>Meeting Minutes</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add minutes')">+ Add Minutes</button></div></div>
+            <table><thead><tr><th>Meeting Date</th><th>Agenda</th><th>Attendees</th><th>Decisions Made</th><th>Minutes</th></tr></thead>
+            <tbody>
+              <tr><td>15 Jan 2026</td><td>Annual Day planning</td><td>All 12 members</td><td>Date fixed: 20 Mar 2026; Venue: Auditorium</td><td><button class="btn ol" onclick="alert('View full minutes')">📄 View</button></td></tr>
+              <tr><td>10 Dec 2025</td><td>Tech Fest debrief</td><td>10 members</td><td>Budget reconciled; next edition planned for Jan 2027</td><td><button class="btn ol" onclick="alert('View full minutes')">📄 View</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="saBudget" style="display:none;" class="card">
+            <div class="card-hd"><h3>Budget Tracker 2025-26</h3></div>
+            <table><thead><tr><th>Item</th><th>Allocated</th><th>Spent</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Fresher's Welcome</td><td>₹20,000</td><td>₹18,200</td><td>₹1,800</td><td><span class="badge approved">Within Budget</span></td></tr>
+              <tr><td>Tech Fest — TechGPT</td><td>₹28,000</td><td>₹25,400</td><td>₹2,600</td><td><span class="badge approved">Within Budget</span></td></tr>
+              <tr><td>Annual Day 2026</td><td>₹30,000</td><td>₹0</td><td>₹30,000</td><td><span class="badge info">Upcoming</span></td></tr>
+              <tr><td>Miscellaneous</td><td>₹4,000</td><td>₹1,200</td><td>₹2,800</td><td><span class="badge approved">On Track</span></td></tr>
+              <tr style="font-weight:700;"><td>TOTAL</td><td>₹82,000</td><td>₹44,800</td><td>₹37,200</td><td>—</td></tr>
+            </tbody></table>
+          </div>
+          <div id="saProposals" style="display:none;" class="card">
+            <div class="card-hd"><h3>Proposals & Approvals</h3><div class="card-acts"><button class="btn pr" onclick="alert('Submit new proposal')">+ Submit Proposal</button></div></div>
+            <table><thead><tr><th>Proposal</th><th>Submitted By</th><th>Date</th><th>Budget Req.</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Inter-College Cultural Fest</strong></td><td>Student</td><td>10 Feb 2026</td><td>₹45,000</td><td><span class="badge pending">Pending Principal</span></td><td><button class="btn ol" onclick="alert('View proposal')">View</button></td></tr>
+              <tr><td><strong>Library Reading Corner</strong></td><td>Student</td><td>15 Jan 2026</td><td>₹8,000</td><td><span class="badge active">HOD Approved</span></td><td><button class="btn ol" onclick="alert('View proposal')">View</button></td></tr>
+              <tr><td><strong>Canteen Menu Update</strong></td><td>Student</td><td>05 Jan 2026</td><td>—</td><td><span class="badge approved">Approved</span></td><td><button class="btn ol" onclick="alert('View proposal')">View</button></td></tr>
+            </tbody></table>
+          </div>
+          <!-- POST TO STUDENT PORTAL -->
+          <div class="card" style="margin-top:4px;padding:22px;border-top:3px solid #4a044e;">
+            <h3 style="font-size:0.95rem;margin-bottom:5px;color:#4a044e;">📢 Post Announcement to Student Portal</h3>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:14px;">Notify all students about SA events, fests, meetings or important updates.</p>
+            <div class="form-row">
+              <div class="fg"><label>Title *</label><input type="text" id="sa_post_title" placeholder="e.g. Tech Fest TechGPT — Registrations Open!" /></div>
+              <div class="fg"><label>Date *</label><input type="date" id="sa_post_date" /></div>
+            </div>
+            <div class="fg"><label>Description *</label><textarea rows="3" id="sa_post_desc" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Event details, what students need to do, who can participate…"></textarea></div>
+            <div class="form-row">
+              <div class="fg"><label>Venue</label><input type="text" id="sa_post_venue" placeholder="e.g. College Auditorium" /></div>
+              <div class="fg"><label>Student Action Required</label>
+                <select id="sa_post_action" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option value="register">Register / Participate</option>
+                  <option value="acknowledge">Acknowledge / Read</option>
+                  <option value="interest">Express Interest</option>
+                  <option value="none">No Action Required</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn pr" style="background:#4a044e;margin-top:6px;" onclick="postActivityAnnouncement('studentassoc','🤜','Student Association')">🚀 Post to Student Portal</button>
+            <div id="sa_post_feedback" style="margin-top:10px;font-size:0.78rem;"></div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">POSTED ANNOUNCEMENTS</div>
+              <div id="sa_posted_list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== STORES SECTION ===== -->
+        <div id="facStores" style="display:none;">
+          <div class="info-box">🏪 <strong>Stores Section</strong> — Manage institutional stock inventory, purchase records, issue register, vendors and stock audits.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #44403c;"><div style="font-size:1.8rem;font-weight:800;color:#44403c;">248</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Stock Items</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #dc2626;"><div style="font-size:1.8rem;font-weight:800;color:#dc2626;">12</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Low Stock Alerts</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #1a4fa0;"><div style="font-size:1.8rem;font-weight:800;color:#1a4fa0;">35</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Issues This Month</div></div>
+            <div class="card" style="padding:18px;text-align:center;border-top:3px solid #15803d;"><div style="font-size:1.8rem;font-weight:800;color:#15803d;">8</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Registered Vendors</div></div>
+          </div>
+          <div class="tabs" id="storesTabs">
+            <button class="tab act" onclick="showStoresTab('stInventory',this)">📦 Inventory</button>
+            <button class="tab" onclick="showStoresTab('stPurchase',this)">🛒 Purchase Records</button>
+            <button class="tab" onclick="showStoresTab('stIssue',this)">📋 Issue Register</button>
+            <button class="tab" onclick="showStoresTab('stVendors',this)">🤝 Vendors</button>
+            <button class="tab" onclick="showStoresTab('stAudit',this)">📊 Stock Audit</button>
+          </div>
+          <div id="stInventory" class="card">
+            <div class="card-hd"><h3>Stock Inventory</h3><div class="card-acts"><div class="sbar" style="width:180px;"><span class="si">🔍</span><input type="text" placeholder="Search items…" /></div><button class="btn pr" onclick="alert('Add stock item')">+ Add Item</button></div></div>
+            <table><thead><tr><th>Item Code</th><th>Item Name</th><th>Category</th><th>Qty in Stock</th><th>Min. Qty</th><th>Unit</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/001</td><td><strong>A4 Paper (Ream)</strong></td><td>Stationery</td><td>45</td><td>10</td><td>Reams</td><td><span class="badge approved">In Stock</span></td><td><button class="btn ol" onclick="alert('Issue item')">Issue</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/002</td><td><strong>Chalk Box</strong></td><td>Stationery</td><td>8</td><td>20</td><td>Boxes</td><td><span class="badge re" style="background:#dc2626;color:white;">Low Stock</span></td><td><button class="btn ol">Issue</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/003</td><td><strong>Printer Cartridge (Black)</strong></td><td>IT Supplies</td><td>3</td><td>5</td><td>Nos.</td><td><span class="badge re" style="background:#dc2626;color:white;">Low Stock</span></td><td><button class="btn ol">Issue</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/004</td><td><strong>Office Chair</strong></td><td>Furniture</td><td>12</td><td>5</td><td>Nos.</td><td><span class="badge approved">In Stock</span></td><td><button class="btn ol">Issue</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/005</td><td><strong>Lab Coat</strong></td><td>Lab Supplies</td><td>28</td><td>15</td><td>Nos.</td><td><span class="badge approved">In Stock</span></td><td><button class="btn ol">Issue</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">STK/006</td><td><strong>Whiteboard Marker (Set)</strong></td><td>Stationery</td><td>4</td><td>10</td><td>Sets</td><td><span class="badge re" style="background:#dc2626;color:white;">Low Stock</span></td><td><button class="btn ol">Issue</button></td></tr>
+            </tbody></table>
+          </div>
+          <div id="stPurchase" style="display:none;" class="card">
+            <div class="card-hd"><h3>Purchase Records</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add purchase record')">+ Record Purchase</button></div></div>
+            <table><thead><tr><th>PO No.</th><th>Item</th><th>Vendor</th><th>Qty</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">PO/2025/018</td><td>A4 Paper (50 Reams)</td><td>Hubli Stationery</td><td>50</td><td>₹9,500</td><td>10 Jan 2025</td><td><span class="badge approved">Received</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">PO/2025/019</td><td>Lab Coats (30 Nos.)</td><td>Asha Textiles</td><td>30</td><td>₹12,000</td><td>15 Jan 2025</td><td><span class="badge approved">Received</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">PO/2025/022</td><td>Printer Cartridges (10 Nos.)</td><td>Tech Supplies</td><td>10</td><td>₹8,500</td><td>01 Feb 2025</td><td><span class="badge active">In Transit</span></td></tr>
+            </tbody></table>
+          </div>
+          <div id="stIssue" style="display:none;" class="card">
+            <div class="card-hd"><h3>Issue Register</h3><div class="card-acts"><button class="btn pr" onclick="alert('Record new issue')">+ Issue Item</button></div></div>
+            <table><thead><tr><th>Issue No.</th><th>Item</th><th>Qty</th><th>Issued To (Dept.)</th><th>Received By</th><th>Issue Date</th><th>Return Date</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">ISS/2025/081</td><td>A4 Paper</td><td>5 Reams</td><td>Principal Office</td><td>Mr. Kulkarni</td><td>05 Feb 2025</td><td>—</td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">ISS/2025/082</td><td>Whiteboard Markers</td><td>2 Sets</td><td>CSE Dept.</td><td>Staff Member</td><td>06 Feb 2025</td><td>—</td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">ISS/2025/083</td><td>Office Chair</td><td>2 Nos.</td><td>EST Office</td><td>Ms. R. Nair</td><td>08 Feb 2025</td><td>Permanent</td></tr>
+            </tbody></table>
+          </div>
+          <div id="stVendors" style="display:none;" class="card">
+            <div class="card-hd"><h3>Vendor Register</h3><div class="card-acts"><button class="btn pr" onclick="alert('Add vendor')">+ Add Vendor</button></div></div>
+            <table><thead><tr><th>Vendor Name</th><th>Category</th><th>Contact Person</th><th>Mobile</th><th>GST No.</th><th>Rating</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Hubli Stationery Works</strong></td><td>Stationery</td><td>Mr. B. Naik</td><td>94XXXXXXXX</td><td>29XXXXX1234Z</td><td>⭐⭐⭐⭐⭐</td></tr>
+              <tr><td><strong>Asha Textiles</strong></td><td>Uniforms / Lab Coats</td><td>Ms. A. More</td><td>93XXXXXXXX</td><td>29XXXXX5678Z</td><td>⭐⭐⭐⭐</td></tr>
+              <tr><td><strong>Tech Supplies Pvt. Ltd.</strong></td><td>IT Consumables</td><td>Mr. R. Patil</td><td>92XXXXXXXX</td><td>29XXXXX9012Z</td><td>⭐⭐⭐⭐</td></tr>
+              <tr><td><strong>Karnataka Furniture Co.</strong></td><td>Furniture</td><td>Mr. S. Hegde</td><td>91XXXXXXXX</td><td>29XXXXX3456Z</td><td>⭐⭐⭐</td></tr>
+            </tbody></table>
+          </div>
+          <div id="stAudit" style="display:none;" class="card">
+            <div class="card-hd"><h3>Stock Audit Log</h3><div class="card-acts"><button class="btn pr" onclick="alert('Start new audit')">+ New Audit</button></div></div>
+            <table><thead><tr><th>Audit ID</th><th>Date</th><th>Audited By</th><th>Items Checked</th><th>Discrepancies</th><th>Status</th><th>Report</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">AUD/2024/Q3</td><td>30 Sep 2024</td><td>Mr. P. Kulkarni</td><td>248 items</td><td>3 items short</td><td><span class="badge approved">Closed</span></td><td><button class="btn ol" onclick="alert('View audit report')">📄 Report</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">AUD/2024/Q4</td><td>31 Dec 2024</td><td>Mr. P. Kulkarni</td><td>248 items</td><td>1 item short</td><td><span class="badge approved">Closed</span></td><td><button class="btn ol" onclick="alert('View audit report')">📄 Report</button></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">AUD/2025/Q1</td><td>31 Mar 2025</td><td>—</td><td>—</td><td>—</td><td><span class="badge info">Upcoming</span></td><td>—</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- ===== LIBRARY STAFF UPLOAD SECTION ===== -->
+        <div id="facLibraryUpload" style="display:none;">
+          <div class="info-box">📚 <strong>Library E-Book Upload</strong> — Upload PDF books for students. After upload, the Registrar reviews and approves before books are visible to students.</div>
+          <div class="warn-box" style="margin-bottom:16px;">⚠️ <strong>Approval Required:</strong> All uploaded books go to <strong>Registrar</strong> for approval before appearing in the student library. Ensure book details are accurate before submitting.</div>
+          <div class="card" style="padding:22px;margin-bottom:16px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📤 Upload New E-Book</h3>
+            <div class="form-row">
+              <div class="fg"><label>Book Name <span style="color:red">*</span></label><input type="text" id="libFacBookName" placeholder="e.g. Data Structures using C" /></div>
+              <div class="fg"><label>Author Name <span style="color:red">*</span></label><input type="text" id="libFacAuthor" placeholder="e.g. Reema Thareja" /></div>
+            </div>
+            <div class="form-row three">
+              <div class="fg"><label>Subject Code</label><input type="text" id="libFacSubCode" placeholder="e.g. CS301" /></div>
+              <div class="fg"><label>Book Type</label>
+                <select id="libFacType"><option value="Textbook">Textbook</option><option value="Reference">Reference</option><option value="Lab Manual">Lab Manual</option><option value="Notes">Notes</option></select>
+              </div>
+              <div class="fg"><label>Semester</label>
+                <select id="libFacSem"><option value="">All Semesters</option><option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option><option>Sem 5</option><option>Sem 6</option></select>
+              </div>
+            </div>
+            <div class="fg"><label>Applicable Branches <span style="color:red">*</span> <span style="font-size:0.68rem;color:var(--text-muted);">(Hold Ctrl/Cmd to select multiple)</span></label>
+              <select id="libFacBranches" multiple style="height:100px;padding:8px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;">
+                <option>Civil Engineering</option>
+                <option>Computer Science Engineering</option>
+                <option>Electronics &amp; Communication Engineering</option>
+                <option>Mechanical Engineering</option>
+                <option>All Branches</option>
+              </select>
+            </div>
+            <div class="fg"><label>Upload PDF File <span style="color:red">*</span></label>
+              <input type="file" accept=".pdf" id="libFacPDFFile" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;font-size:0.82rem;" />
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn pr" onclick="uploadLibraryBookFac()">📤 Upload → Registrar Approval</button>
+              <button class="btn ol" onclick="document.getElementById('libFacBookName').value='';document.getElementById('libFacAuthor').value='';">Clear</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <h3>📖 My Uploads</h3>
+              <div class="card-acts">
+                <select style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                  <option>All Branches</option><option>Civil Engineering</option><option>Computer Science Engineering</option>
+                  <option>Electronics &amp; Communication Engineering</option><option>Mechanical Engineering</option>
+                </select>
+              </div>
+            </div>
+            <table>
+              <thead><tr><th>Book Name</th><th>Author</th><th>Branch(es)</th><th>Sem</th><th>Type</th><th>Approval Status</th><th>Actions</th></tr></thead>
+              <tbody id="libFacTableBody">
+                <tr><td><strong>Fluid Mechanics</strong></td><td>R.K. Bansal</td><td>Civil, Mech</td><td>Sem 4</td><td><span class="badge info">Reference</span></td><td><span class="badge pending">⏳ Awaiting Registrar</span></td><td><button class="btn pr" onclick="alert('Preview PDF…')">👁️ Preview</button></td></tr>
+                <tr><td><strong>Engineering Drawing</strong></td><td>K.L. Narayana</td><td>All Branches</td><td>Sem 1</td><td><span class="badge active">Textbook</span></td><td><span class="badge approved">✅ Registrar Approved</span></td><td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('View PDF…')">👁️ View</button><button class="btn go" onclick="alert('Download…')">⬇️</button></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+
+        <div id="facTimetable" style="display:none;">
+          <div class="info-box">📅 <strong>Timetable Upload</strong> — Upload timetables for your department. Students will only see their respective branch timetable. Upload separately for each year.</div>
+          <div class="warn-box">⚠️ Only faculty of the respective branch can upload. Students see their branch timetable only.</div>
+          <div class="tabs" style="margin-bottom:18px;">
+            <button class="tab act" onclick="showFacTTBranch('ftCivil',this)">Civil Engg.</button>
+            <button class="tab" onclick="showFacTTBranch('ftCSE',this)">CSE</button>
+            <button class="tab" onclick="showFacTTBranch('ftECE',this)">ECE</button>
+            <button class="tab" onclick="showFacTTBranch('ftMech',this)">Mechanical</button>
+          </div>
+          <div id="ftCivil">
+            <div class="tt-upload-grid">
+              <div class="tt-card"><h4>📅 1st Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 10 Feb 2026</div><div class="upload-zone" onclick="alert('Upload Civil 1st Year Timetable (PDF/Image)')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p><p>PDF, JPG, PNG accepted</p></div><button class="btn pr" style="width:100%;margin-top:8px;" onclick="alert('View Civil 1st Year Timetable')">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 2nd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 12 Feb 2026</div><div class="upload-zone" onclick="alert('Upload Civil 2nd Year Timetable')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p><p>PDF, JPG, PNG accepted</p></div><button class="btn pr" style="width:100%;margin-top:8px;" onclick="alert('View Civil 2nd Year Timetable')">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 3rd Year Timetable</h4><div class="tt-status" style="color:var(--orange);">⚠ Not Uploaded</div><div class="upload-zone" onclick="alert('Upload Civil 3rd Year Timetable')"><div class="uzi">📄</div><p><strong>Upload</strong></p><p>PDF, JPG, PNG accepted</p></div><button class="btn ol" style="width:100%;margin-top:8px;" disabled>👁️ Not Yet Uploaded</button></div>
+            </div>
+          </div>
+          <div id="ftCSE" style="display:none;">
+            <div class="tt-upload-grid">
+              <div class="tt-card"><h4>📅 1st Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 10 Feb 2026</div><div class="upload-zone" onclick="alert('Upload CSE 1st Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 2nd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 15 Feb 2026</div><div class="upload-zone" onclick="alert('Upload CSE 2nd Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 3rd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 18 Feb 2026</div><div class="upload-zone" onclick="alert('Upload CSE 3rd Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+            </div>
+          </div>
+          <div id="ftECE" style="display:none;">
+            <div class="tt-upload-grid">
+              <div class="tt-card"><h4>📅 1st Year Timetable</h4><div class="tt-status" style="color:var(--orange);">⚠ Not Uploaded</div><div class="upload-zone" onclick="alert('Upload ECE 1st Year TT')"><div class="uzi">📄</div><p><strong>Upload</strong></p></div><button class="btn ol" style="width:100%;margin-top:8px;" disabled>Not Uploaded</button></div>
+              <div class="tt-card"><h4>📅 2nd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 14 Feb 2026</div><div class="upload-zone" onclick="alert('Upload ECE 2nd Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 3rd Year Timetable</h4><div class="tt-status" style="color:var(--orange);">⚠ Not Uploaded</div><div class="upload-zone" onclick="alert('Upload ECE 3rd Year TT')"><div class="uzi">��</div><p><strong>Upload</strong></p></div><button class="btn ol" style="width:100%;margin-top:8px;" disabled>Not Uploaded</button></div>
+            </div>
+          </div>
+          <div id="ftMech" style="display:none;">
+            <div class="tt-upload-grid">
+              <div class="tt-card"><h4>📅 1st Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 11 Feb 2026</div><div class="upload-zone" onclick="alert('Upload Mech 1st Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 2nd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 13 Feb 2026</div><div class="upload-zone" onclick="alert('Upload Mech 2nd Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+              <div class="tt-card"><h4>📅 3rd Year Timetable</h4><div class="tt-status" style="color:var(--green);">✅ Uploaded — 16 Feb 2026</div><div class="upload-zone" onclick="alert('Upload Mech 3rd Year TT')"><div class="uzi">📄</div><p><strong>Upload / Replace</strong></p></div><button class="btn pr" style="width:100%;margin-top:8px;">👁️ View Current</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC RESULTS MANAGEMENT (HOD can alter/update) -->
+        <div id="facResults" style="display:none;">
+          <div class="warn-box">📊 <strong>Results Management</strong> — HOD can view, enter, edit and update student results for their department. All changes are logged.</div>
+          <div class="tabs" style="margin-bottom:16px;">
+            <button class="tab act" onclick="showFacResTab('frView',this)">👁️ View Results</button>
+            <button class="tab" onclick="showFacResTab('frEdit',this)">✏️ Add / Edit Result</button>
+          </div>
+          <!-- View Results Tab -->
+          <div id="frView">
+            <div class="card" style="padding:18px;margin-bottom:14px;">
+              <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <div class="fg" style="margin:0;flex:1;min-width:150px;"><label>Semester</label>
+                  <select id="facResSemFilter" onchange="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                    <option value="">All Semesters</option>
+                    <option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>
+                    <option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option>
+                  </select>
+                </div>
+                <div class="fg" style="margin:0;flex:1;min-width:150px;"><label>Session</label>
+                  <select id="facResSessionFilter" onchange="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                    <option value="">All Sessions</option>
+                    <option value="APR/MAY 2025">APR/MAY 2025</option>
+                    <option value="NOV/DEC 2025">NOV/DEC 2025</option>
+                    <option value="APR/MAY 2026">APR/MAY 2026</option>
+                  </select>
+                </div>
+                <div class="fg" style="margin:0;flex:2;min-width:180px;"><label>Search by Reg. No. / Name</label>
+                  <input type="text" id="facResSearch" placeholder="Search…" oninput="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" />
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>Civil Engineering — Results</h3></div>
+              <div style="overflow-x:auto;">
+                <table id="facResultViewTable">
+                  <thead><tr><th>Reg. No.</th><th>Student</th><th>Sem.</th><th>Session</th><th>Subjects</th><th>Internal</th><th>External</th><th>Total</th><th>Credits</th><th>Grade</th><th>SGPA</th><th>Result</th><th>Actions</th></tr></thead>
+                  <tbody id="facResultViewBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- Edit Result Tab -->
+          <div id="frEdit" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">✏️ Add / Edit Student Result</h3>
+              <div class="info-box" style="margin-bottom:14px;">Enter register number to load existing result, or fill in a new entry. Changes are logged and visible to Root Admin.</div>
+              <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;">
+                <div class="fg" style="flex:1;margin:0;"><label>Register Number</label><input type="text" id="editResReg" placeholder="Enter register number" /></div>
+                <div class="fg" style="flex:1;margin:0;"><label>Semester</label>
+                  <select id="editResSem" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                    <option value="">Select Sem</option>
+                    <option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>
+                    <option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option>
+                  </select>
+                </div>
+                <div class="fg" style="flex:1;margin:0;"><label>Exam Session</label>
+                  <select id="editResSession" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                    <option value="">Select</option>
+                    <option value="APR/MAY 2025">APR/MAY 2025</option>
+                    <option value="NOV/DEC 2025">NOV/DEC 2025</option>
+                    <option value="APR/MAY 2026">APR/MAY 2026</option>
+                  </select>
+                </div>
+                <button class="btn pr" style="height:40px;" onclick="loadEditResult()">Load →</button>
+              </div>
+              <div id="editResFields" style="display:none;">
+                <div class="form-row">
+                  <div class="fg"><label>Student (Auto)</label><input type="text" id="erName" readonly style="background:var(--bg);" /></div>
+                  <div class="fg"><label>Branch (Auto)</label><input type="text" id="erBranch" readonly style="background:var(--bg);" /></div>
+                </div>
+                <!-- Subject rows will be built dynamically -->
+                <div id="erSubjectRows"></div>
+                <div class="form-row" style="margin-top:12px;">
+                  <div class="fg"><label>SGPA</label><input type="number" id="erSGPA" step="0.01" placeholder="e.g. 7.8" /></div>
+                  <div class="fg"><label>Overall Result</label>
+                    <select id="erResult" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+                      <option value="Pass">Pass</option><option value="Fail">Fail</option><option value="Absent">Absent</option><option value="Detained">Detained</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:14px;">
+                  <button class="btn gr" onclick="saveHODResult()">💾 Save Result</button>
+                  <button class="btn go" onclick="openStaffMarksCard()">🖨️ Preview Marks Card</button>
+                  <button class="btn ol" onclick="document.getElementById('editResFields').style.display='none';">← Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAC GALLERY -->
+        <div id="facGallery" style="display:none;">
+          <div class="info-box">🖼️ <strong>Photo Gallery</strong> — Browse all college photos uploaded by Root Admin. Photos are organised by category.</div>
+          <div class="card">
+            <div class="card-hd">
+              <h3>College Photo Gallery</h3>
+              <div class="card-acts">
+                <select id="facGalleryCatFilter" onchange="filterGallery('fac')" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;">
+                  <option value="">All Categories</option>
+                  <option>Campus Life</option><option>Sports Events</option><option>Cultural Programs</option>
+                  <option>Convocation & Results</option><option>NSS / YRC Activities</option>
+                  <option>Workshops & Seminars</option><option>Alumni Meet</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="padding:16px;">
+              <div id="facGalleryGrid" class="gallery-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">
+                  <div style="font-size:2.5rem;margin-bottom:10px;">🖼️</div>
+                  <div style="font-weight:700;">Gallery is empty</div>
+                  <p style="font-size:0.78rem;margin-top:6px;">Root Admin hasn't uploaded any photos yet.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div><!-- /dbFaculty -->
+
+
+<!-- ============================================================ -->
+<!--  STUDENT DASHBOARD  -->
+<!-- ============================================================ -->
+<div id="dbStudent" class="db">
+  <div class="db-wrap">
+    <div class="sb">
+      <div class="sb-hdr" style="background:var(--green);">
+        <div class="sb-icon">🎓</div>
+        <div><div class="sb-name">Student Portal</div><div class="sb-role" style="color:rgba(255,255,255,0.7);">CSE · 2nd Year</div></div>
+      </div>
+      <div class="sb-menu">
+        <div class="sb-sec">My Academic</div>
+        <div class="sl act" onclick="showSec('stuHome',this)"><span class="sli">🏠</span>Dashboard</div>
+        <div class="sl" onclick="showSec('stuProfile',this)"><span class="sli">👤</span>My Profile</div>
+        <div class="sl" onclick="showSec('stuResults',this)"><span class="sli">📊</span>Results</div>
+        <div class="sl" onclick="showSec('stuAtt',this)"><span class="sli">🗓️</span>Attendance</div>
+        <div class="sl" onclick="showSec('stuTimetable',this)"><span class="sli">📅</span>Time Table</div>
+        <div class="sb-sec">Information</div>
+        <div class="sl" onclick="showSec('stuAchievements',this)"><span class="sli">🏆</span>Achievements</div>
+        <div class="sl" onclick="showSec('stuInstActivities',this)"><span class="sli">🏛️</span>Institute Activities</div>
+        <div class="sl" onclick="showSec('stuNotice',this)"><span class="sli">📢</span>Notice Board</div>
+        <div class="sl" onclick="showSec('stuLibrary',this)"><span class="sli">📖</span>Library</div>
+        <div class="sb-sec">Services</div>
+        <div class="sl" onclick="showSec('stuForms',this)"><span class="sli">📝</span>Submit Forms<span class="slb amber">2</span></div>
+        <div class="sl" onclick="showSec('stuCerts',this)"><span class="sli">📄</span>Certificates</div>
+        <div class="sl" onclick="showSec('stuExamFees',this)"><span class="sli">💰</span>Exam Fees</div>
+        <div class="sl" onclick="showSec('stuActivities',this)"><span class="sli">🌟</span>Activities</div>
+        <div class="sl" onclick="showSec('stuGallery',this)"><span class="sli">🖼️</span>Photo Gallery</div>
+        <div class="sl" onclick="showSec('stuGrievance',this)"><span class="sli">📣</span>Grievance</div>
+        <div class="sl" onclick="logout()"><span class="sli">🚪</span>Logout</div>
+      </div>
+    </div>
+    <div class="db-main">
+      <div class="db-topbar">
+        <div class="db-title" id="stuTitle">My Dashboard</div>
+        <div class="db-user">
+          <button class="notif-btn" onclick="toggleNP()">🔔<span class="nb-dot">2</span></button>
+          <div class="ava-upload-wrap" onclick="triggerPhotoUpload('stu')" title="Click to change profile photo">
+            <div class="ava" style="background:var(--green);" id="stuAva">RS</div>
+            <div class="ava-overlay">📷<br>Change</div>
+            <input type="file" id="stuPhotoInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'stu')" />
+          </div>
+          <span class="db-uname">Student</span>
+          <button class="btn ol" onclick="logout()" style="padding:6px 12px;font-size:0.72rem;">Logout</button>
+        </div>
+      </div>
+      <div class="db-content">
+
+        <div id="stuHome">
+          <div class="force-pw">🔒 <strong>First Login:</strong> Please change your temporary password immediately using the profile section.</div>
+          <div class="welcome-card wc" style="background:linear-gradient(120deg,#156e3a,var(--green));">
+            <h2>Hello, Student 👋</h2>
+            <p>— · Computer Science Engineering · 2nd Year · 2024-25</p>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-ico bl">📊</div><div><div class="kpi-num">7.8</div><div class="kpi-lbl">Current CGPA</div><div class="kpi-trend up">↑ Good Standing</div></div></div>
+            <div class="kpi"><div class="kpi-ico gr">✅</div><div><div class="kpi-num">82%</div><div class="kpi-lbl">Attendance</div><div class="kpi-trend up">↑ Above minimum</div></div></div>
+            <div class="kpi"><div class="kpi-ico go">📝</div><div><div class="kpi-num">2</div><div class="kpi-lbl">Pending Forms</div><div class="kpi-trend dn">⚠ Submit soon</div></div></div>
+            <div class="kpi"><div class="kpi-ico re">⏳</div><div><div class="kpi-num">1</div><div class="kpi-lbl">Awaiting Approval</div><div class="kpi-trend dn">Address update</div></div></div>
+          </div>
+          <!-- Quick Menu Grid -->
+          <div style="font-family:'Libre Baskerville',serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:14px;">Quick Access</div>
+          <div class="stu-menu-grid">
+            <div class="stu-menu-card bl" onclick="showSec('stuProfile',null);document.querySelector('.sl[onclick*=stuProfile]').click()"><div class="sm-ico">👤</div><h4>My Profile</h4><p>View & update your details</p></div>
+            <div class="stu-menu-card gr" onclick="showSec('stuAtt',null);document.querySelector('.sl[onclick*=stuAtt]').click()"><div class="sm-ico">🗓️</div><h4>Attendance</h4><p>Track your attendance</p></div>
+            <div class="stu-menu-card go" onclick="showSec('stuResults',null);document.querySelector('.sl[onclick*=stuResults]').click()"><div class="sm-ico">📊</div><h4>Results</h4><p>View academic results</p></div>
+            <div class="stu-menu-card te" onclick="showSec('stuTimetable',null);document.querySelector('.sl[onclick*=stuTimetable]').click()"><div class="sm-ico">📅</div><h4>Time Table</h4><p>Your branch timetable</p></div>
+            <div class="stu-menu-card or" onclick="showSec('stuNotice',null);document.querySelector('.sl[onclick*=stuNotice]').click()"><div class="sm-ico">📢</div><h4>Notice Board</h4><p>Latest notices & circulars</p></div>
+            <div class="stu-menu-card pu" onclick="showSec('stuLibrary',null);document.querySelector('.sl[onclick*=stuLibrary]').click()"><div class="sm-ico">📖</div><h4>Library</h4><p>Access PDF books</p></div>
+            <div class="stu-menu-card re" onclick="showSec('stuAchievements',null);document.querySelector('.sl[onclick*=stuAchievements]').click()"><div class="sm-ico">🏆</div><h4>Achievements</h4><p>College & student achievements</p></div>
+            <div class="stu-menu-card bl" onclick="showSec('stuInstActivities',null);document.querySelector('.sl[onclick*=stuInstActivities]').click()"><div class="sm-ico">🏛️</div><h4>Institute Activities</h4><p>NSS, YRC, Sports & more</p></div>
+            <div class="stu-menu-card gr" onclick="showSec('stuExamFees',null);document.querySelector('.sl[onclick*=stuExamFees]').click()"><div class="sm-ico">💰</div><h4>Exam Fees</h4><p>Generate exam fee receipt</p></div>
+            <div class="stu-menu-card re" onclick="showSec('stuGrievance',document.querySelector('.sl[onclick*=stuGrievance]'))"><div class="sm-ico">📣</div><h4>Grievance</h4><p>Submit grievance to Principal</p></div>
+            <div class="stu-menu-card bl" onclick="showSec('stuGallery',document.querySelector('.sl[onclick*=stuGallery]'))"><div class="sm-ico">🖼️</div><h4>Photo Gallery</h4><p>View college event photos</p></div>
+          </div>
+        </div>
+
+        <div id="stuProfile" style="display:none;">
+          <div class="card" style="padding:0;margin-bottom:18px;">
+            <div class="card-hd" style="background:linear-gradient(120deg,#156e3a,var(--green));padding:20px 24px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+              <div style="display:flex;align-items:center;gap:16px;">
+                <div onclick="triggerPhotoUpload('stu')" title="Click to change photo" style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.2);border:3px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;overflow:hidden;cursor:pointer;position:relative;" id="stuPhotoPreview">📷
+                  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:0.2s;font-size:0.6rem;color:white;font-weight:700;text-align:center;line-height:1.2;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">📷<br>Change</div>
+                </div>
+                <div>
+                  <div style="font-family:'Libre Baskerville',serif;font-size:1.1rem;font-weight:700;color:white;">Student</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.75);margin-top:3px;">— · Computer Science Engineering · 2nd Year</div>
+                  <span class="badge active" style="margin-top:6px;display:inline-flex;">Active Student</span>
+                </div>
+              </div>
+            </div>
+            <div style="padding:20px 24px;">
+              <div class="warn-box">⚠️ Profile is read-only. All changes require Root Admin approval. Click "Request Update" to submit a change request.</div>
+
+              <!-- PHOTO UPLOAD SECTION -->
+              <div style="margin:18px 0 8px;">
+                <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:12px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">📷 Profile Photo</div>
+                <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                  <div class="photo-circle" id="stuProfilePhotoCircle">📷</div>
+                  <div>
+                    <div style="font-size:0.78rem;font-weight:700;color:var(--navy);margin-bottom:6px;">Upload Your Photo</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Accepted: JPG, JPEG, PNG · Max size: <strong>100 KB</strong></div>
+                    <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--green);color:white;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;">
+                      📁 Choose Photo
+                      <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'stu')" />
+                    </label>
+                    <div id="stuPhotoMsg" style="margin-top:8px;font-size:0.72rem;"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- DYNAMIC PROFILE SECTIONS — rendered by JS based on Root Admin config -->
+              <div id="stuDynamicProfileSections"></div>
+              <button class="btn pr" style="margin-top:18px;" onclick="alert('Update request submitted! Awaiting Root Admin approval. You will be notified via WhatsApp.')">📝 Request Profile Update</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="stuResults" style="display:none;">
+          <div class="info-box">📊 <strong>Marks Card</strong> — Select a semester and exam session to view your results. Only Credits and Grades are shown here. For full marks details, contact the Exam Section.</div>
+
+          <!-- Step 1 + Step 2 selectors -->
+          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px;box-shadow:var(--shadow-sm);">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--navy);margin-bottom:14px;font-family:'Libre Baskerville',serif;">🎓 Select Result to View</div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+
+              <!-- Semester -->
+              <div style="flex:1;min-width:180px;">
+                <label style="display:block;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:6px;">Step 1 — Select Semester</label>
+                <select id="stuSemSelect" onchange="onStuSemChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;color:var(--text);background:white;outline:none;cursor:pointer;">
+                  <option value="">— Choose Semester —</option>
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
+                  <option value="3">Semester 3</option>
+                  <option value="4">Semester 4</option>
+                  <option value="5">Semester 5</option>
+                  <option value="6">Semester 6</option>
+                </select>
+              </div>
+
+              <!-- Exam Session — populated dynamically -->
+              <div style="flex:1;min-width:200px;display:none;" id="stuSessionBox">
+                <label style="display:block;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:6px;">Step 2 — Select Exam Session</label>
+                <select id="stuSessionSelect" onchange="loadStudentResult()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;color:var(--text);background:white;outline:none;cursor:pointer;">
+                  <option value="">— Choose Session —</option>
+                </select>
+              </div>
+
+              <!-- Print button -->
+              <button class="btn pr" id="mcPrintBtn" onclick="openMarksCardPrint()" style="display:none;height:42px;align-self:flex-end;">🖨️ Print Marks Card</button>
+            </div>
+          </div>
+
+          <!-- Result display area -->
+          <div id="stuResultDisplay"></div>
+        </div>
+
+        <div id="stuAtt" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>Attendance — Semester 3</h3></div>
+            <div class="att-summary">
+              <div class="att-ring"><div class="att-ring-inner">82%</div></div>
+              <div><div style="font-weight:700;font-size:0.9rem;color:var(--navy);">Overall Attendance</div><div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">Above minimum 75% threshold</div></div>
+            </div>
+            <table><thead><tr><th>Subject</th><th>Total</th><th>Attended</th><th>%</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Data Structures</td><td>52</td><td>46</td><td>88%</td><td><span class="badge approved">Good</span></td></tr>
+              <tr><td>Database Systems</td><td>48</td><td>42</td><td>87%</td><td><span class="badge approved">Good</span></td></tr>
+              <tr><td>Computer Networks</td><td>50</td><td>37</td><td>74%</td><td><span class="badge rejected">Warning</span></td></tr>
+              <tr><td>Engineering Maths</td><td>44</td><td>40</td><td>91%</td><td><span class="badge approved">Excellent</span></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <div id="stuForms" style="display:none;">
+          <div class="info-box">📋 <strong>Forms Shared With You</strong> — Forms shared by Root Admin will appear here automatically. High-priority forms are marked with ⚠️ or 🚨.</div>
+          <div id="stuSharedFormsList">
+            <div id="stuFormsEmpty" style="text-align:center;padding:48px;color:var(--text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+              <div style="font-weight:700;font-size:0.9rem;">No forms shared with you yet</div>
+              <p style="font-size:0.78rem;margin-top:6px;">When Root Admin shares a form, it will appear here instantly.</p>
+            </div>
+          </div>
+        </div>
+        <div id="stuCerts" style="display:none;">
+          <div class="info-box">📄 <strong>Certificate Requests</strong> — Select the certificate you need, fill in the details and submit. Your request will be automatically routed to the responsible section and you'll be notified via Email & WhatsApp once ready.</div>
+
+          <!-- Certificate type tabs -->
+          <div class="tabs" id="stuCertTabs">
+            <button class="tab act" onclick="showStuCertTab('scTC',this)">📄 TC</button>
+            <button class="tab" onclick="showStuCertTab('scStudy',this)">📋 Study Certificate</button>
+            <button class="tab" onclick="showStuCertTab('scStudying',this)">🎓 Studying Certificate</button>
+            <button class="tab" onclick="showStuCertTab('scNOC',this)">📃 NOC</button>
+            <button class="tab" onclick="showStuCertTab('scPDC',this)">🏅 PDC</button>
+            <button class="tab" onclick="showStuCertTab('scMyReqs',this)">🕐 My Requests</button>
+          </div>
+
+          <!-- TC -->
+          <div id="scTC">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#1a4fa0,#2563eb);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📄</div>
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">Transfer Certificate (TC)</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:2px 0 0;">Routed to → <strong style="color:#1a4fa0;">ACM Section</strong> for processing</p></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Full Name *</label><input type="text" placeholder="As per admission records" /></div>
+                <div class="fg"><label>Register No. *</label><input type="text" value="—" readonly style="background:#f8fafc;" /></div>
+              </div>
+              <div class="form-row three">
+                <div class="fg"><label>Branch *</label><input type="text" value="Computer Science Engg." readonly style="background:#f8fafc;" /></div>
+                <div class="fg"><label>Current Semester</label><input type="text" value="3rd Semester" readonly style="background:#f8fafc;" /></div>
+                <div class="fg"><label>Reason for TC *</label>
+                  <select><option value="">-- Select Reason --</option><option>Admission in another college</option><option>Family relocation</option><option>Personal reasons</option><option>Other</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>Additional Remarks</label><textarea rows="2" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Any additional information..."></textarea></div>
+              <div class="warn-box" style="margin:14px 0;">⚠️ TC once issued cannot be cancelled. Ensure all dues are cleared before applying. Processing time: <strong>5–7 working days</strong>.</div>
+              <button class="btn pr" onclick="submitCertRequest('TC','ACM Section')">📤 Submit TC Request → ACM Section</button>
+            </div>
+          </div>
+
+          <!-- Study Certificate -->
+          <div id="scStudy" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#065f46,#10b981);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">Study Certificate</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:2px 0 0;">Routed to → <strong style="color:#065f46;">ACM Section</strong> for processing</p></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Full Name *</label><input type="text" placeholder="As per admission records" /></div>
+                <div class="fg"><label>Register No. *</label><input type="text" value="—" readonly style="background:#f8fafc;" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Purpose of Certificate *</label>
+                  <select><option value="">-- Select Purpose --</option><option>Bank loan / scholarship</option><option>Passport application</option><option>Govt. exam application</option><option>Higher education application</option><option>Other</option></select>
+                </div>
+                <div class="fg"><label>No. of Copies Required</label>
+                  <select><option>1</option><option>2</option><option>3</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>Address the Certificate To (if required)</label><input type="text" placeholder="e.g. The Manager, SBI Bank, Hubli" /></div>
+              <div class="info-box" style="margin:14px 0;">ℹ️ Processing time: <strong>2–3 working days</strong>. You will be notified via WhatsApp & Email when ready.</div>
+              <button class="btn go" onclick="submitCertRequest('Study Certificate','ACM Section')">📤 Submit Request → ACM Section</button>
+            </div>
+          </div>
+
+          <!-- Studying Certificate -->
+          <div id="scStudying" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎓</div>
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">Studying Certificate</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:2px 0 0;">Routed to → <strong style="color:#b45309;">ACM Section</strong> for processing</p></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Full Name *</label><input type="text" placeholder="As per admission records" /></div>
+                <div class="fg"><label>Register No. *</label><input type="text" value="—" readonly style="background:#f8fafc;" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Current Academic Year *</label>
+                  <select><option>2025–26</option><option>2024–25</option></select>
+                </div>
+                <div class="fg"><label>Purpose *</label>
+                  <select><option value="">-- Select Purpose --</option><option>Railway concession</option><option>Bus pass</option><option>Scholarship application</option><option>Govt. exam eligibility</option><option>Other</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>No. of Copies Required</label><select style="width:120px;"><option>1</option><option>2</option><option>3</option></select></div>
+              <div class="info-box" style="margin:14px 0;">ℹ️ Processing time: <strong>1–2 working days</strong>.</div>
+              <button class="btn" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;" onclick="submitCertRequest('Studying Certificate','ACM Section')">📤 Submit Request → ACM Section</button>
+            </div>
+          </div>
+
+          <!-- NOC -->
+          <div id="scNOC" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#1d4ed8,#60a5fa);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📃</div>
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">No Objection Certificate (NOC)</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:2px 0 0;">Routed to → <strong style="color:#1d4ed8;">ACM Section</strong> for processing</p></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Full Name *</label><input type="text" placeholder="As per admission records" /></div>
+                <div class="fg"><label>Register No. *</label><input type="text" value="—" readonly style="background:#f8fafc;" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Purpose of NOC *</label>
+                  <select><option value="">-- Select Purpose --</option><option>Participation in external competition/event</option><option>Internship / Industrial training</option><option>Part-time job</option><option>Passport application</option><option>Participation in sports event</option><option>Higher studies admission</option><option>Other</option></select>
+                </div>
+                <div class="fg"><label>Event / Organization Name *</label><input type="text" placeholder="e.g. ISRO Internship, National Cricket Championship" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>From Date *</label><input type="date" /></div>
+                <div class="fg"><label>To Date *</label><input type="date" /></div>
+              </div>
+              <div class="fg"><label>Address NOC To *</label><input type="text" placeholder="e.g. The Director, ISRO, Bengaluru" /></div>
+              <div class="fg"><label>Additional Details</label><textarea rows="2" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" placeholder="Brief description of the event / activity..."></textarea></div>
+              <div class="info-box" style="margin:14px 0;">ℹ️ NOC requests are processed by the <strong>ACM Section</strong>. Processing time: <strong>1–2 working days</strong>.</div>
+              <button class="btn" style="background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;" onclick="submitCertRequest('NOC','ACM Section')">📤 Submit NOC Request → ACM Section</button>
+            </div>
+          </div>
+
+          <!-- PDC -->
+          <div id="scPDC" style="display:none;">
+            <div class="card" style="padding:22px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#be185d,#ec4899);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏅</div>
+                <div><h3 style="font-size:0.95rem;color:var(--navy);margin:0;">Provisional Degree Certificate (PDC)</h3><p style="font-size:0.72rem;color:var(--text-muted);margin:2px 0 0;">Routed to → <strong style="color:#be185d;">Exam Cell</strong> for processing</p></div>
+              </div>
+              <div class="warn-box" style="margin-bottom:16px;">⚠️ PDC is issued only to students who have <strong>completed all semesters</strong> and have <strong>no backlogs</strong>. Your eligibility will be verified by the Exam Cell before processing.</div>
+              <div class="form-row">
+                <div class="fg"><label>Full Name *</label><input type="text" placeholder="As per admission records" /></div>
+                <div class="fg"><label>Register No. *</label><input type="text" value="—" readonly style="background:#f8fafc;" /></div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Branch *</label><input type="text" value="Computer Science Engg." readonly style="background:#f8fafc;" /></div>
+                <div class="fg"><label>Year of Passing *</label>
+                  <select><option>2026</option><option>2025</option><option>2024</option></select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label>Purpose of PDC *</label>
+                  <select><option value="">-- Select Purpose --</option><option>Job application</option><option>Higher studies admission</option><option>Govt. exam application</option><option>Visa / Passport</option><option>Other</option></select>
+                </div>
+                <div class="fg"><label>No. of Copies Required</label>
+                  <select><option>1</option><option>2</option><option>3</option></select>
+                </div>
+              </div>
+              <div class="fg"><label>Address PDC To (if required)</label><input type="text" placeholder="e.g. The HR Manager, Infosys Ltd., Bengaluru" /></div>
+              <div class="info-box" style="margin:14px 0;">ℹ️ PDC requests are processed by the <strong>Exam Cell</strong>. Processing time: <strong>5–7 working days</strong> after eligibility verification.</div>
+              <button class="btn" style="background:linear-gradient(135deg,#be185d,#ec4899);color:white;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;" onclick="submitCertRequest('PDC','Exam Cell')">📤 Submit PDC Request → Exam Cell</button>
+            </div>
+          </div>
+
+          <!-- My Requests -->
+          <div id="scMyReqs" style="display:none;">
+            <div class="card">
+              <div class="card-hd"><h3>🕐 My Certificate Requests</h3></div>
+              <table id="stuCertReqTable">
+                <thead><tr><th>Req. ID</th><th>Certificate Type</th><th>Submitted On</th><th>Routed To</th><th>Status</th><th>Remarks</th></tr></thead>
+                <tbody id="stuCertReqBody">
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>Study Certificate</td><td>10 Jan 2025</td><td><span class="badge info">ACM Section</span></td><td><span class="badge approved">✅ Ready for Collection</span></td><td>Collect from ACM Office, Room 12</td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td>Studying Certificate</td><td>02 Dec 2024</td><td><span class="badge info">ACM Section</span></td><td><span class="badge approved">✅ Collected</span></td><td>—</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="stuActivities" style="display:none;">
+          <div class="mod-grid">
+            <div class="mod-card bl"><div class="mi">💼</div><h4>Placement</h4><p>Placement drives & records</p></div>
+            <div class="mod-card re"><div class="mi">🤝</div><h4>NSS</h4><p>NSS activities & participation</p></div>
+            <div class="mod-card go"><div class="mi">🏆</div><h4>Sports</h4><p>Sports events & achievements</p></div>
+            <div class="mod-card pu"><div class="mi">🎓</div><h4>Alumni</h4><p>Alumni network & updates</p></div>
+          </div>
+        </div>
+
+        <!-- ACHIEVEMENTS (View Only) -->
+        <div id="stuAchievements" style="display:none;">
+          <div class="info-box">🏆 <strong>Achievements</strong> — College achievements, merit lists, and notable student accomplishments. View only.</div>
+          <div class="two-col">
+            <div class="card">
+              <div class="card-hd"><h3>🥇 Academic Achievements</h3></div>
+              <div class="app-item"><div class="app-av" style="background:var(--accent);">🥇</div><div class="app-info"><div class="app-name">State Merit — Topper 2024</div><div class="app-desc">Student (CSE) scored highest marks in Karnataka Diploma Board Examination 2023-24.</div></div><div><span class="badge approved">State Level</span></div></div>
+              <div class="app-item"><div class="app-av" style="background:var(--primary);">📚</div><div class="app-info"><div class="app-name">Best Student Award</div><div class="app-desc">Awarded to students with CGPA above 9.0 for Academic Year 2024-25</div></div><div><span class="badge active">College Level</span></div></div>
+              <div class="app-item"><div class="app-av" style="background:var(--green);">🎖️</div><div class="app-info"><div class="app-name">Technical Project Excellence</div><div class="app-desc">CSE team won 1st place at DTE Karnataka Tech Fest 2025 — Smart Irrigation Project</div></div><div><span class="badge approved">District Level</span></div></div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><h3>🏅 Sports & Cultural</h3></div>
+              <div class="app-item"><div class="app-av" style="background:var(--orange);">⚽</div><div class="app-info"><div class="app-name">Inter-Polytechnic Football</div><div class="app-desc">GPT Hubli Football team — Runners Up, Zone Level Tournament 2025</div></div><div><span class="badge pending">Zone Level</span></div></div>
+              <div class="app-item"><div class="app-av" style="background:var(--purple);">🎭</div><div class="app-info"><div class="app-name">Cultural Fest Winners</div><div class="app-desc">GPT Hubli won Best Skit at DTE Annual Cultural Meet 2025</div></div><div><span class="badge info">Cultural</span></div></div>
+              <div class="app-item"><div class="app-av" style="background:var(--teal);">🎨</div><div class="app-info"><div class="app-name">NSS Special Camp Award</div><div class="app-desc">Best NSS Unit — Karnataka State NSS Award 2024</div></div><div><span class="badge approved">State Level</span></div></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:4px;">
+            <div class="card-hd"><h3>🏛️ Institutional Recognitions</h3></div>
+            <table><thead><tr><th>Award</th><th>Category</th><th>Level</th><th>Year</th><th>Details</th></tr></thead>
+            <tbody>
+              <tr><td><strong>ISO 9001:2015 Certification</strong></td><td><span class="badge active">Quality</span></td><td>International</td><td>2024</td><td>Quality Management System Certification</td></tr>
+              <tr><td><strong>Best Polytechnic — Karnataka</strong></td><td><span class="badge approved">Excellence</span></td><td>State</td><td>2023</td><td>DTE Karnataka Best Institution Award</td></tr>
+              <tr><td><strong>NAAC Accreditation</strong></td><td><span class="badge info">Academics</span></td><td>National</td><td>2022</td><td>NAAC Grade A+ Accreditation</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- INSTITUTE ACTIVITIES (LIVE — connected to officer portals) -->
+        <div id="stuInstActivities" style="display:none;">
+          <div class="info-box" style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.2rem;">🏛️</span>
+            <div><strong>Institute Activities</strong> — Live posts from Placement, NSS, YRC, Alumni, Sports, Student Welfare & Student Association officers. Register or respond directly below.</div>
+          </div>
+
+          <!-- Category Filter Tabs -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <button class="tab act" id="iaFilterAll" onclick="filterActivityFeed('all',this)" style="font-size:0.72rem;padding:6px 14px;">🌐 All</button>
+            <button class="tab" id="iaFilterPlacement" onclick="filterActivityFeed('placement',this)" style="font-size:0.72rem;padding:6px 14px;">💼 Placement</button>
+            <button class="tab" id="iaFilterNSS" onclick="filterActivityFeed('nss',this)" style="font-size:0.72rem;padding:6px 14px;">🤝 NSS</button>
+            <button class="tab" id="iaFilterYRC" onclick="filterActivityFeed('yrc',this)" style="font-size:0.72rem;padding:6px 14px;">🏥 YRC</button>
+            <button class="tab" id="iaFilterAlumni" onclick="filterActivityFeed('alumni',this)" style="font-size:0.72rem;padding:6px 14px;">🎓 Alumni</button>
+            <button class="tab" id="iaFilterSports" onclick="filterActivityFeed('sports',this)" style="font-size:0.72rem;padding:6px 14px;">🏆 Sports</button>
+            <button class="tab" id="iaFilterWelfare" onclick="filterActivityFeed('welfare',this)" style="font-size:0.72rem;padding:6px 14px;">🛡️ Welfare</button>
+            <button class="tab" id="iaFilterSA" onclick="filterActivityFeed('studentassoc',this)" style="font-size:0.72rem;padding:6px 14px;">🤜 Student Assoc.</button>
+          </div>
+
+          <!-- Live Activity Feed -->
+          <div id="stuActivityFeed"></div>
+
+          <!-- Upcoming Events Calendar (live) -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-hd"><h3>📅 Upcoming Events Calendar</h3><div class="card-acts"><span style="font-size:0.7rem;color:var(--green);font-family:'JetBrains Mono',monospace;">🟢 Live</span></div></div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>Event</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="stuActivityCalendar"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- My Registrations -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-hd"><h3>&#10003; My Registrations &amp; Responses</h3></div>
+            <div id="stuMyRegistrations" style="padding:14px;font-size:0.82rem;color:var(--text-muted);text-align:center;">No registrations yet. Register for activities above.</div>
+          </div>
+
+          <!-- JOIN ALUMNI NETWORK -->
+          <div class="card" style="margin-top:16px;border-top:3px solid #3730a3;">
+            <div class="card-hd"><h3>&#127891; Join Alumni Network</h3><div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">Already a member? Submit your receipt for verification</span></div></div>
+            <div style="padding:18px;" id="stuAlumniJoinSection">
+              <div id="stuAlumniStatus" style="display:none;"></div>
+              <div id="stuAlumniForm">
+                <p style="font-size:0.82rem;color:var(--text);margin-bottom:14px;line-height:1.6;">If you have paid your Alumni membership fee and received a receipt, enter your Receipt Number below. Your request will be sent to the Alumni Officer for approval.</p>
+                <div style="display:flex;gap:10px;align-items:flex-end;">
+                  <div class="fg" style="flex:1;margin:0;">
+                    <label>Receipt Number <span style="color:red">*</span></label>
+                    <input type="text" id="stuAlumniReceiptInput" placeholder="e.g. ALM/2026/0041" style="font-family:'JetBrains Mono',monospace;" />
+                  </div>
+                  <button class="btn pr" style="background:#3730a3;height:42px;margin-bottom:1px;" onclick="stuSubmitAlumniRequest()">&#128228; Submit Request</button>
+                </div>
+                <div id="stuAlumniFeedback" style="margin-top:10px;font-size:0.78rem;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ALUMNI MEMBERS-ONLY NOTIFICATIONS (visible only to approved members) -->
+          <div id="stuAlumniMemberNotifs" style="display:none;margin-top:16px;">
+            <div class="card" style="border-top:3px solid #3730a3;">
+              <div class="card-hd">
+                <h3>&#128276; Alumni Members Updates <span style="background:#3730a3;color:white;border-radius:10px;padding:2px 8px;font-size:0.65rem;margin-left:6px;">MEMBERS ONLY</span></h3>
+                <div class="card-acts"><span style="font-size:0.7rem;color:var(--green);">&#128994; Live</span></div>
+              </div>
+              <div id="stuAlumniMemberNotifList" style="padding:14px;font-size:0.82rem;color:var(--text-muted);text-align:center;">No exclusive updates yet.</div>
+            </div>
+          </div>
+
+          <!-- ALUMNI COMMITTEE (view only for students) -->
+          <div class="card" style="margin-top:16px;border-top:3px solid #b45309;" id="stuAlumniCommitteeCard">
+            <div class="card-hd">
+              <h3>&#127963; Meet the Alumni Committee</h3>
+              <div class="card-acts"><span style="font-size:0.7rem;color:var(--text-muted);">View Only</span></div>
+            </div>
+            <div id="stuAlumniCommitteeBody" style="overflow-x:auto;">
+              <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.8rem;">Alumni Committee details will appear here once published by the Alumni Officer.</div>
+            </div>
+          </div>
+
+          <!-- ALUMNI DONATION (view only for students) -->
+          <div class="card" style="margin-top:16px;border-top:3px solid #15803d;" id="stuAlumniDonationCard">
+            <div class="card-hd">
+              <h3>&#128176; Support the Alumni Network</h3>
+              <div class="card-acts"><span style="font-size:0.7rem;color:var(--green);">Donate</span></div>
+            </div>
+            <div id="stuAlumniDonationBody" style="padding:18px;">
+              <div style="text-align:center;color:var(--text-muted);font-size:0.8rem;">Donation details will appear here once published by the Alumni Officer.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTICE BOARD -->
+        <div id="stuNotice" style="display:none;">
+          <div class="info-box">📢 <strong>Notice Board</strong> — Official notices, circulars, and announcements from the institution.</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <div class="sbar" style="flex:1;"><span class="si">🔍</span><input type="text" placeholder="Search notices…" /></div>
+            <select style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+              <option>All Categories</option><option>Academic</option><option>Exam</option><option>Scholarship</option><option>General</option><option>Holiday</option>
+            </select>
+          </div>
+          <div class="card">
+            <div style="padding:0;">
+              <div class="app-item" style="align-items:flex-start;gap:14px;padding:16px 18px;">
+                <div style="width:44px;height:44px;background:var(--red-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🚨</div>
+                <div class="app-info" style="flex:1;">
+                  <div class="app-name" style="font-size:0.88rem;">Exam Fee Last Date — March 15, 2026</div>
+                  <div class="app-desc" style="margin-top:4px;">All 3rd semester students must pay exam fees before March 15, 2026. Late fee will be applicable after the due date. Generate your fee receipt from the Exam Fees module.</div>
+                  <div style="margin-top:8px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-light);">28 Feb 2026 · Exam Cell</div>
+                </div>
+                <span class="badge rejected">Urgent</span>
+              </div>
+              <div class="app-item" style="align-items:flex-start;gap:14px;padding:16px 18px;">
+                <div style="width:44px;height:44px;background:var(--primary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📚</div>
+                <div class="app-info" style="flex:1;">
+                  <div class="app-name" style="font-size:0.88rem;">Semester Examination Time Table — Semester 3</div>
+                  <div class="app-desc" style="margin-top:4px;">Semester 3 examination schedule has been released. Exams begin April 5, 2026. Detailed subject-wise schedule available in the Exam Cell office and on the notice board.</div>
+                  <div style="margin-top:8px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-light);">26 Feb 2026 · Controller of Examinations</div>
+                </div>
+                <span class="badge active">Academic</span>
+              </div>
+              <div class="app-item" style="align-items:flex-start;gap:14px;padding:16px 18px;">
+                <div style="width:44px;height:44px;background:var(--green-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">💰</div>
+                <div class="app-info" style="flex:1;">
+                  <div class="app-name" style="font-size:0.88rem;">NSP Scholarship — Application Open</div>
+                  <div class="app-desc" style="margin-top:4px;">National Scholarship Portal applications are open for SC/ST/OBC students. Apply before March 10, 2026. Contact SWO office with all required documents.</div>
+                  <div style="margin-top:8px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-light);">24 Feb 2026 · Welfare Officer</div>
+                </div>
+                <span class="badge approved">Scholarship</span>
+              </div>
+              <div class="app-item" style="align-items:flex-start;gap:14px;padding:16px 18px;">
+                <div style="width:44px;height:44px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🎓</div>
+                <div class="app-info" style="flex:1;">
+                  <div class="app-name" style="font-size:0.88rem;">Campus Placement — Infosys Registration</div>
+                  <div class="app-desc" style="margin-top:4px;">Infosys campus drive on March 12, 2026. 3rd year students with 60%+ aggregate are eligible. Register before March 5 through the placement officer.</div>
+                  <div style="margin-top:8px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-light);">22 Feb 2026 · Placement Cell</div>
+                </div>
+                <span class="badge pending">Placement</span>
+              </div>
+              <div class="app-item" style="align-items:flex-start;gap:14px;padding:16px 18px;">
+                <div style="width:44px;height:44px;background:var(--bg2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📅</div>
+                <div class="app-info" style="flex:1;">
+                  <div class="app-name" style="font-size:0.88rem;">Public Holiday — Holi Festival — March 14, 2026</div>
+                  <div class="app-desc" style="margin-top:4px;">College will remain closed on March 14, 2026 for Holi Festival. Regular classes resume March 16, 2026.</div>
+                  <div style="margin-top:8px;font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-light);">20 Feb 2026 · Principal Office</div>
+                </div>
+                <span class="badge info">Holiday</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIBRARY (PDF Books) -->
+        <div id="stuLibrary" style="display:none;">
+          <div class="info-box">📖 <strong>Digital Library</strong> — Access PDF textbooks and reference materials for your branch. View online or download for offline study. All resources are for academic use only.</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <div class="sbar" style="flex:1;"><span class="si">🔍</span><input type="text" placeholder="Search books, subjects, authors…" /></div>
+            <select style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+              <option>All Subjects</option><option>Data Structures</option><option>Database Systems</option><option>Computer Networks</option><option>Engineering Maths</option><option>Operating Systems</option>
+            </select>
+            <select style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+              <option>All Semesters</option><option>Semester 1</option><option>Semester 2</option><option>Semester 3</option><option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h3>📚 CSE — Textbooks & References</h3></div>
+            <table><thead><tr><th>Title</th><th>Author</th><th>Subject</th><th>Semester</th><th>Type</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Data Structures using C</strong></td><td>Reema Thareja</td><td>CS301</td><td>Sem 3</td><td><span class="badge active">Textbook</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…\n\nIn production, this opens an embedded PDF reader directly in the browser.')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started!\nFile: Data_Structures_Thareja.pdf')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Database Management Systems</strong></td><td>Ramakrishnan &amp; Gehrke</td><td>CS302</td><td>Sem 3</td><td><span class="badge active">Textbook</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Downloading DBMS.pdf')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Computer Networks</strong></td><td>Andrew S. Tanenbaum</td><td>CS303</td><td>Sem 3</td><td><span class="badge active">Textbook</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started.')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Engineering Mathematics — III</strong></td><td>B.S. Grewal</td><td>MA201</td><td>Sem 3</td><td><span class="badge info">Reference</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started.')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Operating Systems Concepts</strong></td><td>Silberschatz, Galvin</td><td>CS401</td><td>Sem 4</td><td><span class="badge active">Textbook</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started.')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Software Engineering</strong></td><td>Roger Pressman</td><td>CS402</td><td>Sem 4</td><td><span class="badge active">Textbook</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started.')">⬇️ Download</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Web Technologies</strong></td><td>Ivan Bayross</td><td>CS403</td><td>Sem 4</td><td><span class="badge info">Reference</span></td>
+                <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('📖 Opening PDF viewer…')">📖 View</button><button class="btn go" onclick="alert('⬇️ Download started.')">⬇️ Download</button></div></td>
+              </tr>
+            </tbody></table>
+          </div>
+          <div class="info-box" style="margin-top:4px;">ℹ️ For physical book issues and returns, visit the college library. Library hours: Mon–Sat, 9:00 AM – 5:00 PM. Library Officer: Mr. Naik (Ext. 108).</div>
+        </div>
+
+        <!-- TIME TABLE (Branch-specific) -->
+        <div id="stuTimetable" style="display:none;">
+          <div class="info-box">📅 <strong>Time Table</strong> — Your branch timetable uploaded by your department faculty. Only your branch timetable is shown.</div>
+          <div class="tabs" id="ttYearTabs">
+            <button class="tab act" onclick="showTTYear('tt1st',this)">1st Year</button>
+            <button class="tab" onclick="showTTYear('tt2nd',this)">2nd Year</button>
+            <button class="tab" onclick="showTTYear('tt3rd',this)">3rd Year</button>
+          </div>
+          <!-- 1st Year TT -->
+          <div id="tt1st" class="card" style="overflow:auto;">
+            <div class="card-hd"><h3>📅 CSE — 1st Year Timetable <span style="font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:400;">Uploaded by Dept. Faculty</span></h3></div>
+            <div style="padding:12px 18px;font-size:0.72rem;color:var(--text-muted);">Last updated: 10 Feb 2026</div>
+            <table><thead><tr><th>Day/Period</th><th>9:00–10:00</th><th>10:00–11:00</th><th>11:00–12:00</th><th>12:00–1:00</th><th>1:00–2:00</th><th>2:00–3:00</th><th>3:00–4:00</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Mon</strong></td><td>Engg. Maths</td><td>Engg. Physics</td><td>Workshop</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Engg. Drawing</td><td>Engg. Drawing</td><td>Library</td></tr>
+              <tr><td><strong>Tue</strong></td><td>Engg. Chemistry</td><td>Engg. Maths</td><td>Computer Basics</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Computer Lab</td><td>Computer Lab</td><td>Sports/Games</td></tr>
+              <tr><td><strong>Wed</strong></td><td>Engg. Physics</td><td>Workshop</td><td>Workshop</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Engg. Chemistry</td><td>Engg. Maths</td><td>—</td></tr>
+              <tr><td><strong>Thu</strong></td><td>Computer Basics</td><td>Engg. Drawing</td><td>Engg. Maths</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Physics Lab</td><td>Physics Lab</td><td>—</td></tr>
+              <tr><td><strong>Fri</strong></td><td>Engg. Drawing</td><td>Engg. Chemistry</td><td>Computer Basics</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Chemistry Lab</td><td>Chemistry Lab</td><td>NSS/Sports</td></tr>
+              <tr><td><strong>Sat</strong></td><td>Engg. Maths</td><td>Computer Basics</td><td>Library/Self Study</td><td colspan="4" style="background:var(--bg);color:var(--text-muted);font-style:italic;">—</td></tr>
+            </tbody></table>
+          </div>
+          <!-- 2nd Year TT -->
+          <div id="tt2nd" class="card" style="display:none;overflow:auto;">
+            <div class="card-hd"><h3>📅 CSE — 2nd Year Timetable <span style="font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:400;">Uploaded by Dept. Faculty</span></h3></div>
+            <div style="padding:12px 18px;font-size:0.72rem;color:var(--text-muted);">Last updated: 15 Feb 2026</div>
+            <table><thead><tr><th>Day/Period</th><th>9:00–10:00</th><th>10:00–11:00</th><th>11:00–12:00</th><th>12:00–1:00</th><th>1:00–2:00</th><th>2:00–3:00</th><th>3:00–4:00</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Mon</strong></td><td>Data Structures</td><td>DBMS</td><td>Networks</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Engg. Maths III</td><td>DS Lab</td><td>DS Lab</td></tr>
+              <tr><td><strong>Tue</strong></td><td>Networks</td><td>Engg. Maths III</td><td>Data Structures</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>DBMS Lab</td><td>DBMS Lab</td><td>Library</td></tr>
+              <tr><td><strong>Wed</strong></td><td>DBMS</td><td>Networks</td><td>Engg. Maths III</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Networks Lab</td><td>Networks Lab</td><td>Sports</td></tr>
+              <tr><td><strong>Thu</strong></td><td>Data Structures</td><td>DBMS</td><td>Networks</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Engg. Maths III</td><td>Tutorial</td><td>—</td></tr>
+              <tr><td><strong>Fri</strong></td><td>Engg. Maths III</td><td>Data Structures</td><td>DBMS</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Networks</td><td>Project Work</td><td>NSS/Games</td></tr>
+              <tr><td><strong>Sat</strong></td><td>Data Structures</td><td>Networks</td><td>DBMS</td><td colspan="4" style="background:var(--bg);color:var(--text-muted);font-style:italic;">—</td></tr>
+            </tbody></table>
+          </div>
+          <!-- 3rd Year TT -->
+          <div id="tt3rd" class="card" style="display:none;overflow:auto;">
+            <div class="card-hd"><h3>📅 CSE — 3rd Year Timetable <span style="font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:400;">Uploaded by Dept. Faculty</span></h3></div>
+            <div style="padding:12px 18px;font-size:0.72rem;color:var(--text-muted);">Last updated: 18 Feb 2026</div>
+            <table><thead><tr><th>Day/Period</th><th>9:00–10:00</th><th>10:00–11:00</th><th>11:00–12:00</th><th>12:00–1:00</th><th>1:00–2:00</th><th>2:00–3:00</th><th>3:00–4:00</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Mon</strong></td><td>Software Engg.</td><td>OS</td><td>Web Tech</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Project</td><td>Project</td><td>OS Lab</td></tr>
+              <tr><td><strong>Tue</strong></td><td>OS</td><td>Web Tech</td><td>Software Engg.</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Web Tech Lab</td><td>Web Tech Lab</td><td>Library</td></tr>
+              <tr><td><strong>Wed</strong></td><td>Web Tech</td><td>Software Engg.</td><td>OS</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>OS Lab</td><td>OS Lab</td><td>Sports</td></tr>
+              <tr><td><strong>Thu</strong></td><td>Software Engg.</td><td>OS</td><td>Web Tech</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Project Work</td><td>Project Work</td><td>—</td></tr>
+              <tr><td><strong>Fri</strong></td><td>OS</td><td>Software Engg.</td><td>Web Tech</td><td style="background:var(--bg);color:var(--text-muted);font-style:italic;">Lunch</td><td>Industry Visit</td><td>Industry Visit</td><td>NSS/Games</td></tr>
+              <tr><td><strong>Sat</strong></td><td>Software Engg.</td><td>Web Tech</td><td>Tutorial</td><td colspan="4" style="background:var(--bg);color:var(--text-muted);font-style:italic;">—</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- EXAM FEES GENERATOR -->
+        <div id="stuExamFees" style="display:none;">
+          <div class="info-box">💰 <strong>Exam Fees Generator</strong> — Generate your exam fee receipt based on your subject status. After generating, pay via K2 Challan and submit the receipt number here.</div>
+          <!-- Step 1: Student Type -->
+          <div id="efStep1" class="card" style="padding:22px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:16px;">Step 1 — Select Student Type</h3>
+            <div style="display:flex;gap:14px;">
+              <button class="btn pr" style="flex:1;padding:18px;font-size:0.88rem;" onclick="selectEFType('regular')">🎓 Regular Student<br><span style="font-size:0.7rem;font-weight:400;opacity:0.8;">1st Year = Sem 1&2, 2nd Year = Sem 3&4, 3rd Year = Sem 5&6</span></button>
+              <button class="btn go" style="flex:1;padding:18px;font-size:0.88rem;" onclick="selectEFType('lateral')">📚 Lateral Entry Student<br><span style="font-size:0.7rem;font-weight:400;opacity:0.8;">Joined from 2nd year (Sem 3-6) + Bridge courses</span></button>
+            </div>
+          </div>
+          <!-- Step 2: Regular Fee Entry -->
+          <div id="efRegular" style="display:none;">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:6px;">📋 Regular Student — Subject Status per Semester</h3>
+              <div class="info-box" style="margin-bottom:16px;">Enter number of failed subjects or select status for each semester. Fee is auto-calculated.</div>
+              <div style="overflow-x:auto;">
+                <table class="exam-fee-table" id="efRegularTable">
+                  <thead><tr><th>Semester</th><th>Subject Status</th><th>Fee (₹)</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Sem 1</strong></td><td><select onchange="calcEFRegular()" id="s1"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf1" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 2</strong></td><td><select onchange="calcEFRegular()" id="s2"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf2" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 3</strong></td><td><select onchange="calcEFRegular()" id="s3"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf3" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 4</strong></td><td><select onchange="calcEFRegular()" id="s4"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf4" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 5</strong></td><td><select onchange="calcEFRegular()" id="s5"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf5" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 6</strong></td><td><select onchange="calcEFRegular()" id="s6"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="sf6" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Fine -->
+              <div class="form-row" style="margin-top:12px;align-items:flex-end;">
+                <div class="fg"><label>Fine Amount (if any)</label>
+                  <select id="efFineReg" onchange="calcEFRegular()"><option value="0">No Fine</option><option value="50">₹ 50</option><option value="100">₹ 100</option><option value="200">₹ 200</option><option value="400">₹ 400</option><option value="2000">₹ 2000</option></select>
+                </div>
+                <div class="fg"><label>Total Fee</label><input type="text" id="efTotalReg" value="₹ 0" readonly style="background:var(--primary-light);font-weight:700;font-size:1rem;color:var(--primary);cursor:not-allowed;" /></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn pr" onclick="generateEFReceipt('regular')">🖨️ Generate Receipt</button>
+                <button class="btn ol" onclick="document.getElementById('efRegular').style.display='none';document.getElementById('efStep1').style.display='block';">← Back</button>
+              </div>
+            </div>
+          </div>
+          <!-- Step 2: Lateral Fee Entry -->
+          <div id="efLateral" style="display:none;">
+            <div class="card" style="padding:22px;margin-bottom:16px;">
+              <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:6px;">📋 Lateral Entry — Subject Status (Sem 3–6 + Bridge)</h3>
+              <div class="info-box" style="margin-bottom:16px;">Lateral entry students enter status for Sem 3–6 plus the two bridge courses (3rd Sem & 4th Sem).</div>
+              <div style="overflow-x:auto;">
+                <table class="exam-fee-table">
+                  <thead><tr><th>Semester</th><th>Subject Status</th><th>Fee (₹)</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Sem 3</strong></td><td><select onchange="calcEFLateral()" id="ls3"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lsf3" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 4</strong></td><td><select onchange="calcEFLateral()" id="ls4"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lsf4" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 5</strong></td><td><select onchange="calcEFLateral()" id="ls5"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lsf5" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr><td><strong>Sem 6</strong></td><td><select onchange="calcEFLateral()" id="ls6"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4 Subjects</option><option value="5">Failed 5+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lsf6" style="font-weight:700;color:var(--primary);">₹ 0</td></tr>
+                    <tr style="background:var(--accent-light);"><td><strong>Bridge — Sem 3</strong><div style="font-size:0.65rem;color:var(--text-muted);">Bridge course subjects</div></td><td><select onchange="calcEFLateral()" id="lb3"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular (upto 2 subj.)</option><option value="regular3plus">Regular (3+ subjects)</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lbf3" style="font-weight:700;color:var(--accent);">₹ 0</td></tr>
+                    <tr style="background:var(--accent-light);"><td><strong>Bridge — Sem 4</strong><div style="font-size:0.65rem;color:var(--text-muted);">Bridge course subjects</div></td><td><select onchange="calcEFLateral()" id="lb4"><option value="not_this_sem">Not This Sem Student</option><option value="regular">Regular (upto 2 subj.)</option><option value="regular3plus">Regular (3+ subjects)</option><option value="1">Failed 1 Subject</option><option value="2">Failed 2 Subjects</option><option value="3">Failed 3 Subjects</option><option value="4">Failed 4+ Subjects</option><option value="passed">Passed All</option></select></td><td id="lbf4" style="font-weight:700;color:var(--accent);">₹ 0</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Fine -->
+              <div class="form-row" style="margin-top:12px;align-items:flex-end;">
+                <div class="fg"><label>Fine Amount (if any)</label>
+                  <select id="efFineLat" onchange="calcEFLateral()"><option value="0">No Fine</option><option value="50">₹ 50</option><option value="100">₹ 100</option><option value="200">₹ 200</option><option value="400">₹ 400</option><option value="2000">₹ 2000</option></select>
+                </div>
+                <div class="fg"><label>Total Fee</label><input type="text" id="efTotalLat" value="₹ 0" readonly style="background:var(--primary-light);font-weight:700;font-size:1rem;color:var(--primary);cursor:not-allowed;" /></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn go" onclick="generateEFReceipt('lateral')">🖨️ Generate Receipt</button>
+                <button class="btn ol" onclick="document.getElementById('efLateral').style.display='none';document.getElementById('efStep1').style.display='block';">← Back</button>
+              </div>
+            </div>
+          </div>
+          <!-- Step 3: Receipt + K2 Challan -->
+          <div id="efReceiptSection" style="display:none;">
+            <div class="cert-prev" style="margin-bottom:18px;" id="efReceiptDiv">
+              <div style="font-size:0.72rem;color:var(--primary);font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Government Polytechnic Hubli</div>
+              <h3 style="font-family:'Libre Baskerville',serif;">Exam Fee Receipt</h3>
+              <div class="cert-sub-label">Academic Year 2025-26</div>
+              <div class="cert-row"><span class="ck">Student</span><span class="cv">Student</span></div>
+              <div class="cert-row"><span class="ck">Register No.</span><span class="cv">—</span></div>
+              <div class="cert-row"><span class="ck">Branch</span><span class="cv">Computer Science Engineering</span></div>
+              <div class="cert-row"><span class="ck">Student Type</span><span class="cv" id="rcptType">Regular</span></div>
+              <div class="cert-row"><span class="ck">Fee Breakup</span><span class="cv" id="rcptBreakup">—</span></div>
+              <div class="cert-row"><span class="ck">Fine</span><span class="cv" id="rcptFine">₹ 0</span></div>
+              <div class="cert-row" style="border-bottom:none;padding-top:8px;"><span class="ck" style="font-weight:700;color:var(--navy);">Total Amount</span><span class="cv" style="font-size:1.2rem;color:var(--primary);" id="rcptTotal">₹ 0</span></div>
+              <div style="margin-top:14px;font-size:0.7rem;color:var(--text-muted);">Generated: <span id="rcptDate"></span> · This is a computer-generated receipt.</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+              <button class="btn pr" onclick="window.print()">🖨️ Print Receipt</button>
+              <a href="https://k2.karnataka.gov.in/wps/portal/Khajane-II/Scope/Remittance/ChallanGeneration/" target="_blank"><button class="btn go">🏦 Generate K2 Challan</button></a>
+              <button class="btn ol" onclick="document.getElementById('efReceiptSection').style.display='none';document.getElementById('efStep1').style.display='block';">← New Receipt</button>
+            </div>
+            <!-- K2 Receipt Entry -->
+            <div class="k2-receipt-box">
+              <div style="font-family:'Libre Baskerville',serif;font-size:0.9rem;font-weight:700;color:var(--navy);margin-bottom:12px;">📬 Submit K2 Challan Receipt After Bank Payment</div>
+              <div class="info-box" style="margin-bottom:12px;">After paying at the bank, enter your K2 challan receipt number(s) below. If you paid in two challans, enter both.</div>
+              <div class="form-row">
+                <div class="fg"><label>K2 Challan Receipt No. 1 <span style="color:red">*</span></label><input type="text" id="k2r1" placeholder="e.g. K2/2026/XXXXXXXXX" /></div>
+                <div class="fg"><label>Amount Paid (Challan 1) <span style="color:red">*</span></label><input type="number" id="k2a1" placeholder="Amount in ₹" /></div>
+              </div>
+              <div id="k2Challan2" style="display:none;">
+                <div class="form-row">
+                  <div class="fg"><label>K2 Challan Receipt No. 2</label><input type="text" id="k2r2" placeholder="e.g. K2/2026/XXXXXXXXX" /></div>
+                  <div class="fg"><label>Amount Paid (Challan 2)</label><input type="number" id="k2a2" placeholder="Amount in ₹" /></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:8px;align-items:center;">
+                <button class="btn ol" onclick="toggleK2Second()">+ Add Second Challan</button>
+                <button class="btn gr" onclick="submitK2Receipts()">✅ Submit Receipt Details</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STU GALLERY -->
+        <div id="stuGallery" style="display:none;">
+          <div class="info-box">🖼️ <strong>Photo Gallery</strong> — View college event photos uploaded by Admin.</div>
+          <div class="card">
+            <div class="card-hd">
+              <h3>College Photo Gallery</h3>
+              <div class="card-acts">
+                <select id="stuGalleryCatFilter" onchange="filterGallery('stu')" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;">
+                  <option value="">All Categories</option>
+                  <option>Campus Life</option><option>Sports Events</option><option>Cultural Programs</option>
+                  <option>Convocation & Results</option><option>NSS / YRC Activities</option>
+                  <option>Workshops & Seminars</option><option>Alumni Meet</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="padding:16px;">
+              <div id="stuGalleryGrid" class="gallery-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">
+                  <div style="font-size:2.5rem;margin-bottom:10px;">🖼️</div>
+                  <div style="font-weight:700;">Gallery is empty</div>
+                  <p style="font-size:0.78rem;margin-top:6px;">Root Admin hasn't uploaded any photos yet.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STU GRIEVANCE -->
+        <div id="stuGrievance" style="display:none;">
+          <div class="info-box">📣 <strong>Grievance Portal</strong> — Submit your grievance here. Your grievance will be reviewed <strong>only by the Principal</strong> and kept confidential. You will be notified once it is resolved.</div>
+
+          <!-- Submit Grievance Form -->
+          <div class="card" style="padding:22px;margin-bottom:18px;">
+            <h3 style="font-family:'Libre Baskerville',serif;font-size:0.95rem;color:var(--navy);margin-bottom:14px;">📝 Submit New Grievance</h3>
+            <div class="form-row">
+              <div class="fg"><label>Grievance Subject <span style="color:red">*</span></label><input type="text" id="grievSubject" placeholder="Short title of your grievance" /></div>
+              <div class="fg"><label>Category <span style="color:red">*</span></label>
+                <select id="grievCategory" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;outline:none;">
+                  <option value="">-- Select Category --</option>
+                  <option>Academic — Attendance</option>
+                  <option>Academic — Results / Marks</option>
+                  <option>Fee Related</option>
+                  <option>Hostel / Facility</option>
+                  <option>Staff Behaviour</option>
+                  <option>Ragging / Harassment</option>
+                  <option>Scholarship / Financial Aid</option>
+                  <option>Library / Infrastructure</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label>Description <span style="color:red">*</span></label>
+              <textarea id="grievDesc" rows="4" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;color:var(--text);resize:vertical;" placeholder="Describe your grievance in detail. Be specific about dates, persons involved, and the issue."></textarea>
+            </div>
+            <div class="fg"><label>Preferred Resolution / What You Expect</label>
+              <input type="text" id="grievExpect" placeholder="What outcome are you expecting?" />
+            </div>
+            <div class="warn-box">🔒 Your grievance will be seen <strong>only by the Principal</strong>. It will be kept strictly confidential. You will be notified via Email when resolved.</div>
+            <button class="btn re" style="margin-top:10px;" onclick="submitGrievance()">📤 Submit Grievance to Principal</button>
+          </div>
+
+          <!-- My Submitted Grievances -->
+          <div class="card">
+            <div class="card-hd"><h3>My Submitted Grievances</h3></div>
+            <div id="stuGrievanceList" style="padding:16px;">
+              <div style="text-align:center;padding:36px;color:var(--text-muted);">
+                <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+                <div style="font-weight:700;">No grievances submitted yet</div>
+                <p style="font-size:0.78rem;margin-top:6px;">Submit a grievance above and it will appear here with status.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div><!-- /dbStudent -->
+
+
+<!-- ============================================================ -->
+<!--  PRINCIPAL DASHBOARD  -->
+<!-- ============================================================ -->
+<div id="dbPrincipal" class="db">
+  <div class="db-wrap">
+    <div class="sb">
+      <div class="sb-hdr" style="background:var(--purple);">
+        <div class="sb-icon">👔</div>
+        <div><div class="sb-name">Principal View</div><div class="sb-role" style="color:rgba(255,255,255,0.7);">Full Oversight</div></div>
+      </div>
+      <div class="sb-menu">
+        <div class="sb-sec">Overview</div>
+        <div class="sl act" onclick="showSec('priHome',this)"><span class="sli">🏠</span>Dashboard</div>
+        <div class="sl" onclick="showSec('priMyProfile',this)"><span class="sli">👤</span>My Profile</div>
+        <div class="sb-sec">Approvals</div>
+        <div class="sl" onclick="showSec('priPending',this)"><span class="sli">⏳</span>EST Edit Requests<span class="slb">2</span></div>
+        <div class="sl" onclick="showSec('priCommittee',this)"><span class="sli">🏛️</span>Committee Approvals<span class="slb amber">3</span></div>
+        <div class="sl" onclick="showSec('priOfficers',this)"><span class="sli">👔</span>Officers Approvals<span class="slb amber">1</span></div>
+        <div class="sl" onclick="showSec('priLibrary',this)"><span class="sli">📚</span>Library Approvals<span class="slb amber">2</span></div>
+        <div class="sl" onclick="showSec('priWorkload',this)"><span class="sli">📊</span>Workload Review</div>
+        <div class="sb-sec">Faculty Monitor</div>
+        <div class="sl" onclick="showSec('priFacStatus',this)"><span class="sli">👥</span>Faculty Status</div>
+        <div class="sl" onclick="showSec('priHODStatus',this)"><span class="sli">🎓</span>HOD Activity</div>
+        <div class="sl" onclick="showSec('priAttStatus',this)"><span class="sli">🗓️</span>Attendance Overview</div>
+        <div class="sb-sec">Institutional</div>
+        <div class="sl" onclick="showSec('priOffice',this)"><span class="sli">🏢</span>All Office Modules</div>
+        <div class="sl" onclick="showSec('priEST',this)"><span class="sli">👨‍💼</span>EST Overview</div>
+        <div class="sl" onclick="showSec('priStudents',this)"><span class="sli">📚</span>All Students</div>
+        <div class="sl" onclick="showSec('priGrievances',this)"><span class="sli">📣</span>Grievances<span class="slb" style="background:#c0392b;">1</span></div>
+        <div class="sl" onclick="showSec('priGallery',this)"><span class="sli">🖼️</span>Photo Gallery</div>
+        <div class="sl" onclick="logout()"><span class="sli">🚪</span>Logout</div>
+      </div>
+    </div>
+    <div class="db-main">
+      <div class="db-topbar">
+        <div class="db-title" id="priTitle">Principal Dashboard</div>
+        <div class="db-user">
+          <button class="notif-btn" onclick="toggleNP()">🔔<span class="nb-dot">2</span></button>
+          <div class="ava-upload-wrap" onclick="triggerPhotoUpload('pri')" title="Click to change profile photo">
+            <div class="ava" style="background:var(--purple);" id="priAva">PR</div>
+            <div class="ava-overlay">📷<br>Change</div>
+            <input type="file" id="priPhotoInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'pri')" />
+          </div>
+          <span class="db-uname">Principal</span>
+          <button class="btn ol" onclick="logout()" style="padding:6px 12px;font-size:0.72rem;">Logout</button>
+        </div>
+      </div>
+      <div class="db-content">
+
+        <!-- PRI MY PROFILE -->
+        <div id="priMyProfile" style="display:none;">
+          <div class="card" style="padding:0;margin-bottom:18px;">
+            <div class="card-hd" style="background:linear-gradient(120deg,#4a1a6b,var(--purple));padding:20px 24px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+              <div style="display:flex;align-items:center;gap:16px;">
+                <div onclick="triggerPhotoUpload('pri')" title="Click to change photo" style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.2);border:3px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;overflow:hidden;cursor:pointer;position:relative;" id="priPhotoPreview">📷
+                  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:0.2s;font-size:0.6rem;color:white;font-weight:700;text-align:center;line-height:1.2;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">📷<br>Change</div>
+                </div>
+                <div>
+                  <div style="font-family:'Libre Baskerville',serif;font-size:1.1rem;font-weight:700;color:white;">Principal</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.75);margin-top:3px;">Government Polytechnic, Hubli — Head of Institution</div>
+                  <span class="badge active" style="margin-top:6px;display:inline-flex;">Active</span>
+                </div>
+              </div>
+            </div>
+            <div style="padding:22px;">
+              <!-- Photo Upload -->
+              <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:12px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">📷 Profile Photo</div>
+              <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
+                <div class="photo-circle" id="priProfilePhotoCircle">📷</div>
+                <div>
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--navy);margin-bottom:6px;">Upload Your Photo</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">Accepted: JPG, JPEG, PNG · Max size: <strong>100 KB</strong></div>
+                  <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--purple);color:white;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;">
+                    📁 Choose Photo
+                    <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" onchange="handlePhotoUpload(this,'pri')" />
+                  </label>
+                  <div id="priPhotoMsg" style="margin-top:8px;font-size:0.72rem;"></div>
+                </div>
+              </div>
+              <!-- Basic Info -->
+              <div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin-bottom:10px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">👤 Personal Information</div>
+              <div class="form-row three">
+                <div class="fg"><label>Full Name</label><input type="text" value="Dr. H. R. Patil" /></div>
+                <div class="fg"><label>Designation</label><input type="text" value="Principal" readonly style="background:var(--bg);" /></div>
+                <div class="fg"><label>Mobile Number</label><input type="text" value="+91 9876500000" /></div>
+                <div class="fg"><label>Official Email</label><input type="email" value="principal@gpt.edu.in" readonly style="background:var(--bg);" /></div>
+                <div class="fg"><label>Date of Joining</label><input type="text" value="01/06/2018" readonly style="background:var(--bg);" /></div>
+                <div class="fg"><label>Employee ID</label><input type="text" value="EMP-PRI-001" readonly style="background:var(--bg);" /></div>
+              </div>
+              <button class="btn pr" style="margin-top:12px;" onclick="alert('Profile update submitted for admin review.')">💾 Save Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRI HOME -->
+        <div id="priHome">
+          <div class="welcome-card wc" style="background:linear-gradient(120deg,#3a1f7a,var(--purple));">
+            <h2>Good Morning, Principal 👔</h2>
+            <p>Full institutional oversight · 2 EST edit requests pending your approval · All systems operational</p>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-ico bl">🎓</div><div><div class="kpi-num">1,247</div><div class="kpi-lbl">Total Students</div></div></div>
+            <div class="kpi"><div class="kpi-ico go">👨‍💼</div><div><div class="kpi-num">64</div><div class="kpi-lbl">Total Faculty</div></div></div>
+            <div class="kpi"><div class="kpi-ico pu">⏳</div><div><div class="kpi-num">2</div><div class="kpi-lbl">EST Edit Requests</div><div class="kpi-trend dn">⚠ Awaiting approval</div></div></div>
+            <div class="kpi"><div class="kpi-ico re">📊</div><div><div class="kpi-num">8</div><div class="kpi-lbl">Guest Faculty Active</div></div></div>
+          </div>
+          <div class="principal-grid">
+            <div class="pr-module-card" onclick="showSec('priFacStatus',null)"><div class="pmi">👥</div><h4>Faculty Status</h4><p>View all faculty, HODs, and teaching staff activity</p><div class="pm-status"><span class="badge approved">All Active</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priPending',null)"><div class="pmi">✏️</div><h4>EST Edit Requests</h4><p>EST staff data edit requests requiring your approval</p><div class="pm-status"><span class="badge pending">2 Pending</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priWorkload',null)"><div class="pmi">📊</div><h4>Guest Workload</h4><p>Review HOD-approved guest faculty workloads</p><div class="pm-status"><span class="badge approved">4 Approved</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priAttStatus',null)"><div class="pmi">🗓️</div><h4>Attendance Overview</h4><p>Department-wise attendance monitoring</p><div class="pm-status"><span class="badge active">Live</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priHODStatus',null)"><div class="pmi">🎓</div><h4>HOD Activity</h4><p>What each HOD is doing — form approvals, attendance</p><div class="pm-status"><span class="badge active">4 HODs</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priOffice',null)"><div class="pmi">🏢</div><h4>All Office Modules</h4><p>ACM, Exams, Library, Stores, Accounts, Cash — view all</p><div class="pm-status"><span class="badge approved">All Active</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priGrievances',null)" style="border-color:var(--red);"><div class="pmi">📣</div><h4>Student Grievances</h4><p>View & resolve student grievances submitted to Principal</p><div class="pm-status"><span class="badge rejected">1 Open</span></div></div>
+            <div class="pr-module-card" onclick="showSec('priGallery',null)"><div class="pmi">🖼️</div><h4>Photo Gallery</h4><p>Browse all college event photos</p><div class="pm-status"><span class="badge active">View</span></div></div>
+          </div>
+        </div>
+
+        <!-- PRI PENDING (EST Edit Approvals) -->
+        <div id="priPending" style="display:none;">
+          <div class="info-box">📋 <strong>Principal Approvals</strong> — Review staff profile submissions and EST edit requests. Data is saved to the database <strong>only after your approval</strong>.</div>
+
+          <!-- Staff Profile Approval Queue -->
+          <div class="card" style="margin-bottom:18px;border-left:4px solid #1a4fa0;">
+            <div class="card-hd">
+              <h3>👤 Staff Profile Approval Requests</h3>
+              <div class="card-acts"><span class="badge pending" id="priProfilePendingCount">2 Pending</span></div>
+            </div>
+            <table>
+              <thead><tr><th>Req. ID</th><th>Staff Name</th><th>Profile Type</th><th>Submitted On</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="priProfileApprovalBody">
+                <tr>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">PRF/2025/012</td>
+                  <td><strong>Staff Member</strong></td><td>Teaching Staff</td><td>01 Mar 2025</td>
+                  <td><span class="badge pending">Pending</span></td>
+                  <td><div style="display:flex;gap:4px;">
+                    <button class="btn ol" onclick="alert('Viewing profile details for Staff Member\n\nAll 30 fields submitted for approval.\nKGID: KGD2015001 | Designation: HOD/Professor\nBranch: Civil Engineering | Mobile: 98XXXXXXXX')">👁️ View Details</button>
+                    <button class="btn gr" onclick="approveProfReq(this,'PRF/2025/012')">&#x2713; Approve &amp; Save</button>
+                    <button class="btn re" onclick="rejectProfReq(this,'PRF/2025/012')">&#x2715; Reject</button>
+                  </div></td>
+                </tr>
+                <tr>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">PRF/2025/011</td>
+                  <td><strong>Staff Member</strong></td><td>Teaching Staff</td><td>28 Feb 2025</td>
+                  <td><span class="badge pending">Pending</span></td>
+                  <td><div style="display:flex;gap:4px;">
+                    <button class="btn ol" onclick="alert('Viewing profile details for Staff Member\n\nKGID: KGD2016042 | Designation: Asst. Professor\nBranch: CSE | Mobile: 97XXXXXXXX')">👁️ View Details</button>
+                    <button class="btn gr" onclick="approveProfReq(this,'PRF/2025/011')">&#x2713; Approve &amp; Save</button>
+                    <button class="btn re" onclick="rejectProfReq(this,'PRF/2025/011')">&#x2715; Reject</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info-box">&#x1F4CB; <strong>EST Edit Requests:</strong> EST staff have requested edits to staff data below. Review and approve or reject. Data updates in the database ONLY after your approval.</div>
+          <div class="card">
+            <div class="card-hd"><h3>EST Staff Data Edit Requests</h3></div>
+            <div class="app-item">
+              <div class="app-av" style="background:var(--teal);">EST</div>
+              <div class="app-info">
+                <div class="app-name">Edit Request: Teaching Staff — Staff Member</div>
+                <div class="app-desc">Requested by: EST Admin · Change: Subject allocation update (DS → DS + Networks) · Dept: CSE · 3 hrs ago</div>
+              </div>
+              <div class="app-btns">
+                <button class="btn gr" onclick="alert('Approved! Database updated. EST notified.')">✓ Approve &amp; Update DB</button>
+                <button class="btn re" onclick="alert('Rejected. EST notified.')">✕ Reject</button>
+              </div>
+            </div>
+            <div class="app-item">
+              <div class="app-av" style="background:var(--orange);">EST</div>
+              <div class="app-info">
+                <div class="app-name">Edit Request: Guest Faculty — Mr. B. Naik</div>
+                <div class="app-desc">Requested by: EST Admin · Change: Contact number update · Dept: ECE · 5 hrs ago</div>
+              </div>
+              <div class="app-btns">
+                <button class="btn gr" onclick="alert('Approved! Database updated.')">✓ Approve &amp; Update DB</button>
+                <button class="btn re" onclick="alert('Rejected.')">✕ Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRI COMMITTEE APPROVALS -->
+        <div id="priCommittee" style="display:none;">
+          <div class="info-box">🏛️ <strong>Committee Member Approvals</strong> — EST has submitted new committee members for approval. Once you approve, they appear publicly on the home page. Reject to discard.</div>
+          <div class="card">
+            <div class="card-hd"><h3>Pending Committee Member Requests</h3><div class="card-acts"><button class="btn gr" onclick="alert('All approved & published!')">✓ Approve All</button></div></div>
+            <table>
+              <thead><tr><th>Committee</th><th>Member Name</th><th>Role</th><th>Department</th><th>Designation</th><th>Mobile</th><th>Submitted By</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Anti-Ragging Squad</strong></td><td>Prof. A. Hegde</td><td>Member</td><td>Civil</td><td>Asst. Professor</td><td>98XXXXXXXX</td><td>EST Admin</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('✅ Approved! Member is now visible on the public home page.')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected. EST notified.')">✕ Reject</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>IQAC</strong></td><td>Ms. R. Nair</td><td>Member Secretary</td><td>EST</td><td>Superintendent</td><td>97XXXXXXXX</td><td>EST Admin</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('✅ Approved!')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>Women's Grievance Cell</strong></td><td>Dr. S. Kaur</td><td>Chairperson</td><td>CSE</td><td>HOD (CSE)</td><td>99XXXXXXXX</td><td>EST Admin</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('✅ Approved!')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRI OFFICERS APPROVALS -->
+        <div id="priOfficers" style="display:none;">
+          <div class="info-box">👔 <strong>Officers Approval</strong> — EST has submitted officers/designations to be shown on the public home page under "About Us". Approve to publish, reject to discard.</div>
+          <div class="card">
+            <div class="card-hd"><h3>Pending Officer / Designation Requests</h3></div>
+            <table>
+              <thead><tr><th>Name</th><th>Designation</th><th>Charge</th><th>Dept.</th><th>Submitted By</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Mrs. L. Desai</strong></td><td>Office Superintendent</td><td>Day-to-Day Administration</td><td>Administration</td><td>EST Admin</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn gr" onclick="alert('✅ Approved! Officer is now visible on the public home page.')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="card-hd"><h3>Currently Approved Officers (Live on Public Page)</h3></div>
+            <table>
+              <thead><tr><th>Name</th><th>Designation</th><th>Charge</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Dr. P.K. Sharma</strong></td><td>Principal</td><td>Head of Institution</td><td><span class="badge approved">Live</span></td><td><button class="btn re" style="font-size:0.7rem;" onclick="alert('Removed from public page.')">Remove</button></td></tr>
+                <tr><td><strong>Mr. S. Kulkarni</strong></td><td>Registrar</td><td>Office Records & Documentation</td><td><span class="badge approved">Live</span></td><td><button class="btn re" style="font-size:0.7rem;" onclick="alert('Removed.')">Remove</button></td></tr>
+                <tr><td><strong>Mr. P. Kulkarni</strong></td><td>Senior Accountant</td><td>Accounts & Finance</td><td><span class="badge approved">Live</span></td><td><button class="btn re" style="font-size:0.7rem;" onclick="alert('Removed.')">Remove</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRI LIBRARY APPROVALS -->
+        <div id="priLibrary" style="display:none;">
+          <div class="info-box">📚 <strong>Library E-Book Approvals</strong> — Books uploaded by Library Staff are listed below. Approve to make them available for students to view and download.</div>
+          <div class="card">
+            <div class="card-hd"><h3>Pending E-Book Approvals</h3><div class="card-acts"><button class="btn gr" onclick="alert('All books approved & published for students!')">✓ Approve All</button></div></div>
+            <table>
+              <thead><tr><th>Book Name</th><th>Author</th><th>Branches</th><th>Semester</th><th>Type</th><th>Uploaded By</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Fluid Mechanics</strong></td><td>R.K. Bansal</td><td>Civil, Mechanical</td><td>Sem 4</td><td><span class="badge info">Reference</span></td><td>Library Staff</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Preview of PDF…')">👁️ Preview</button><button class="btn gr" onclick="alert('✅ Approved! Students can now view & download this book.')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>Electronic Devices & Circuits</strong></td><td>Boylestad</td><td>ECE, All Branches</td><td>Sem 2</td><td><span class="badge active">Textbook</span></td><td>Library Staff</td>
+                  <td><div style="display:flex;gap:5px;"><button class="btn pr" onclick="alert('Preview…')">👁️ Preview</button><button class="btn gr" onclick="alert('✅ Approved!')">✓ Approve</button><button class="btn re" onclick="alert('❌ Rejected.')">✕ Reject</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRI WORKLOAD -->
+        <div id="priWorkload" style="display:none;">
+          <div class="info-box">📊 <strong>Guest Faculty Workloads</strong> — Submitted by guest faculty, approved by HOD, visible here for Principal review.</div>
+          <div class="wl-card">
+            <div class="wl-hdr"><div><div class="wl-name">Mr. B. Naik</div><div class="wl-dept">ECE · Guest Faculty · Signal Processing · HOD: Dr. M. Rao</div></div><span class="badge approved">HOD Approved</span></div>
+            <div class="wl-grid">
+              <div class="wl-item"><div class="wi">📅</div><div class="wiv">6</div><div class="wil">Daily Hours</div></div>
+              <div class="wl-item"><div class="wi">📆</div><div class="wiv">28</div><div class="wil">Weekly Hours</div></div>
+              <div class="wl-item"><div class="wi">🗓️</div><div class="wiv">112</div><div class="wil">Monthly Hours</div></div>
+            </div>
+          </div>
+          <div class="wl-card">
+            <div class="wl-hdr"><div><div class="wl-name">Ms. R. Joshi</div><div class="wl-dept">CSE · Guest Faculty · Web Technology · HOD: Prof. S. Desai</div></div><span class="badge approved">HOD Approved</span></div>
+            <div class="wl-grid">
+              <div class="wl-item"><div class="wi">📅</div><div class="wiv">5</div><div class="wil">Daily Hours</div></div>
+              <div class="wl-item"><div class="wi">📆</div><div class="wiv">22</div><div class="wil">Weekly Hours</div></div>
+              <div class="wl-item"><div class="wi">🗓️</div><div class="wiv">88</div><div class="wil">Monthly Hours</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRI FAC STATUS -->
+        <div id="priFacStatus" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>Faculty Status — All Departments</h3></div>
+            <table><thead><tr><th>SSN ID</th><th>Name</th><th>Designation</th><th>Dept.</th><th>Today's Action</th><th>Last Active</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2015001</td><td><strong>Staff Member</strong></td><td>HOD</td><td>Civil</td><td>Approved 2 forms, Marked attendance</td><td>25 Feb 10:45</td><td><span class="badge approved">Online</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2016042</td><td><strong>Staff Member</strong></td><td>Asst. Prof</td><td>CSE</td><td>Marked attendance — CS301</td><td>25 Feb 09:30</td><td><span class="badge approved">Online</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">SSN2019011</td><td><strong>Mr. B. Naik</strong></td><td>Guest Faculty</td><td>ECE</td><td>Submitted monthly workload</td><td>24 Feb 16:00</td><td><span class="badge pending">Offline</span></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- PRI HOD STATUS -->
+        <div id="priHODStatus" style="display:none;">
+          <div class="principal-grid">
+            <div class="pr-module-card"><div class="pmi">👷</div><h4>Civil HOD — Staff Member</h4><p>Approved: 2 forms · Attendance: Marked · Pending: 1 workload</p><div class="pm-status"><span class="badge approved">Active</span></div></div>
+            <div class="pr-module-card"><div class="pmi">💻</div><h4>CSE HOD — Prof. S. Desai</h4><p>Approved: 1 form · Attendance: Marked · Pending: 0</p><div class="pm-status"><span class="badge approved">Active</span></div></div>
+            <div class="pr-module-card"><div class="pmi">📡</div><h4>ECE HOD — Dr. M. Rao</h4><p>Approved: 3 forms · Attendance: Pending · Guest workload: 1 approved</p><div class="pm-status"><span class="badge pending">Pending Actions</span></div></div>
+            <div class="pr-module-card"><div class="pmi">⚙️</div><h4>MECH HOD — Prof. V. Teli</h4><p>Approved: 0 forms · Attendance: Not marked · Pending: 2</p><div class="pm-status"><span class="badge rejected">Action Required</span></div></div>
+          </div>
+        </div>
+
+        <!-- PRI ATTENDANCE STATUS -->
+        <div id="priAttStatus" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>Attendance Overview — All Departments</h3></div>
+            <div style="padding:18px 20px;">
+              <div class="mini-bar"><span class="ml">Civil Engineering</span><div class="mb"><div class="mf" style="width:84%;background:var(--green);"></div></div><span class="mv">84%</span></div>
+              <div class="mini-bar"><span class="ml">CSE</span><div class="mb"><div class="mf" style="width:79%;background:var(--primary);"></div></div><span class="mv">79%</span></div>
+              <div class="mini-bar"><span class="ml">ECE</span><div class="mb"><div class="mf" style="width:72%;background:var(--orange);"></div></div><span class="mv">72%</span></div>
+              <div class="mini-bar"><span class="ml">Mechanical</span><div class="mb"><div class="mf" style="width:88%;background:var(--green);"></div></div><span class="mv">88%</span></div>
+            </div>
+          </div>
+          <div class="info-box">ℹ️ Students below 75% in any department are highlighted in the Exams Module. Parents have been notified via WhatsApp for students below threshold.</div>
+        </div>
+
+        <!-- PRI OFFICE -->
+        <div id="priOffice" style="display:none;">
+          <div class="mod-grid">
+            <div class="mod-card bl"><div class="mi">📋</div><h4>ACM Module</h4><p>Student details, certificate generation & print logs</p></div>
+            <div class="mod-card go"><div class="mi">📚</div><h4>Exams</h4><p>Results, PDC, Attendance Shortage, Fees</p></div>
+            <div class="mod-card te"><div class="mi">💰</div><h4>Accounts</h4><p>College financial records</p></div>
+            <div class="mod-card pu"><div class="mi">📖</div><h4>Library</h4><p>Library records & book management</p></div>
+            <div class="mod-card re"><div class="mi">📦</div><h4>Stores</h4><p>Department stores & inventory</p></div>
+            <div class="mod-card or"><div class="mi">💵</div><h4>Cash</h4><p>Fees search & collection records</p></div>
+          </div>
+        </div>
+
+        <!-- PRI EST -->
+        <div id="priEST" style="display:none;">
+          <div class="info-box">📋 <strong>Full EST Overview</strong> — View all staff categories. All edits require your approval before database updates.</div>
+          <div class="mod-grid">
+            <div class="mod-card bl" onclick="showSec('priPending',null)"><div class="mi">👨‍🏫</div><h4>Teaching Staff</h4><p>All teaching faculty across departments</p><div class="mc">48</div></div>
+            <div class="mod-card go"><div class="mi">👷</div><h4>Non-Teaching</h4><p>Lab technicians, assistants & support</p><div class="mc">12</div></div>
+            <div class="mod-card or"><div class="mi">🏢</div><h4>Admin Staff</h4><p>Office superintendent, accountants & clerks</p><div class="mc">8</div></div>
+            <div class="mod-card pu" onclick="showSec('priWorkload',null)"><div class="mi">🎓</div><h4>Guest Faculty</h4><p>Guest faculty info & workload data</p><div class="mc">8</div></div>
+            <div class="mod-card re"><div class="mi">🧹</div><h4>Group D / Outsource</h4><p>Housekeeping, security & outsourced staff</p><div class="mc">15</div></div>
+          </div>
+        </div>
+
+        <!-- PRI STUDENTS -->
+        <div id="priStudents" style="display:none;">
+          <div class="card">
+            <div class="card-hd"><h3>All Students — Institution View</h3></div>
+            <div style="padding:10px 18px;border-bottom:1px solid var(--border);"><div class="sbar"><span class="si">🔍</span><input type="text" placeholder="Search students…" /></div></div>
+            <table><thead><tr><th>Reg. No.</th><th>Name</th><th>Dept.</th><th>Year</th><th>Attendance</th><th>CGPA</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>CSE</td><td>2nd</td><td>82%</td><td>7.8</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">GP2022CIVIL018</td><td><strong>Student</strong></td><td>Civil</td><td>3rd</td><td>88%</td><td>7.4</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Staff Member</strong></td><td>ECE</td><td>1st</td><td>90%</td><td>8.2</td><td><span class="badge approved">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">—</td><td><strong>Student</strong></td><td>MECH</td><td>2nd</td><td>79%</td><td>6.9</td><td><span class="badge approved">Active</span></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <!-- PRI GRIEVANCES (Only Principal can view & resolve) -->
+        <div id="priGrievances" style="display:none;">
+          <div class="info-box" style="background:#fef0f0;border-color:rgba(192,57,43,0.25);color:#7a1000;">🔒 <strong>Confidential — Principal Only</strong> — Student grievances are visible only to you. No other user has access to this section. Review each grievance and resolve with remarks.</div>
+
+          <!-- Filter tabs -->
+          <div class="tabs" style="margin-bottom:16px;">
+            <button class="tab act" onclick="filterGrievances('all',this)">📋 All Grievances</button>
+            <button class="tab" onclick="filterGrievances('open',this)">🔴 Open</button>
+            <button class="tab" onclick="filterGrievances('resolved',this)">✅ Resolved</button>
+          </div>
+
+          <!-- Stats row -->
+          <div class="kpi-row" style="margin-bottom:18px;">
+            <div class="kpi"><div class="kpi-ico re">📣</div><div><div class="kpi-num" id="priGrievTotal">1</div><div class="kpi-lbl">Total Grievances</div></div></div>
+            <div class="kpi"><div class="kpi-ico go">🔴</div><div><div class="kpi-num" id="priGrievOpen">1</div><div class="kpi-lbl">Open</div><div class="kpi-trend dn">⚠ Needs attention</div></div></div>
+            <div class="kpi"><div class="kpi-ico gr">✅</div><div><div class="kpi-num" id="priGrievResolved">0</div><div class="kpi-lbl">Resolved</div></div></div>
+          </div>
+
+          <!-- Grievance List -->
+          <div id="priGrievanceList">
+            <!-- Sample grievance -->
+            <div class="griev-card open" data-status="open">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                <div class="griev-title">📣 Incorrect Attendance Marked in Computer Networks</div>
+                <span class="badge pending">Open</span>
+              </div>
+              <div class="griev-meta">
+                Student: <strong>Student</strong> (— · CSE · 2nd Year) · Category: Academic — Attendance · Submitted: 25 Feb 2026 · 11:30 AM
+              </div>
+              <div class="griev-desc">
+                I was present in the Computer Networks class on 20th Feb 2026 but my attendance has been marked as Absent. I have my notebook entry and a fellow student who can confirm. Kindly review and correct my attendance record.
+              </div>
+              <div style="margin-top:12px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;">
+                  <label style="display:block;font-size:0.7rem;font-weight:700;color:var(--navy);margin-bottom:5px;">Resolution Remarks</label>
+                  <input type="text" class="grievResRemarks" placeholder="Enter your resolution / action taken…" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" />
+                </div>
+                <button onclick="resolveGrievance(this)" style="padding:9px 18px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;white-space:nowrap;">✅ Mark Resolved</button>
+              </div>
+            </div>
+
+            <!-- Empty state if no grievances -->
+            <div id="priGrievEmpty" style="display:none;text-align:center;padding:48px;color:var(--text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+              <div style="font-weight:700;">No grievances match this filter</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRI GALLERY -->
+        <div id="priGallery" style="display:none;">
+          <div class="info-box">🖼️ <strong>Photo Gallery</strong> — Browse all college event photos.</div>
+          <div class="card">
+            <div class="card-hd">
+              <h3>College Photo Gallery</h3>
+              <div class="card-acts">
+                <select id="priGalleryCatFilter" onchange="filterGallery('pri')" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);outline:none;">
+                  <option value="">All Categories</option>
+                  <option>Campus Life</option><option>Sports Events</option><option>Cultural Programs</option>
+                  <option>Convocation & Results</option><option>NSS / YRC Activities</option>
+                  <option>Workshops & Seminars</option><option>Alumni Meet</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="padding:16px;">
+              <div id="priGalleryGrid" class="gallery-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">
+                  <div style="font-size:2.5rem;margin-bottom:10px;">🖼️</div>
+                  <div style="font-weight:700;">Gallery is empty</div>
+                  <p style="font-size:0.78rem;margin-top:6px;">Root Admin hasn't uploaded any photos yet.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div><!-- /dbPrincipal -->
+
+
+<!-- ============================================================ -->
+<!--  NOTIFICATION PANEL  -->
+<!-- ============================================================ -->
+<div class="np" id="notifPanel">
+  <div class="np-hdr">
+    <h3>🔔 Notifications</h3>
+    <button style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1rem;" onclick="toggleNP()">✕</button>
+  </div>
+  <div class="np-list">
+    <div class="ni unr"><div class="ni-title">✅ Profile Update Approved</div><div class="ni-desc">Your address update request has been approved by Root Admin and saved to database.</div><div class="ni-time">25 Feb 2026 · 10:45 AM</div></div>
+    <div class="ni unr"><div class="ni-title">📝 New Placement Form Open</div><div class="ni-desc">Infosys Campus Drive registration is now open.</div><div class="ni-time">25 Feb 2026 · 09:30 AM</div></div>
+    <div class="ni"><div class="ni-title">⚠️ Attendance Warning</div><div class="ni-desc">Computer Networks attendance is at 74% — below 75% threshold.</div><div class="ni-time">24 Feb 2026 · 03:00 PM</div></div>
+    <div class="ni"><div class="ni-title">📢 Exam Timetable Released</div><div class="ni-desc">Semester exam timetable has been published.</div><div class="ni-time">23 Feb 2026 · 11:00 AM</div></div>
+  </div>
+</div>
+
+
+<!-- ===== COMMITTEE MEMBER MODAL ===== -->
+<div class="overlay" id="mCommittee">
+  <div class="modal" style="width:780px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:0;">
+
+    <!-- Modal Header -->
+    <div id="cmModalHeader" style="background:linear-gradient(120deg,var(--primary),#2a5abf);padding:20px 28px 16px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;position:sticky;top:0;z-index:2;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🏛️</div>
+          <div>
+            <div id="cmTitle" style="font-family:'Libre Baskerville',serif;font-size:1.05rem;font-weight:700;color:white;">Committee</div>
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.75);font-family:'JetBrains Mono',monospace;margin-top:2px;">Govt. Polytechnic Hubli — Committee Member Management</div>
+          </div>
+        </div>
+        <button class="modal-x" onclick="closeM('mCommittee')" style="color:white;position:static;font-size:1.2rem;background:rgba(255,255,255,0.15);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+
+    <div style="padding:22px 28px 28px;">
+
+      <!-- Current Members Table -->
+      <div style="margin-bottom:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--navy);font-family:'Plus Jakarta Sans',sans-serif;">👥 Current Members — <span id="cmName" style="color:var(--primary);"></span></div>
+          <span id="cmMemberCount" style="font-size:0.7rem;background:var(--primary-light);color:var(--primary);padding:3px 10px;border-radius:20px;font-weight:700;font-family:'JetBrains Mono',monospace;"></span>
+        </div>
+        <div style="border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <table style="margin:0;">
+            <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Designation</th><th>Mobile</th><th>Status</th></tr></thead>
+            <tbody id="cmTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Member Form — always visible for EST -->
+      <div id="cmAddSection" style="background:var(--bg);border-radius:var(--radius);border:1.5px solid var(--border);overflow:hidden;">
+
+        <!-- Form header -->
+        <div style="background:linear-gradient(90deg,var(--green-light),#f0fff4);padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">➕</div>
+          <div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--green);font-family:'Plus Jakarta Sans',sans-serif;">Add New Committee Member</div>
+            <div style="font-size:0.68rem;color:var(--text-muted);">EST Login Only — Requires Principal Approval before appearing publicly</div>
+          </div>
+        </div>
+
+        <div style="padding:18px;">
+          <div style="background:var(--orange-light);border:1px solid rgba(212,96,10,0.3);border-radius:7px;padding:9px 14px;font-size:0.72rem;color:var(--orange);margin-bottom:16px;">
+            ⚠️ Members added here will be marked <strong>Pending</strong> until Principal approves. Only approved members are shown publicly on the website.
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="fg" style="margin:0;">
+              <label>Full Name <span style="color:red">*</span></label>
+              <input type="text" id="cmMName" placeholder="e.g. Staff Member" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+            </div>
+            <div class="fg" style="margin:0;">
+              <label>Designation <span style="color:red">*</span></label>
+              <input type="text" id="cmMDesig" placeholder="e.g. Assistant Professor, HOD, Registrar" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+            </div>
+            <div class="fg" style="margin:0;">
+              <label>Branch / Department <span style="color:red">*</span></label>
+              <input type="text" id="cmMDept" placeholder="e.g. Civil Engineering, EST, Admin" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+            </div>
+            <div class="fg" style="margin:0;">
+              <label>Role in Committee <span style="color:red">*</span></label>
+              <input type="text" id="cmMRole" placeholder="e.g. Chairperson, Member, Convener" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+            </div>
+            <div class="fg" style="margin:0;">
+              <label>Mobile / WhatsApp</label>
+              <input type="text" id="cmMMob" placeholder="+91 XXXXXXXXXX" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+            </div>
+            <div class="fg" style="margin:0;display:flex;align-items:flex-end;">
+              <button onclick="addCommitteeMember()" style="width:100%;padding:10px 0;background:var(--green);color:white;border:none;border-radius:8px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;" onmouseover="this.style.background='#13703a'" onmouseout="this.style.background='var(--green)'">
+                ➕ Add Member
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD NEW COMMITTEE MODAL ===== -->
+<div class="overlay" id="mNewCommittee">
+  <div class="modal" style="width:520px;max-width:96vw;padding:0;">
+    <div style="background:linear-gradient(120deg,var(--primary),#2a5abf);padding:20px 28px 16px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🏛️</div>
+          <div>
+            <div style="font-family:'Libre Baskerville',serif;font-size:1rem;font-weight:700;color:white;">Create New Committee</div>
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.75);font-family:'JetBrains Mono',monospace;margin-top:2px;">Govt. Polytechnic Hubli — EST Module</div>
+          </div>
+        </div>
+        <button onclick="closeM('mNewCommittee')" style="background:rgba(255,255,255,0.15);border:none;color:white;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div style="padding:24px 28px 28px;">
+      <div style="background:var(--primary-light);border:1px solid rgba(26,79,160,0.2);border-radius:8px;padding:10px 14px;font-size:0.73rem;color:var(--primary);margin-bottom:20px;">
+        ℹ️ The new committee will appear in your EST dashboard immediately. You can then add members to it.
+      </div>
+
+      <!-- Icon picker -->
+      <div class="fg" style="margin-bottom:16px;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--navy);display:block;margin-bottom:8px;">Choose Icon <span style="color:red">*</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="cmIconPicker">
+          <button type="button" class="cm-icon-btn selected" data-icon="🏛️" onclick="selectCmIcon(this)">🏛️</button>
+          <button type="button" class="cm-icon-btn" data-icon="⚖️" onclick="selectCmIcon(this)">⚖️</button>
+          <button type="button" class="cm-icon-btn" data-icon="🛡️" onclick="selectCmIcon(this)">🛡️</button>
+          <button type="button" class="cm-icon-btn" data-icon="📋" onclick="selectCmIcon(this)">📋</button>
+          <button type="button" class="cm-icon-btn" data-icon="📝" onclick="selectCmIcon(this)">📝</button>
+          <button type="button" class="cm-icon-btn" data-icon="🏅" onclick="selectCmIcon(this)">🏅</button>
+          <button type="button" class="cm-icon-btn" data-icon="👥" onclick="selectCmIcon(this)">👥</button>
+          <button type="button" class="cm-icon-btn" data-icon="🎓" onclick="selectCmIcon(this)">🎓</button>
+          <button type="button" class="cm-icon-btn" data-icon="🔬" onclick="selectCmIcon(this)">🔬</button>
+          <button type="button" class="cm-icon-btn" data-icon="💡" onclick="selectCmIcon(this)">💡</button>
+          <button type="button" class="cm-icon-btn" data-icon="🏭" onclick="selectCmIcon(this)">🏭</button>
+          <button type="button" class="cm-icon-btn" data-icon="📢" onclick="selectCmIcon(this)">📢</button>
+          <button type="button" class="cm-icon-btn" data-icon="🌿" onclick="selectCmIcon(this)">🌿</button>
+          <button type="button" class="cm-icon-btn" data-icon="🤝" onclick="selectCmIcon(this)">🤝</button>
+          <button type="button" class="cm-icon-btn" data-icon="⭐" onclick="selectCmIcon(this)">⭐</button>
+          <button type="button" class="cm-icon-btn" data-icon="🔐" onclick="selectCmIcon(this)">🔐</button>
+        </div>
+      </div>
+
+      <div class="fg" style="margin-bottom:14px;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">Committee Name <span style="color:red">*</span></label>
+        <input type="text" id="newCmName" placeholder="e.g. Sports Committee, Cultural Committee" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+
+      <div class="fg" style="margin-bottom:20px;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">Purpose / Description <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(optional)</span></label>
+        <input type="text" id="newCmDesc" placeholder="Brief purpose of this committee" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeM('mNewCommittee')" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:white;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;cursor:pointer;">Cancel</button>
+        <button onclick="createNewCommittee()" style="flex:2;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;cursor:pointer;" onmouseover="this.style.background='var(--navy)'" onmouseout="this.style.background='var(--primary)'">🏛️ Create Committee</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.cm-icon-btn{width:38px;height:38px;border:2px solid var(--border);border-radius:8px;background:white;font-size:1.15rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.cm-icon-btn:hover{border-color:var(--primary);background:var(--primary-light);}
+.cm-icon-btn.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 2px var(--primary);}
+</style>
+
+<!-- ===== PRINT AREA — MARKS CARD ===== -->
+<div id="printArea">
+  <div class="result-letterhead" id="marksCardContent"></div>
+</div>
+
+<!-- ===== ADD RESULT MODAL ===== -->
+<div class="overlay" id="mAddResult">
+  <div class="modal" style="width:700px;max-width:96vw;max-height:90vh;overflow-y:auto;">
+    <button class="modal-x" onclick="closeM('mAddResult')">✕</button>
+    <div class="modal-icon bl">📊</div>
+    <h2>Add / Edit Student Result</h2>
+    <p class="msub">Enter result details for a student</p>
+    <div class="form-row">
+      <div class="fg"><label>Register Number <span style="color:red">*</span></label><input type="text" id="arReg" placeholder="—" /></div>
+      <div class="fg"><label>Student <span style="color:red">*</span></label><input type="text" id="arName" placeholder="Full name" /></div>
+    </div>
+    <div class="form-row three">
+      <div class="fg"><label>Branch <span style="color:red">*</span></label>
+        <select id="arBranch">
+          <option value="">Select</option>
+          <option value="Civil Engineering">Civil Engineering</option>
+          <option value="Computer Science Engineering">CSE</option>
+          <option value="ECE">ECE</option>
+          <option value="Mechanical Engineering">Mechanical</option>
+        </select>
+      </div>
+      <div class="fg"><label>Semester <span style="color:red">*</span></label>
+        <select id="arSem">
+          <option value="">Select</option>
+          <option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>
+          <option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option>
+        </select>
+      </div>
+      <div class="fg"><label>Exam Session <span style="color:red">*</span></label>
+        <select id="arSession">
+          <option value="">Select</option>
+          <option value="APR/MAY 2025">APR/MAY 2025</option>
+          <option value="NOV/DEC 2025">NOV/DEC 2025</option>
+          <option value="APR/MAY 2026">APR/MAY 2026</option>
+          <option value="NOV/DEC 2026">NOV/DEC 2026</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:10px;margin-top:4px;">📚 Subject-wise Results</div>
+    <div id="arSubjects">
+      <div class="ar-subject-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;align-items:flex-end;">
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">Subject Name</label><input type="text" class="ar-subname" placeholder="e.g. Data Structures" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" /></div>
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">Code</label><input type="text" class="ar-subcode" placeholder="CS301" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" /></div>
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">Internal</label><input type="number" class="ar-internal" placeholder="40" min="0" max="50" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" /></div>
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">External</label><input type="number" class="ar-external" placeholder="75" min="0" max="100" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" /></div>
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">Credits</label><input type="number" class="ar-credits" placeholder="4" min="1" max="6" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" /></div>
+        <div class="fg" style="margin:0;"><label style="font-size:0.68rem;">Grade</label>
+          <select class="ar-grade" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+            <option value="O">O (90+)</option><option value="A+">A+ (80-89)</option><option value="A">A (70-79)</option>
+            <option value="B+">B+ (60-69)</option><option value="B">B (55-59)</option><option value="C">C (50-54)</option>
+            <option value="P">P (40-49)</option><option value="F">F (Fail)</option><option value="Ab">Ab (Absent)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn ol" style="margin-bottom:14px;font-size:0.75rem;" onclick="addSubjectRow()">+ Add Subject</button>
+    <div class="form-row">
+      <div class="fg"><label>SGPA</label><input type="number" id="arSGPA" step="0.01" min="0" max="10" placeholder="e.g. 7.8" /></div>
+      <div class="fg"><label>Overall Result</label>
+        <select id="arResult" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:0.84rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
+          <option value="Pass">Pass</option><option value="Fail">Fail</option><option value="Absent">Absent</option><option value="Detained">Detained</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-block gr" onclick="saveResultEntry()">💾 Save Result</button>
+  </div>
+</div>
+
+
+<!-- ===== FORM BUILDER MODAL ===== -->
+<div id="formBuilderModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;">
+  <div style="background:#f0ebff;border-radius:16px;width:min(720px,98vw);box-shadow:0 24px 64px rgba(0,0,0,0.35);font-family:'Plus Jakarta Sans',sans-serif;">
+
+    <!-- Header card -->
+    <div style="background:#6d28d9;border-radius:16px 16px 0 0;padding:0 0 6px 0;">
+      <div style="background:#7c3aed;border-radius:14px 14px 0 0;padding:18px 24px 14px;">
+        <input id="fbFormTitle" type="text" placeholder="Untitled Form" style="width:100%;background:transparent;border:none;border-bottom:2px solid rgba(255,255,255,0.6);color:white;font-size:1.3rem;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;outline:none;padding-bottom:6px;" />
+        <input id="fbFormDesc" type="text" placeholder="Form description (optional)" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.85);font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;padding:8px 0 4px;margin-top:8px;" />
+      </div>
+      <div style="padding:8px 24px 0;display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="addGFField('text')"      class="gf-type-btn">✏️ Short Answer</button>
+        <button onclick="addGFField('paragraph')" class="gf-type-btn">📄 Paragraph</button>
+        <button onclick="addGFField('radio')"     class="gf-type-btn">⭕ Multiple Choice</button>
+        <button onclick="addGFField('checkbox')"  class="gf-type-btn">☑️ Checkboxes</button>
+        <button onclick="addGFField('dropdown')"  class="gf-type-btn">🔽 Dropdown</button>
+        <button onclick="addGFField('date')"      class="gf-type-btn">📅 Date</button>
+        <button onclick="addGFField('time')"      class="gf-type-btn">🕐 Time</button>
+        <button onclick="addGFField('file')"      class="gf-type-btn">📎 File Upload</button>
+        <button onclick="addGFField('section')"   class="gf-type-btn">📌 Section</button>
+      </div>
+      <div style="padding:10px 24px 12px;display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="closeFBModal()" style="padding:7px 18px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:8px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.8rem;">Cancel</button>
+        <button onclick="previewGFForm()" style="padding:7px 18px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:white;border-radius:8px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.8rem;">👁️ Preview</button>
+        <button onclick="saveGFForm()" style="padding:7px 20px;background:white;color:#6d28d9;border:none;border-radius:8px;cursor:pointer;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.8rem;">💾 Save Form</button>
+      </div>
+    </div>
+
+    <!-- Questions canvas -->
+    <div id="gfCanvas" style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;min-height:120px;">
+      <div id="gfEmptyHint" style="text-align:center;color:#94a3b8;padding:32px;background:white;border-radius:10px;font-size:0.82rem;">Click a field type above to add questions</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- GF Preview Modal -->
+<div id="gfPreviewModal" style="display:none;position:fixed;inset:0;z-index:10005;background:rgba(0,0,0,0.6);align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;">
+  <div style="background:#f0ebff;border-radius:16px;width:min(680px,98vw);box-shadow:0 24px 64px rgba(0,0,0,0.35);font-family:'Plus Jakarta Sans',sans-serif;">
+    <div style="background:#6d28d9;border-radius:16px 16px 0 0;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="color:white;font-weight:800;font-size:1rem;">👁️ Form Preview</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="openShareFromPreview()" style="padding:7px 18px;background:white;color:#6d28d9;border:none;border-radius:8px;cursor:pointer;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.8rem;">🔗 Share</button>
+        <button onclick="document.getElementById('gfPreviewModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.8rem;">✕ Close</button>
+      </div>
+    </div>
+    <div id="gfPreviewBody" style="padding:20px;display:flex;flex-direction:column;gap:14px;"></div>
+  </div>
+</div>
+
+<style>
+.gf-type-btn{padding:5px 11px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:white;border-radius:20px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.72rem;transition:background 0.15s;}
+.gf-type-btn:hover{background:rgba(255,255,255,0.3);}
+.gf-card{background:white;border-radius:10px;padding:18px 20px;border-left:4px solid #e2e8f0;transition:border-color 0.15s;position:relative;}
+.gf-card:hover,.gf-card.active{border-left-color:#6d28d9;}
+.gf-card-title{font-size:0.82rem;font-weight:700;color:#1a2437;margin-bottom:2px;}
+.gf-q-input{width:100%;border:none;border-bottom:2px solid #e2e8f0;font-size:0.95rem;font-family:'Plus Jakarta Sans',sans-serif;color:#1a2437;padding:4px 0 6px;outline:none;background:transparent;font-weight:600;}
+.gf-q-input:focus{border-bottom-color:#6d28d9;}
+.gf-option-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.gf-option-inp{flex:1;border:none;border-bottom:1px solid #e2e8f0;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;padding:3px 0;outline:none;background:transparent;}
+.gf-option-inp:focus{border-bottom-color:#6d28d9;}
+.gf-add-opt{color:#6d28d9;font-size:0.78rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-top:8px;display:inline-flex;align-items:center;gap:4px;background:none;border:none;}
+.gf-add-opt:hover{text-decoration:underline;}
+.gf-del-opt{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:0.9rem;line-height:1;padding:2px;}
+.gf-del-opt:hover{color:#dc2626;}
+.gf-card-footer{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9;}
+.gf-del-card{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;}
+.gf-del-card:hover{color:#dc2626;}
+.gf-req-toggle{display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#64748b;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;}
+.gf-req-toggle input{accent-color:#6d28d9;width:14px;height:14px;}
+.gf-section-card{background:white;border-radius:10px;padding:14px 20px;border-top:8px solid #6d28d9;}
+.gf-preview-card{background:white;border-radius:10px;padding:18px 20px;}
+.gf-preview-label{font-size:0.9rem;font-weight:700;color:#1a2437;margin-bottom:8px;display:block;}
+.gf-preview-input{width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;}
+.gf-preview-input:focus{border-color:#6d28d9;}
+.gf-preview-textarea{width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;min-height:80px;}
+.gf-preview-select{width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;background:white;}
+</style>
+
+<!-- ===== SHARE MODAL ===== -->
+<div id="formShareModal" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:min(560px,96vw);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #e2e8f0;background:linear-gradient(135deg,#7e22ce,#a855f7);color:white;border-radius:16px 16px 0 0;">
+      <div><div style="font-weight:800;font-size:1rem;font-family:'Plus Jakarta Sans',sans-serif;">🔗 Share Form</div><div style="font-size:0.72rem;opacity:0.8;margin-top:2px;" id="shareFormNameLabel">Select recipients and priority</div></div>
+      <button onclick="document.getElementById('formShareModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:22px;">
+      <!-- Priority -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#1a2437;margin-bottom:10px;font-family:'Plus Jakarta Sans',sans-serif;">📢 Notification Priority</div>
+        <div style="display:flex;gap:10px;">
+          <label style="flex:1;cursor:pointer;">
+            <input type="radio" name="sharePriority" value="normal" checked style="display:none;" id="priNormal" />
+            <div class="share-pri-btn" id="priBtnNormal" onclick="selectPriority('normal')" style="border:2px solid #10b981;border-radius:10px;padding:12px;text-align:center;background:#f0fdf4;">
+              <div style="font-size:1.2rem;">🔔</div><div style="font-size:0.75rem;font-weight:700;color:#065f46;margin-top:4px;">Normal</div>
+              <div style="font-size:0.65rem;color:#64748b;">Standard notification</div>
+            </div>
+          </label>
+          <label style="flex:1;cursor:pointer;">
+            <input type="radio" name="sharePriority" value="important" style="display:none;" id="priImportant" />
+            <div class="share-pri-btn" id="priBtnImportant" onclick="selectPriority('important')" style="border:2px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.2rem;">⚠️</div><div style="font-size:0.75rem;font-weight:700;color:#b45309;margin-top:4px;">Important</div>
+              <div style="font-size:0.65rem;color:#64748b;">Highlighted popup</div>
+            </div>
+          </label>
+          <label style="flex:1;cursor:pointer;">
+            <input type="radio" name="sharePriority" value="emergency" style="display:none;" id="priEmergency" />
+            <div class="share-pri-btn" id="priBtnEmergency" onclick="selectPriority('emergency')" style="border:2px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.2rem;">🚨</div><div style="font-size:0.75rem;font-weight:700;color:#dc2626;margin-top:4px;">Emergency</div>
+              <div style="font-size:0.65rem;color:#64748b;">Full-screen alert</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <!-- Recipients -->
+      <div style="font-size:0.78rem;font-weight:700;color:#1a2437;margin-bottom:10px;font-family:'Plus Jakarta Sans',sans-serif;">👥 Share With</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="shareRecipients">
+        <label class="share-chk"><input type="checkbox" value="Students" /> 🎓 All Students</label>
+        <label class="share-chk"><input type="checkbox" value="All Staff" /> 👨‍💼 All Staff</label>
+        <label class="share-chk"><input type="checkbox" value="HOD" /> 🏫 HOD</label>
+        <label class="share-chk"><input type="checkbox" value="Teaching Staff" /> 👨‍🏫 Teaching Staff</label>
+        <label class="share-chk"><input type="checkbox" value="Non-Teaching Staff" /> 👷 Non-Teaching Staff</label>
+        <label class="share-chk"><input type="checkbox" value="Guest Faculty" /> 🧑‍💼 Guest Faculty</label>
+        <label class="share-chk"><input type="checkbox" value="ACM" /> 🎓 ACM</label>
+        <label class="share-chk"><input type="checkbox" value="Exam Cell" /> 📝 Exam Cell</label>
+        <label class="share-chk"><input type="checkbox" value="NSS" /> 🤝 NSS</label>
+        <label class="share-chk"><input type="checkbox" value="Youth Red Cross" /> 🩸 Youth Red Cross</label>
+        <label class="share-chk"><input type="checkbox" value="Placement" /> 💼 Placement</label>
+        <label class="share-chk"><input type="checkbox" value="Alumni" /> 🎓 Alumni Cell</label>
+        <label class="share-chk"><input type="checkbox" value="Sports" /> 🏅 Sports</label>
+        <label class="share-chk"><input type="checkbox" value="Student Welfare" /> 🛡️ Student Welfare</label>
+        <label class="share-chk"><input type="checkbox" value="EST" /> 🏛️ EST</label>
+        <label class="share-chk"><input type="checkbox" value="Library" /> 📚 Library</label>
+        <label class="share-chk"><input type="checkbox" value="Stores" /> 🏪 Stores</label>
+        <label class="share-chk"><input type="checkbox" value="Principal" /> 👔 Principal</label>
+      </div>
+      <!-- Message -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#1a2437;margin-bottom:6px;font-family:'Plus Jakarta Sans',sans-serif;">💬 Message to Recipients (optional)</div>
+        <textarea id="shareMessage" rows="2" placeholder="e.g. Please fill this form before 15 March 2026" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.82rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:none;"></textarea>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="document.getElementById('formShareModal').style.display='none'" style="padding:9px 20px;border:1.5px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;">Cancel</button>
+      <button onclick="confirmShareForm()" style="padding:9px 22px;background:linear-gradient(135deg,#7e22ce,#a855f7);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;">📤 Share Now</button>
+    </div>
+  </div>
+</div>
+<style>
+  .share-chk { display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.15s; }
+  .share-chk:hover { border-color:#7e22ce;background:#fdf4ff; }
+  .share-chk input { accent-color:#7e22ce;width:15px;height:15px; }
+</style>
+
+<!-- ===== FORM NOTIFICATION POPUP ===== -->
+<div id="formNotifPopup" style="display:none;position:fixed;inset:0;z-index:10003;align-items:center;justify-content:center;">
+  <div id="formNotifOverlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);"></div>
+  <div id="formNotifCard" style="position:relative;border-radius:18px;width:min(520px,94vw);box-shadow:0 32px 80px rgba(0,0,0,0.4);overflow:hidden;z-index:1;">
+    <!-- Banner -->
+    <div id="formNotifBanner" style="padding:22px 26px 16px;color:white;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="formNotifIcon" style="font-size:2rem;"></div>
+        <div>
+          <div id="formNotifBadge" style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-bottom:4px;font-family:'Plus Jakarta Sans',sans-serif;"></div>
+          <div id="formNotifTitle" style="font-size:1.1rem;font-weight:800;font-family:'Libre Baskerville',serif;"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Body -->
+    <div style="background:#fff;padding:20px 26px;">
+      <div id="formNotifMsg" style="font-size:0.85rem;color:#374151;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:16px;line-height:1.6;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="formNotifDismiss" onclick="dismissFormNotif()" style="padding:9px 20px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;">Dismiss</button>
+        <button id="formNotifFill" style="padding:9px 22px;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;" onclick="dismissFormNotif()">📝 Fill Form Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EST STAFF FULL DETAIL MODAL ===== -->
+<div id="estStaffModal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(28,43,74,0.6);backdrop-filter:blur(5px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:min(480px,98vw);box-shadow:0 32px 80px rgba(28,43,74,0.32);position:relative;margin:auto;overflow:hidden;">
+
+    <!-- ── STICKY HEADER ── -->
+    <div id="estModalHeader" style="padding:0;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#1a4fa0,#2a5abf);position:sticky;top:0;z-index:5;">
+      <!-- Top bar: avatar + name + close -->
+      <div style="display:flex;align-items:center;gap:14px;padding:18px 20px 14px;">
+        <div id="estModalAvatar" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.22);border:2.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div id="estModalName" style="font-family:'Libre Baskerville',serif;font-size:1.05rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          <div id="estModalSub" style="font-size:0.72rem;color:rgba(255,255,255,0.8);margin-top:3px;"></div>
+          <span id="estModalBadge" style="display:inline-block;margin-top:6px;font-size:0.62rem;font-weight:800;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.22);color:white;letter-spacing:0.06em;text-transform:uppercase;"></span>
+        </div>
+        <button onclick="closeESTStaffModal()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">✕</button>
+      </div>
+      <!-- Section nav pills -->
+      <div style="display:flex;gap:6px;padding:0 20px 14px;overflow-x:auto;scrollbar-width:none;">
+        <button onclick="scrollESTSection('estSec1')" style="white-space:nowrap;padding:5px 13px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">🏛️ Institution</button>
+        <button onclick="scrollESTSection('estSec2')" style="white-space:nowrap;padding:5px 13px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">👤 Personal</button>
+        <button onclick="scrollESTSection('estSec3')" style="white-space:nowrap;padding:5px 13px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">📋 Service</button>
+        <button onclick="scrollESTSection('estSec4')" style="white-space:nowrap;padding:5px 13px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">📞 Contact</button>
+        <button onclick="scrollESTSection('estSec5')" style="white-space:nowrap;padding:5px 13px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;cursor:pointer;font-size:0.68rem;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;">🔐 Govt IDs</button>
+      </div>
+    </div>
+
+    <!-- ── SCROLLABLE BODY ── -->
+    <div id="estModalBody" style="padding:20px;max-height:calc(100vh - 220px);overflow-y:auto;">
+
+      <!-- SECTION 1: Institution -->
+      <div id="estSec1" class="est-section">
+        <div class="est-sec-title" style="color:#1a4fa0;border-color:#d0dff8;">🏛️ Institutional Information</div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Inst. Code</div><div class="est-val" id="edInstCode"></div></div>
+          <div class="est-field"><div class="est-lbl">KGID No.</div><div class="est-val mono" id="edKGID"></div></div>
+        </div>
+        <div class="est-field full"><div class="est-lbl">Institution Name</div><div class="est-val" id="edInstitution"></div></div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">DDO Code</div><div class="est-val mono" id="edDDO"></div></div>
+          <div class="est-field"><div class="est-lbl">HOA</div><div class="est-val mono" id="edHOA"></div></div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Personal -->
+      <div id="estSec2" class="est-section">
+        <div class="est-sec-title" style="color:#156e3a;border-color:#c3ead3;">👤 Personal Details</div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Gender</div><div class="est-val" id="edGender"></div></div>
+          <div class="est-field"><div class="est-lbl">Age</div><div class="est-val" id="edAge"></div></div>
+        </div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Date of Birth</div><div class="est-val" id="edDOB"></div></div>
+          <div class="est-field"><div class="est-lbl">PH (Disability)</div><div class="est-val" id="edPH"></div></div>
+        </div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Category</div><div class="est-val" id="edCAT"></div></div>
+          <div class="est-field"><div class="est-lbl">Caste</div><div class="est-val" id="edCaste"></div></div>
+        </div>
+        <div class="est-field full"><div class="est-lbl">Qualification</div><div class="est-val" id="edQual"></div></div>
+      </div>
+
+      <!-- SECTION 3: Service -->
+      <div id="estSec3" class="est-section">
+        <div class="est-sec-title" style="color:#b45309;border-color:#fde68a;">📋 Service Details</div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Designation</div><div class="est-val" id="edDesig"></div></div>
+          <div class="est-field"><div class="est-lbl">Department / Branch</div><div class="est-val" id="edBranch"></div></div>
+        </div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Group</div><div class="est-val" id="edGroup"></div></div>
+          <div class="est-field"><div class="est-lbl">Basic Pay</div><div class="est-val" id="edPay"></div></div>
+        </div>
+        <div class="est-field full"><div class="est-lbl">Scale of Pay</div><div class="est-val mono" id="edScale"></div></div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Date of Joining</div><div class="est-val" id="edJoin"></div></div>
+          <div class="est-field"><div class="est-lbl">Reporting Date</div><div class="est-val" id="edReporting"></div></div>
+        </div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Place of Work</div><div class="est-val" id="edPlace"></div></div>
+          <div class="est-field"><div class="est-lbl">Length of Service</div><div class="est-val" id="edService"></div></div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: Contact -->
+      <div id="estSec4" class="est-section">
+        <div class="est-sec-title" style="color:#0e7490;border-color:#cffafe;">📞 Contact & Address</div>
+        <div class="est-field full"><div class="est-lbl">Home Address</div><div class="est-val" id="edAddress"></div></div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">PIN Code</div><div class="est-val mono" id="edPin"></div></div>
+          <div class="est-field"><div class="est-lbl">Taluk</div><div class="est-val" id="edTaluk"></div></div>
+        </div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">District</div><div class="est-val" id="edDistrict"></div></div>
+          <div class="est-field"><div class="est-lbl">Phone</div><div class="est-val mono" id="edPhone"></div></div>
+        </div>
+        <div class="est-field full"><div class="est-lbl">Mobile</div><div class="est-val mono" id="edMobile"></div></div>
+      </div>
+
+      <!-- SECTION 5: Govt IDs -->
+      <div id="estSec5" class="est-section">
+        <div class="est-sec-title" style="color:#7c3aed;border-color:#e9d5ff;">🔐 Government IDs</div>
+        <div style="background:#fef9ff;border:1.5px solid #e9d5ff;border-radius:8px;padding:10px 14px;font-size:0.72rem;color:#7c3aed;margin-bottom:12px;font-weight:600;">⚠️ Sensitive information — access is logged. View only for authorised EST staff.</div>
+        <div class="est-row">
+          <div class="est-field"><div class="est-lbl">Aadhaar No.</div><div class="est-val mono" id="edAadhaar"></div></div>
+          <div class="est-field"><div class="est-lbl">PAN No.</div><div class="est-val mono" id="edPAN"></div></div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1.5px solid var(--border);margin-top:4px;">
+        <button onclick="alert('Edit request submitted to Principal. You will be notified upon approval.')" style="padding:10px 22px;background:var(--orange);color:white;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;">✏️ Request Edit</button>
+        <button onclick="closeESTStaffModal()" style="padding:10px 22px;border:1.5px solid var(--border);border-radius:9px;background:#fff;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;font-weight:600;">✕ Close</button>
+      </div>
+
+    </div><!-- /body -->
+  </div>
+</div>
+
+<style>
+.est-section { margin-bottom:22px; }
+.est-sec-title { font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;padding-bottom:8px;margin-bottom:12px;border-bottom:2px solid; }
+.est-row { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px; }
+.est-field { background:#f8fafc;border:1px solid #e8edf5;border-radius:9px;padding:10px 13px; }
+.est-field.full { margin-bottom:10px; }
+.est-lbl { font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;font-family:'JetBrains Mono',monospace;margin-bottom:4px; }
+.est-val { font-size:0.84rem;font-weight:700;color:#1e293b;font-family:'Plus Jakarta Sans',sans-serif;word-break:break-word;line-height:1.35; }
+.est-val.mono { font-family:'JetBrains Mono',monospace;font-size:0.78rem;letter-spacing:0.04em; }
+#estModalBody::-webkit-scrollbar { width:4px; }
+#estModalBody::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
+</style>
+
+
+<!-- ============================================================ -->
+<!-- EST ADD EMPLOYEE MODAL -->
+<!-- ============================================================ -->
+<div id="estAddEmpModal" style="display:none;position:fixed;inset:0;z-index:10020;background:rgba(28,43,74,0.6);backdrop-filter:blur(5px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:min(520px,98vw);box-shadow:0 32px 80px rgba(28,43,74,0.32);margin:auto;overflow:hidden;">
+    <!-- Header -->
+    <div id="addEmpModalHeader" style="padding:18px 22px 14px;background:linear-gradient(135deg,#1a4fa0,#2a5abf);color:white;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div id="addEmpModalTitle" style="font-family:'Libre Baskerville',serif;font-size:1rem;font-weight:700;">➕ Add New Employee</div>
+        <div id="addEmpModalSub" style="font-size:0.72rem;opacity:0.8;margin-top:3px;"></div>
+      </div>
+      <button onclick="closeAddEmpModal()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px;max-height:calc(100vh - 160px);overflow-y:auto;" id="addEmpFormBody">
+      <div class="warn-box" style="margin-bottom:16px;">⚠️ This record will be added as <strong>Pending Principal Approval</strong>. It becomes active only after the Principal approves.</div>
+
+      <!-- Section: Institutional -->
+      <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#1a4fa0;border-bottom:2px solid #d0dff8;padding-bottom:6px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;">🏛️ Institutional Information</div>
+      <div class="form-row">
+        <div class="fg"><label>Inst. Code <span style="color:red">*</span></label><input id="ae_instCode" type="text" value="GPTH001" /></div>
+        <div class="fg"><label>KGID No.</label><input id="ae_kgid" type="text" placeholder="e.g. KGD2025001" /></div>
+      </div>
+      <div class="fg"><label>Institution Name <span style="color:red">*</span></label><input id="ae_institution" type="text" value="Govt. Polytechnic Hubli" /></div>
+      <div class="form-row">
+        <div class="fg"><label>DDO Code</label><input id="ae_ddo" type="text" value="DDO/001" /></div>
+        <div class="fg"><label>HOA</label><input id="ae_hoa" type="text" value="HOA/2025" /></div>
+      </div>
+
+      <!-- Section: Personal -->
+      <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#156e3a;border-bottom:2px solid #c3ead3;padding-bottom:6px;margin:18px 0 12px;font-family:'JetBrains Mono',monospace;">👤 Personal Details</div>
+      <div class="fg"><label>Full Name <span style="color:red">*</span></label><input id="ae_name" type="text" placeholder="e.g. Dr. A. Kumar" /></div>
+      <div class="form-row">
+        <div class="fg"><label>Gender <span style="color:red">*</span></label>
+          <select id="ae_gender"><option>Male</option><option>Female</option><option>Other</option></select>
+        </div>
+        <div class="fg"><label>Date of Birth <span style="color:red">*</span></label><input id="ae_dob" type="date" /></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Category</label>
+          <select id="ae_category"><option>General</option><option>OBC</option><option>SC</option><option>ST</option><option>EWS</option></select>
+        </div>
+        <div class="fg"><label>Caste</label><input id="ae_caste" type="text" placeholder="e.g. Lingayat" /></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>PH (Physically Challenged)</label>
+          <select id="ae_ph"><option>No</option><option>Yes</option></select>
+        </div>
+        <div class="fg"><label>Qualification <span style="color:red">*</span></label><input id="ae_qual" type="text" placeholder="e.g. B.E., M.Tech" /></div>
+      </div>
+
+      <!-- Section: Service -->
+      <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#b45309;border-bottom:2px solid #fde68a;padding-bottom:6px;margin:18px 0 12px;font-family:'JetBrains Mono',monospace;">📋 Service Details</div>
+      <div class="form-row">
+        <div class="fg"><label>Designation <span style="color:red">*</span></label><input id="ae_desig" type="text" placeholder="e.g. Asst. Professor" /></div>
+        <div class="fg"><label>Department / Branch <span style="color:red">*</span></label>
+          <select id="ae_branch">
+            <option>Civil Engineering</option><option>Computer Science Engineering</option>
+            <option>Electronics & Communication Engineering</option><option>Mechanical Engineering</option>
+            <option>Accounts</option><option>ACM</option><option>Library</option><option>Admin</option><option>Group D</option><option>Outsource</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Group</label>
+          <select id="ae_group"><option>Group A</option><option>Group B</option><option>Group C</option><option>Group D</option><option>—</option></select>
+        </div>
+        <div class="fg"><label>Basic Pay</label><input id="ae_pay" type="text" placeholder="e.g. ₹42,700" /></div>
+      </div>
+      <div class="fg"><label>Scale of Pay</label><input id="ae_scale" type="text" placeholder="e.g. 42700-135600" /></div>
+      <div class="form-row">
+        <div class="fg"><label>Date of Joining <span style="color:red">*</span></label><input id="ae_joinDate" type="date" /></div>
+        <div class="fg"><label>Reporting Date</label><input id="ae_reportDate" type="date" /></div>
+      </div>
+      <div class="fg"><label>Place of Work</label><input id="ae_place" type="text" value="Hubli" /></div>
+
+      <!-- Section: Contact -->
+      <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0e7490;border-bottom:2px solid #cffafe;padding-bottom:6px;margin:18px 0 12px;font-family:'JetBrains Mono',monospace;">📞 Contact & Address</div>
+      <div class="fg"><label>Home Address</label><textarea id="ae_address" rows="2" placeholder="e.g. 45, MG Road, Hubli - 580023" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;resize:vertical;"></textarea></div>
+      <div class="form-row">
+        <div class="fg"><label>PIN Code</label><input id="ae_pin" type="text" placeholder="e.g. 580031" maxlength="6" /></div>
+        <div class="fg"><label>Taluk</label><input id="ae_taluk" type="text" value="Hubli" /></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>District</label><input id="ae_district" type="text" value="Dharwad" /></div>
+        <div class="fg"><label>Phone</label><input id="ae_phone" type="text" placeholder="0836-XXXXXX" /></div>
+      </div>
+      <div class="fg"><label>Mobile <span style="color:red">*</span></label><input id="ae_mobile" type="text" placeholder="9XXXXXXXXX" maxlength="10" /></div>
+
+      <!-- Section: Govt IDs -->
+      <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#7c3aed;border-bottom:2px solid #e9d5ff;padding-bottom:6px;margin:18px 0 12px;font-family:'JetBrains Mono',monospace;">🔐 Government IDs (Sensitive)</div>
+      <div style="background:#fef9ff;border:1.5px solid #e9d5ff;border-radius:8px;padding:9px 12px;font-size:0.72rem;color:#7c3aed;margin-bottom:12px;font-weight:600;">⚠️ These fields are encrypted and access-logged.</div>
+      <div class="form-row">
+        <div class="fg"><label>Aadhaar No.</label><input id="ae_aadhaar" type="text" placeholder="XXXX XXXX XXXX" maxlength="14" /></div>
+        <div class="fg"><label>PAN No.</label><input id="ae_pan" type="text" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase;" /></div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1.5px solid var(--border);margin-top:8px;">
+        <button onclick="submitAddEmployee()" style="padding:10px 24px;background:var(--green);color:white;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;">✅ Submit for Principal Approval</button>
+        <button onclick="closeAddEmpModal()" style="padding:10px 20px;border:1.5px solid var(--border);border-radius:9px;background:#fff;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.82rem;font-weight:600;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHATSAPP NOTIFICATION MODAL -->
+<div id="wpNotifModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:92%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#25d366,#128c7e);padding:18px 22px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:1.8rem;">&#128242;</span>
+      <div>
+        <div style="font-weight:800;font-size:1rem;color:white;">WhatsApp Notification</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.85);">Send event alert to students via WhatsApp</div>
+      </div>
+      <button onclick="closeWPModal()" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;border-radius:8px;padding:6px 10px;color:white;cursor:pointer;font-size:1rem;">&#10005;</button>
+    </div>
+    <div style="padding:20px 22px;">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Message Preview</div>
+      <div id="wpMsgPreview" style="background:#dcf8c6;border-radius:10px;padding:14px 16px;font-size:0.82rem;line-height:1.7;font-family:sans-serif;white-space:pre-wrap;border:1px solid #b7e4a0;max-height:200px;overflow-y:auto;"></div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:8px;">
+        &#9432; This will open WhatsApp Web / App with the message pre-filled. Share it to your student broadcast list or group.
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button id="wpSendBtn" onclick="openWhatsApp()" style="flex:1;padding:12px;background:#25d366;color:white;border:none;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          &#128242; Open WhatsApp &amp; Send
+        </button>
+        <button onclick="closeWPModal()" style="padding:12px 20px;border:1.5px solid var(--border);border-radius:10px;background:white;cursor:pointer;font-weight:600;font-size:0.84rem;">Skip</button>
+      </div>
+      <div id="wpSentConfirm" style="display:none;margin-top:10px;padding:10px 14px;background:#e6f7ed;border-radius:8px;color:var(--green);font-size:0.78rem;font-weight:700;text-align:center;">&#10003; WhatsApp opened — message is ready to send to students!</div>
+    </div>
+  </div>
+</div>
+0:{"P":null,"c":["",""],"q":"","i":false,"f":[[["",{"children":["__PAGE__",{}]},"$undefined","$undefined",16],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/07l_-k_n1ka01.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/00dto~tc2vhsu.js","async":true,"nonce":"$undefined"}],["$","script","script-1",{"src":"/_next/static/chunks/0i4gx.xil6j--.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","link",null,{"rel":"preconnect","href":"https://fonts.googleapis.com"}],["$","link",null,{"rel":"preconnect","href":"https://fonts.gstatic.com","crossOrigin":"anonymous"}],["$","link",null,{"href":"https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap","rel":"stylesheet"}]]}],["$","body",null,{"children":[["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","$L4",null,{}]]}]]}]]}],{"children":[["$","$1","c",{"children":[[["$","div",null,{"suppressHydrationWarning":true,"dangerouslySetInnerHTML":{"__html":"$5"}}],"$L6","$L7","$L8"],["$L9"],"$La"]}],{},null,false,null]},null,false,null],"$Lb",false]],"m":"$undefined","G":["$c",["$Ld"]],"S":true,"h":null,"s":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"bT6_PxjkCf5zqwyjdM95c"}
+e:I[48063,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js","/_next/static/chunks/0fiv49qbegixt.js"],""]
+f:I[54439,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"OutletBoundary"]
+10:"$Sreact.suspense"
+12:I[54439,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"ViewportBoundary"]
+14:I[54439,["/_next/static/chunks/00dto~tc2vhsu.js","/_next/static/chunks/0i4gx.xil6j--.js"],"MetadataBoundary"]
+6:["$","$Le",null,{"id":"bridge-config","strategy":"afterInteractive","children":"window.__GPT_CONFIG = { demoLoginEnabled: false };"}]
+7:["$","$Le",null,{"src":"/legacy-app.js","strategy":"afterInteractive"}]
+8:["$","$Le",null,{"src":"/legacy-bridge.js","strategy":"afterInteractive"}]
+9:["$","script","script-0",{"src":"/_next/static/chunks/0fiv49qbegixt.js","async":true,"nonce":"$undefined"}]
+a:["$","$Lf",null,{"children":["$","$10",null,{"name":"Next.MetadataOutlet","children":"$@11"}]}]
+b:["$","$1","h",{"children":[null,["$","$L12",null,{"children":"$L13"}],["$","div",null,{"hidden":true,"children":["$","$L14",null,{"children":["$","$10",null,{"name":"Next.Metadata","children":"$L15"}]}]}],null]}]
+d:["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/07l_-k_n1ka01.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]
+13:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#1a4fa0"}]]
+11:null
+15:[["$","title","0",{"children":"Government Polytechnic Hubli — Management System"}],["$","meta","1",{"name":"description","content":"Official management system of Government Polytechnic Hubli — student, faculty, admin and principal portals with results, attendance, fees, grievances and more."}],["$","meta","2",{"name":"generator","content":"v0.app"}]]
