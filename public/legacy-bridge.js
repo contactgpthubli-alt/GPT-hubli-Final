@@ -612,8 +612,8 @@ function profileChangesSummary(changes) {
 }
 
 async function renderProfileRequestApprovals() {
-  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hod')) return;
-  var containerId = currentUser.role === 'admin' ? 'adApprovals' : 'facApprovals';
+  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'hod')) return;
+  var containerId = window.currentUser.role === 'admin' ? 'adApprovals' : 'facApprovals';
   var host = document.getElementById(containerId);
   if (!host) return;
   var data = await apiReqQuiet('/api/profile-requests');
@@ -669,7 +669,7 @@ window.reviewProfileRequest = reviewProfileRequest;
 
 // Poll while an admin/HOD session is active so new requests show up without a refresh.
 setInterval(function () {
-  if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'hod')) {
+  if (window.currentUser && (window.currentUser.role === 'admin' || window.currentUser.role === 'hod')) {
     renderProfileRequestApprovals();
   }
 }, 4000);

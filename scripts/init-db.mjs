@@ -51,70 +51,14 @@ function resolveConnectionString() {
   return null
 }
 
-function splitStatements(sql) {
-  const statements = []
-  let current = ''
-  let quote = null
-  let escaped = false
-
-  for (let i = 0; i < sql.length; i += 1) {
-    const char = sql[i]
-    const next = sql[i + 1]
-
-    if (quote) {
-      current += char
-      if (escaped) {
-        escaped = false
-      } else if (char === '\\') {
-        escaped = true
-      } else if (char === quote) {
-        quote = null
-      }
-      continue
-    }
-
-    if (char === "'" || char === '"') {
-      quote = char
-      current += char
-      continue
-    }
-
-    if (char === '-' && next === '-') {
-      const end = sql.indexOf('\n', i)
-      if (end === -1) {
-        break
-      }
-      current += sql.slice(i, end)
-      i = end - 1
-      continue
-    }
-
-    if (char === ';') {
-      const stmt = current.trim()
-      if (stmt) {
-        statements.push(stmt)
-      }
-      current = ''
-      continue
-    }
-
-    current += char
-  }
-
-  const tail = current.trim()
-  if (tail) {
-    statements.push(tail)
-  }
-
-  return statements.filter((statement) => statement && !statement.startsWith('--'))
-}
-
 async function run() {
   const connectionString = resolveConnectionString()
   if (!connectionString) {
     console.error('No database connection string found. Set DATABASE_URL (or POSTGRES_URL/POSTGRES_PRISMA_URL) in your environment or .env.local.')
     process.exit(1)
   }
+
+  console.log('Using host:', new URL(connectionString).hostname)
 
   const client = new Client({
     connectionString,
@@ -128,14 +72,10 @@ async function run() {
     const schemaSql = readFileSync(path.join(projectRoot, 'scripts/001_schema.sql'), 'utf8')
     const seedSql = readFileSync(path.join(projectRoot, 'scripts/002_seed.sql'), 'utf8')
 
-    for (const statement of splitStatements(schemaSql)) {
-      await client.query(statement)
-    }
+    await client.query(schemaSql)
     console.log('Applied database schema.')
 
-    for (const statement of splitStatements(seedSql)) {
-      await client.query(statement)
-    }
+    await client.query(seedSql)
     console.log('Applied seed data.')
   } catch (error) {
     console.error('Database initialization failed:')
