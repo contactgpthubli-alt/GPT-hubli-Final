@@ -778,14 +778,14 @@ function __initGptBridge() {
           window.applyLiveStudentProfile(mapped, row.reg_no || regOpen);
         });
       }
-      // Admin / ACM Student Database — live accounts list
+      // Admin / ACM Student Database — live accounts list (only when logged in)
       if (secId === 'adStudents' && typeof window.renderAdminStudentDatabase === 'function') {
-        window.renderAdminStudentDatabase();
+        if (window.currentUser) window.renderAdminStudentDatabase();
       }
       // Admin + ACM — full student data browser (branch / year filters)
       if ((secId === 'adStudentData' || secId === 'facStudentData') &&
           typeof window.renderStudentDataBrowser === 'function') {
-        window.renderStudentDataBrowser(secId);
+        if (window.currentUser) window.renderStudentDataBrowser(secId);
       }
       // ACM certificate desk (admin + ACM staff)
       if ((secId === 'facACM' || secId === 'adACM') && typeof window.renderAcmModule === 'function') {
@@ -1011,6 +1011,8 @@ function __initGptBridge() {
     api.post('/api/auth/logout');
     setCurrentUser(null);
     origLogout();
+    // Return to private CMS login (not the old public homepage)
+    if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
   };
 
   /* ---------- registration (Create Account tabs) ----------
@@ -2614,6 +2616,188 @@ function __initGptBridge() {
     };
   }
 
+  /* ---------- CMS private login gate (no public homepage) ---------- */
+  function installCmsLoginGate() {
+    var landing = document.getElementById('landingPage');
+    if (!landing) return;
+    if (document.getElementById('cmsLoginGate')) {
+      window.showCmsLoginGate();
+      return;
+    }
+
+    var gate = document.createElement('div');
+    gate.id = 'cmsLoginGate';
+    gate.innerHTML =
+      '<div class="cms-shell">' +
+      '<div class="cms-bg" aria-hidden="true">' +
+      '<img src="/images/campus-building.jpg" alt="" />' +
+      '<div class="cms-bg-overlay"></div>' +
+      '</div>' +
+      '<div class="cms-card">' +
+      '<div class="cms-card-hd">' +
+      '<img class="cms-logo" src="/images/college-logo.jpg" alt="Government Polytechnic Hubballi" ' +
+      'onerror="this.onerror=null;this.src=\'/images/college-logo.png\'" />' +
+      '<h1>Government Polytechnic Hubballi</h1>' +
+      '<p>Management Information System<br>Dept. of Technical Education, Karnataka · Estd. 2009</p>' +
+      '<div class="cms-badge">Secure CMS Login</div>' +
+      '</div>' +
+      '<div class="cms-card-bd">' +
+      '<div class="cms-roles" id="cmsRoleTabs">' +
+      '<button type="button" class="cms-role act" data-cms-role="student">🎓 Student</button>' +
+      '<button type="button" class="cms-role" data-cms-role="faculty">👨‍🏫 Faculty / Staff</button>' +
+      '<button type="button" class="cms-role" data-cms-role="principal">👔 Principal</button>' +
+      '<button type="button" class="cms-role" data-cms-role="admin">⚙️ Admin / ACM</button>' +
+      '</div>' +
+      '<div class="cms-fg"><label>Username / Register No. / Email</label>' +
+      '<input type="text" id="cmsLoginId" autocomplete="username" placeholder="e.g. 171CS15003 or email" /></div>' +
+      '<div class="cms-fg"><label>Password</label>' +
+      '<input type="password" id="cmsLoginPw" autocomplete="current-password" placeholder="Enter password" /></div>' +
+      '<div class="cms-msg" id="cmsLoginMsg"></div>' +
+      '<button type="button" class="cms-submit" id="cmsLoginBtn">Sign in →</button>' +
+      '<div class="cms-foot">' +
+      'Private portal — authorised users only.<br>' +
+      '<a id="cmsRegisterLink" href="#">New student? Create account</a>' +
+      '</div></div></div></div>';
+
+    landing.insertBefore(gate, landing.firstChild);
+
+    window._cmsLoginRole = 'student';
+    gate.querySelectorAll('[data-cms-role]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        gate.querySelectorAll('[data-cms-role]').forEach(function (b) { b.classList.remove('act'); });
+        btn.classList.add('act');
+        window._cmsLoginRole = btn.getAttribute('data-cms-role') || 'student';
+        var id = document.getElementById('cmsLoginId');
+        if (id) {
+          id.placeholder = window._cmsLoginRole === 'student'
+            ? 'Register number or email'
+            : 'Username or email';
+        }
+      });
+    });
+
+    function setMsg(text, isError) {
+      var msg = document.getElementById('cmsLoginMsg');
+      if (!msg) return;
+      msg.textContent = text || '';
+      msg.style.color = isError ? '#991b1b' : '#065f46';
+    }
+
+    async function doCmsLogin() {
+      var idEl = document.getElementById('cmsLoginId');
+      var pwEl = document.getElementById('cmsLoginPw');
+      var btn = document.getElementById('cmsLoginBtn');
+      var identifier = idEl ? idEl.value.trim() : '';
+      var password = pwEl ? pwEl.value : '';
+      if (!identifier || !password) {
+        setMsg('Enter username / register number and password.', true);
+        if (idEl && !identifier) idEl.focus();
+        else if (pwEl) pwEl.focus();
+        return;
+      }
+      if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+      setMsg('');
+      try {
+        var r = await fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ email: identifier, password: password }),
+        });
+        var res = await r.json().catch(function () { return null; });
+        if (!r.ok) {
+          setMsg((res && res.error) ? res.error : ('Login failed (HTTP ' + r.status + ')'), true);
+          return;
+        }
+        if (!res || !res.user) {
+          setMsg('Login failed — no user returned.', true);
+          return;
+        }
+        if (pwEl) pwEl.value = '';
+        window.hideCmsLoginGate();
+        openDashboardFor(res.user);
+        await afterAuth(res.user);
+      } catch (e) {
+        setMsg('Network error. Please try again.', true);
+        console.error('[cms-login]', e);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign in →'; }
+      }
+    }
+
+    var submitBtn = document.getElementById('cmsLoginBtn');
+    if (submitBtn) submitBtn.addEventListener('click', doCmsLogin);
+    ;['cmsLoginId', 'cmsLoginPw'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          doCmsLogin();
+        }
+      });
+    });
+
+    var regLink = document.getElementById('cmsRegisterLink');
+    if (regLink) {
+      regLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        // Student self-registration only (existing modal) — still private, not public CMS content
+        if (typeof window.openM === 'function') {
+          window.openM('mStudent');
+          // Prefer Create Account tab if present
+          var tab = document.querySelector('#mStudent .tab[onclick*="Register"], #mStudent button[onclick*="Register"]');
+          if (tab) try { tab.click(); } catch (err) { /* ignore */ }
+          var regPanel = document.getElementById('stuRegister');
+          var loginPanel = document.getElementById('stuLogin');
+          if (regPanel) regPanel.style.display = '';
+          if (loginPanel) loginPanel.style.display = 'none';
+        }
+      });
+    }
+
+    window.showCmsLoginGate = function () {
+      document.documentElement.classList.add('cms-login-mode');
+      document.body.classList.add('cms-login-mode');
+      var lp = document.getElementById('landingPage');
+      if (lp) {
+        lp.style.display = 'block';
+      }
+      // Hide all dashboards
+      ;['dbAdmin', 'dbStudent', 'dbFaculty', 'dbPrincipal'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('show');
+      });
+      document.querySelectorAll('.overlay.open').forEach(function (o) {
+        o.classList.remove('open');
+      });
+      var gateEl = document.getElementById('cmsLoginGate');
+      if (gateEl) gateEl.style.display = 'flex';
+      // Hide demo bars always in CMS mode
+      document.querySelectorAll('.demo-bar, #demoBar').forEach(function (b) {
+        b.style.display = 'none';
+      });
+      window.scrollTo(0, 0);
+      setTimeout(function () {
+        var idFocus = document.getElementById('cmsLoginId');
+        if (idFocus) idFocus.focus();
+      }, 80);
+    };
+
+    window.hideCmsLoginGate = function () {
+      document.documentElement.classList.remove('cms-login-mode');
+      document.body.classList.remove('cms-login-mode');
+      var gateEl = document.getElementById('cmsLoginGate');
+      if (gateEl) gateEl.style.display = 'none';
+      var lp = document.getElementById('landingPage');
+      if (lp) lp.style.display = 'none';
+    };
+
+    window.cmsDoLogin = doCmsLogin;
+    window.showCmsLoginGate();
+  }
+
   /* ---------- boot: session restore + hydration ---------- */
   function hideDemoBarIfDisabled() {
     var cfg = window.__GPT_CONFIG || {};
@@ -2630,12 +2814,17 @@ function __initGptBridge() {
 
   setTimeout(async function () {
     hideDemoBarIfDisabled();
+    installCmsLoginGate();
     /* registration is handled by the window.createAccount override above */
-    hydratePublic();
+    // Public marketing content is no longer shown; skip public hydrations that need landing
+    try { hydratePublic(); } catch (e) { /* ignore */ }
     var me = await apiReqQuiet('/api/auth/me');
     if (me && me.user) {
+      window.hideCmsLoginGate && window.hideCmsLoginGate();
       openDashboardFor(me.user);
       await afterAuth(me.user);
+    } else {
+      window.showCmsLoginGate && window.showCmsLoginGate();
     }
   }, 50);
 }
@@ -2668,12 +2857,15 @@ async function profileApiGet(path) {
       headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
     });
     if (!res.ok) {
-      console.error('[bridge] profile GET failed', path, res.status);
+      // 401 before login is expected — stay quiet (CMS login gate)
+      if (res.status !== 401 && res.status !== 403) {
+        console.warn('[bridge] profile GET failed', path, res.status);
+      }
       return null;
     }
     return await res.json();
   } catch (e) {
-    console.error('[bridge] profile GET network error', path, e);
+    console.warn('[bridge] profile GET network error', path, e);
     return null;
   }
 }
@@ -2817,6 +3009,9 @@ window.applyStudentProfilePhotoFromExtra = applyStudentProfilePhotoFromExtra;
 
 /** Show/hide lock / pending state on Student → My Profile controls. */
 async function updateStuProfileLockUI() {
+  // Only for logged-in students — avoid 401 spam on CMS login / admin pages
+  if (!window.currentUser || window.currentUser.role !== 'student') return;
+
   var locked = !!window._stuProfileEditLocked;
   var btn = document.getElementById('stuProfileUpdateBtn');
   var banner = document.getElementById('stuProfileEditBanner');
@@ -3608,11 +3803,17 @@ window.updateStuBulkBarCount = updateStuBulkBarCount;
 async function renderAdminStudentDatabase() {
   var tbody = document.getElementById('adStuTableBody');
   if (!tbody) return;
+  // Require authenticated staff/admin (avoids 401 noise on CMS login / stale ?section= URLs)
+  var cu = window.currentUser;
+  if (!cu || (cu.role !== 'admin' && cu.role !== 'acm' && cu.role !== 'hod' && cu.role !== 'registrar' && cu.role !== 'principal')) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.75;">Sign in as Admin / ACM to view the student database.</td></tr>';
+    return;
+  }
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading students…</td></tr>';
 
   var data = await profileApiGet('/api/students');
   if (!data || !Array.isArray(data.students)) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#991b1b;">Failed to load students. Are you logged in as Admin/Staff?</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
     return;
   }
 
@@ -4865,6 +5066,13 @@ setInterval(function () {
     ensureStudentDataMenu();
     var p = prefixFromSec(secId);
     var tbody = document.getElementById(p + '_tbody');
+    var cu = window.currentUser;
+    if (!cu) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;opacity:.75;">Sign in as Admin / ACM to view student data.</td></tr>';
+      }
+      return;
+    }
     if (tbody) {
       tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;opacity:.7;">Loading students…</td></tr>';
     }
@@ -4882,7 +5090,7 @@ setInterval(function () {
     }
     if (!data || !Array.isArray(data.students)) {
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;color:#991b1b;">Failed to load students. Login as Admin or ACM.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
       }
       return;
     }

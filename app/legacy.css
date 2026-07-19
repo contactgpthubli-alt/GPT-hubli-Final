@@ -1007,3 +1007,226 @@ footer { background: var(--navy); color: rgba(255,255,255,0.65); padding: 50px 3
   .cm-est-meta{font-size:0.68rem;color:var(--text-muted);margin-top:3px;font-family:'JetBrains Mono',monospace;}
   .cm-est-arrow{font-size:1.3rem;color:var(--text-light);font-weight:300;flex-shrink:0;transition:transform 0.15s;}
   .cm-est-card:hover .cm-est-arrow{transform:translateX(3px);color:var(--primary);}
+/* ============================================================
+   CMS Login Gate — private entry (college campus + logo)
+   ============================================================ */
+html.cms-login-mode body,
+body.cms-login-mode {
+  background: #0b1f38;
+  min-height: 100vh;
+}
+html.cms-login-mode #landingPage > *:not(#cmsLoginGate),
+body.cms-login-mode #landingPage > *:not(#cmsLoginGate) {
+  display: none !important;
+}
+html.cms-login-mode #landingPage,
+body.cms-login-mode #landingPage {
+  display: block !important;
+  min-height: 100vh;
+  background: transparent;
+}
+html.cms-login-mode .demo-bar,
+html.cms-login-mode #demoBar,
+body.cms-login-mode .demo-bar,
+body.cms-login-mode #demoBar {
+  display: none !important;
+}
+#cmsLoginGate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  box-sizing: border-box;
+  position: relative;
+}
+.cms-shell {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  z-index: 1;
+}
+.cms-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.cms-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.02);
+  filter: saturate(1.05);
+}
+.cms-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(145deg, rgba(11, 31, 56, 0.78) 0%, rgba(26, 79, 160, 0.62) 45%, rgba(14, 58, 110, 0.8) 100%),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.08), transparent 50%);
+}
+.cms-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.cms-card-hd {
+  padding: 26px 28px 16px;
+  text-align: center;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  border-bottom: 1px solid var(--border);
+}
+.cms-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: contain;
+  margin: 0 auto 12px;
+  display: block;
+  background: #fff;
+  border: 3px solid #e2e8f0;
+  box-shadow: 0 6px 18px rgba(26, 79, 160, 0.15);
+  padding: 4px;
+}
+.cms-card-hd h1 {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 1.2rem;
+  color: var(--navy);
+  margin: 0 0 4px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.cms-card-hd p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.cms-badge {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a4fa0;
+  background: #e8f0fb;
+  border: 1px solid #c5d8f5;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.cms-card-bd {
+  padding: 20px 28px 26px;
+}
+.cms-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.cms-role {
+  border: 1.5px solid var(--border);
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: 0.15s;
+}
+.cms-role:hover {
+  border-color: #4a7dd4;
+  background: #eff6ff;
+}
+.cms-role.act {
+  border-color: #1a4fa0;
+  background: #1a4fa0;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(26, 79, 160, 0.25);
+}
+.cms-fg {
+  margin-bottom: 12px;
+}
+.cms-fg label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 5px;
+}
+.cms-fg input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+  box-sizing: border-box;
+}
+.cms-fg input:focus {
+  border-color: #1a4fa0;
+  box-shadow: 0 0 0 3px rgba(26, 79, 160, 0.12);
+}
+.cms-msg {
+  min-height: 18px;
+  font-size: 0.78rem;
+  margin: 0 0 10px;
+  color: #991b1b;
+  font-weight: 600;
+}
+.cms-submit {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1a4fa0, #2563eb);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.92rem;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 6px 18px rgba(26, 79, 160, 0.3);
+}
+.cms-submit:hover {
+  filter: brightness(1.05);
+}
+.cms-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.cms-foot {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.cms-foot a {
+  color: #1a4fa0;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cms-foot a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 520px) {
+  .cms-logo {
+    width: 80px;
+    height: 80px;
+  }
+  .cms-card-hd h1 {
+    font-size: 1.05rem;
+  }
+}
