@@ -46,9 +46,32 @@ ON CONFLICT (email) DO UPDATE SET
   force_password_change = EXCLUDED.force_password_change,
   is_demo = EXCLUDED.is_demo;
 
+-- ---------- Students (academic records) ----------
+-- No invented CGPA/attendance. Metrics are filled by Exam Cell / Faculty
+-- through the app (or bulk import). Dashboard shows "—" until then.
+-- Demo student login links to reg_no GP2023CSE041 below.
+INSERT INTO students (reg_no, name, dept, year, cgpa, att, father, extra)
+VALUES
+  (
+    'GP2023CSE041',
+    'Demo Student',
+    'Computer Science Engineering',
+    '2nd Year',
+    NULL,
+    NULL,
+    NULL,
+    '{}'::jsonb
+  )
+ON CONFLICT (reg_no) DO UPDATE SET
+  name = EXCLUDED.name,
+  dept = EXCLUDED.dept,
+  year = EXCLUDED.year;
+-- Note: cgpa/att are intentionally not overwritten on re-seed so real entered values are preserved.
+
 -- ---------- Demo accounts (quick-login bar; password: demo1234) ----------
 -- bcryptjs hash of: demo1234  (cost 10)
 -- Enabled only when NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true
+-- These are for local/dev walkthroughs only — not production end-users.
 INSERT INTO users (email, password_hash, role, display_name, reg_no, status, force_password_change, is_demo)
 VALUES
   ('demo.admin@gpthubli.ac.in',     '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'admin',      'Demo Admin',      NULL,           'approved', FALSE, TRUE),

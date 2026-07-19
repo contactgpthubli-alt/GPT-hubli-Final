@@ -21,3 +21,9 @@ next-env.d.ts
 *.log
 .vercel
 .env*
+
+# Local import data / PII (do not commit)
+scripts/data/
+tmp-adstudents.json
+*.xlsx
+

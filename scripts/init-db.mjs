@@ -71,12 +71,40 @@ async function run() {
 
     const schemaSql = readFileSync(path.join(projectRoot, 'scripts/001_schema.sql'), 'utf8')
     const seedSql = readFileSync(path.join(projectRoot, 'scripts/002_seed.sql'), 'utf8')
+    const profileRequestsSql = readFileSync(path.join(projectRoot, 'scripts/003_profile_requests.sql'), 'utf8')
+    const usersBranchSql = readFileSync(path.join(projectRoot, 'scripts/004_users_branch.sql'), 'utf8')
+    const usersSoftDeleteSql = readFileSync(path.join(projectRoot, 'scripts/005_users_soft_delete.sql'), 'utf8')
+    const profileSchemaSql = readFileSync(path.join(projectRoot, 'scripts/006_profile_schema.sql'), 'utf8')
+    const tcModuleSql = readFileSync(path.join(projectRoot, 'scripts/007_tc_module.sql'), 'utf8')
+    const studyCertsSql = readFileSync(path.join(projectRoot, 'scripts/008_study_certs.sql'), 'utf8')
+    const acmSendStudentSql = readFileSync(path.join(projectRoot, 'scripts/009_acm_cert_send_student.sql'), 'utf8')
 
     await client.query(schemaSql)
     console.log('Applied database schema.')
 
     await client.query(seedSql)
     console.log('Applied seed data.')
+
+    await client.query(profileRequestsSql)
+    console.log('Applied profile_requests migration.')
+
+    await client.query(usersBranchSql)
+    console.log('Applied users.branch migration.')
+
+    await client.query(usersSoftDeleteSql)
+    console.log('Applied users soft-delete migration.')
+
+    await client.query(profileSchemaSql)
+    console.log('Applied profile_schemas migration.')
+
+    await client.query(tcModuleSql)
+    console.log('Applied TC module migration.')
+
+    await client.query(studyCertsSql)
+    console.log('Applied Study/Studying certificate migration.')
+
+    await client.query(acmSendStudentSql)
+    console.log('Applied ACM cert send-to-student migration.')
   } catch (error) {
     console.error('Database initialization failed:')
     console.error(error instanceof Error ? error.message : error)

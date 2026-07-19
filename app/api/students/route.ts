@@ -1,17 +1,170 @@
 import { query } from "@/lib/db"
 import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/auth"
 import { STAFF_ROLES, STUDENT_WRITERS } from "@/lib/roles"
+import { normalizeBranch, OFFICIAL_BRANCHES } from "@/lib/branches"
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as Record<string, unknown>
+}
+
+/** How complete is the My Profile data for admin listing. */
+function profileCompleteness(extra: Record<string, unknown>, hasStudentRow: boolean): "not_updated" | "partial" | "updated" {
+  const keys = Object.keys(extra).filter((k) => k !== "profile_edit_locked")
+  if (!hasStudentRow && keys.length === 0) return "not_updated"
+  // Meaningful profile: several filled fields beyond empty strings
+  const filled = keys.filter((k) => {
+    const v = extra[k]
+    return v != null && String(v).trim() !== ""
+  })
+  if (filled.length === 0) return "not_updated"
+  if (filled.length < 6) return "partial"
+  return "updated"
+}
 
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
+
+  // Student sees only own academic row (+ branch from account if needed)
   if (user.role === "student") {
     const { rows } = await query("SELECT * FROM students WHERE reg_no = $1", [user.reg_no])
-    return Response.json({ students: rows })
+    if (rows.length) {
+      const row = rows[0]
+      // Prefer normalized dept; fall back to users.branch
+      if (!row.dept || row.dept === "Not set") {
+        const { rows: urows } = await query(
+          `SELECT branch FROM users WHERE id = $1`,
+          [user.id],
+        )
+        const b = normalizeBranch(urows[0]?.branch)
+        if (b) row.dept = b
+      } else {
+        row.dept = normalizeBranch(row.dept) || row.dept
+      }
+      return Response.json({ students: [row], branches: OFFICIAL_BRANCHES })
+    }
+    // No students row yet — synthesize from user so My Profile can show branch
+    const { rows: urows } = await query(
+      `SELECT display_name, reg_no, branch FROM users WHERE id = $1`,
+      [user.id],
+    )
+    const u = urows[0]
+    return Response.json({
+      students: u
+        ? [
+            {
+              reg_no: u.reg_no,
+              name: u.display_name,
+              dept: normalizeBranch(u.branch) || "Not set",
+              year: null,
+              cgpa: null,
+              att: null,
+              father: null,
+              extra: {},
+            },
+          ]
+        : [],
+      branches: OFFICIAL_BRANCHES,
+    })
   }
+
   if (!STAFF_ROLES.includes(user.role)) return unauthorized()
-  const { rows } = await query("SELECT * FROM students ORDER BY reg_no")
-  return Response.json({ students: rows })
+
+  // Admin / staff: ALL student accounts (complete + incomplete profiles)
+  // LEFT JOIN students so accounts without a profile row still appear.
+  const { rows } = await query(
+    `SELECT
+        u.id              AS user_id,
+        u.email,
+        u.display_name,
+        u.reg_no,
+        u.branch          AS user_branch,
+        u.status          AS account_status,
+        u.created_at      AS account_created_at,
+        s.reg_no          AS student_reg_no,
+        s.name            AS student_name,
+        s.dept,
+        s.year,
+        s.cgpa,
+        s.att,
+        s.father,
+        s.extra,
+        (
+          SELECT COUNT(*)::int
+            FROM profile_requests pr
+           WHERE pr.target_type = 'student'
+             AND pr.target_id = u.reg_no
+             AND pr.status = 'pending'
+        ) AS pending_profile_requests
+       FROM users u
+       LEFT JOIN students s ON s.reg_no = u.reg_no
+      WHERE u.role = 'student'
+        AND u.deleted_at IS NULL
+        AND (u.status IS DISTINCT FROM 'deleted')
+      ORDER BY
+        COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), 'zzz'),
+        COALESCE(NULLIF(s.name, ''), u.display_name),
+        u.reg_no NULLS LAST,
+        u.id`,
+  )
+
+  const students = rows.map((r) => {
+    const extra = asRecord(r.extra)
+    const hasStudentRow = !!r.student_reg_no
+    const profile_status = profileCompleteness(extra, hasStudentRow)
+    const name =
+      (r.student_name && String(r.student_name).trim()) ||
+      (typeof extra["Student (As per SSLC)"] === "string" && String(extra["Student (As per SSLC)"]).trim()) ||
+      r.display_name ||
+      "—"
+    const dept =
+      normalizeBranch(
+        (r.dept && String(r.dept).trim() && r.dept !== "Not set" ? r.dept : null) ||
+          (typeof extra["Branch"] === "string" ? extra["Branch"] : null) ||
+          r.user_branch ||
+          null,
+      ) || "—"
+    const year =
+      (r.year && String(r.year).trim()) ||
+      (typeof extra["Current Year"] === "string" ? extra["Current Year"] : null) ||
+      "—"
+    const locked = extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
+    // First-time: never locked until admin approves a profile request with lock
+    const first_time_edit = !locked && profile_status === "not_updated"
+
+    return {
+      user_id: r.user_id,
+      email: r.email,
+      reg_no: r.reg_no || r.student_reg_no || null,
+      display_name: r.display_name,
+      name,
+      dept: String(dept),
+      year: String(year),
+      father: r.father ?? (typeof extra["Father Name"] === "string" ? extra["Father Name"] : null),
+      cgpa: r.cgpa,
+      att: r.att,
+      account_status: r.account_status,
+      first_time_edit,
+      account_created_at: r.account_created_at,
+      profile_status,
+      pending_profile_requests: r.pending_profile_requests || 0,
+      profile_edit_locked: extra.profile_edit_locked === true || extra.profile_edit_locked === "true",
+      extra,
+      // Keep full row shape for any older consumers
+      has_student_row: hasStudentRow,
+    }
+  })
+
+  return Response.json(
+    { students, branches: OFFICIAL_BRANCHES },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        Pragma: "no-cache",
+      },
+    },
+  )
 }
 
 export async function POST(req: Request) {
@@ -25,9 +178,91 @@ export async function POST(req: Request) {
      ON CONFLICT (reg_no) DO UPDATE SET
        name=EXCLUDED.name, dept=EXCLUDED.dept, year=EXCLUDED.year, cgpa=EXCLUDED.cgpa,
        att=EXCLUDED.att, father=EXCLUDED.father, extra=EXCLUDED.extra`,
-    [b.reg_no, b.name, b.dept, b.year ?? null, b.cgpa ?? null, b.att ?? null, b.father ?? null, JSON.stringify(b.extra ?? {})],
+    [
+      b.reg_no,
+      b.name,
+      b.dept,
+      b.year ?? null,
+      b.cgpa ?? null,
+      b.att ?? null,
+      b.father ?? null,
+      JSON.stringify(b.extra ?? {}),
+    ],
   )
   return Response.json({ ok: true })
+}
+
+/**
+ * Admin/HOD: lock or unlock student My Profile editing.
+ * Single: { reg_no: string, profile_edit_locked: boolean }
+ * Bulk:   { reg_nos: string[], profile_edit_locked: boolean }
+ *         or { action: "bulk_set_lock", reg_nos: string[], profile_edit_locked: boolean }
+ */
+async function setProfileEditLock(regNo: string, lockFlag: boolean) {
+  const { rows: urows } = await query(
+    `SELECT display_name FROM users
+      WHERE reg_no = $1 AND role = 'student'
+        AND deleted_at IS NULL
+        AND (status IS DISTINCT FROM 'deleted')
+      LIMIT 1`,
+    [regNo],
+  )
+  // Still allow lock when student row exists even if account lookup is odd
+  const displayName = urows[0]?.display_name || regNo
+
+  await query(
+    `INSERT INTO students (reg_no, name, dept, extra)
+     VALUES ($1, $2, 'Not set', jsonb_build_object('profile_edit_locked', $3::boolean))
+     ON CONFLICT (reg_no) DO UPDATE SET
+       extra = COALESCE(students.extra, '{}'::jsonb) || jsonb_build_object('profile_edit_locked', $3::boolean)`,
+    [regNo, displayName, lockFlag],
+  )
+  return { reg_no: regNo, profile_edit_locked: lockFlag }
+}
+
+export async function PATCH(req: Request) {
+  // ACM has full student-desk rights (lock/unlock) same as admin for this section
+  const user = await requireRole("admin", "hod", "acm")
+  if (!user) return unauthorized()
+
+  const b = await req.json().catch(() => null)
+  if (!b || typeof b !== "object") return badRequest("JSON body required")
+  if (typeof b.profile_edit_locked !== "boolean") {
+    return badRequest("profile_edit_locked (boolean) is required")
+  }
+
+  const lockFlag = b.profile_edit_locked === true
+  const bulkList: string[] = Array.isArray(b.reg_nos)
+    ? b.reg_nos.map((x: unknown) => String(x || "").trim()).filter(Boolean)
+    : []
+
+  // Bulk unlock / lock
+  if (b.action === "bulk_set_lock" || bulkList.length > 0) {
+    if (!bulkList.length) return badRequest("reg_nos array is required for bulk lock")
+    const results = []
+    for (const regNo of bulkList) {
+      results.push(await setProfileEditLock(regNo, lockFlag))
+    }
+    return Response.json(
+      {
+        ok: true,
+        updated: results.length,
+        profile_edit_locked: lockFlag,
+        results,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    )
+  }
+
+  if (!b.reg_no) return badRequest("reg_no is required")
+  const regNo = String(b.reg_no).trim()
+  if (!regNo) return badRequest("reg_no is required")
+
+  const result = await setProfileEditLock(regNo, lockFlag)
+  return Response.json(
+    { ok: true, ...result },
+    { headers: { "Cache-Control": "no-store" } },
+  )
 }
 
 export async function DELETE(req: Request) {

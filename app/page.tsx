@@ -29,6 +29,10 @@ export default function Page() {
           Must load after legacy-app.js (same strategy preserves document order).
           afterInteractive — not lazyOnload — so auth is wired before the user clicks Login. */}
       <Script src="/legacy-bridge.js" strategy="afterInteractive" />
+      {/* Transfer Certificate (ACM Issue TC / Register / Template) */}
+      <Script src="/legacy-tc.js" strategy="afterInteractive" />
+      {/* Study + Studying Certificates (ACM) */}
+      <Script src="/legacy-acm-study.js" strategy="afterInteractive" />
     </>
   )
 }

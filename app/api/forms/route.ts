@@ -6,8 +6,15 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
   const { rows } = await query(
-    `SELECT f.*, COALESCE((SELECT count(*)::int FROM form_responses r WHERE r.form_id = f.id), 0) AS response_count
-       FROM forms f ORDER BY f.created_at DESC`,
+    `SELECT f.*,
+            COALESCE((SELECT count(*)::int FROM form_responses r WHERE r.form_id = f.id), 0) AS response_count,
+            EXISTS(
+              SELECT 1 FROM form_responses r
+               WHERE r.form_id = f.id AND r.submitted_by = $1
+            ) AS submitted_by_me
+       FROM forms f
+      ORDER BY f.created_at DESC`,
+    [user.id],
   )
   return Response.json({ forms: rows })
 }

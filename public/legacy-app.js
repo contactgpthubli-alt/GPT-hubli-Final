@@ -67,6 +67,7 @@ function showSec(secId, linkEl) {
   }
   const titles = {
     adHome:'Dashboard', adApprovals:'Pending Approvals', adStudents:'Student Database',
+    adStudentData:'Student Data (Branch / Year)',
     adForms:'Form Manager', adACM:'ACM — Certificate Module', adExams:'Exams Module',
     adActivities:'Institute Activities', adStaff:'Staff Management', adUsers:'User Management',
     adLibrary:'Library — E-Book Repository', adRolesPerms:'Roles & Permissions',
@@ -74,7 +75,8 @@ function showSec(secId, linkEl) {
     adStudentProfile:'Student Profile Manager', adStaffProfile:'Staff Profile Manager',
     facHome:'Faculty Dashboard', facApprovals:'Department Approvals', facStuProfile:'Student Profile',
     facAttendance:'Attendance Management', facStuInfo:'Student Info Collection',
-    facACM:'ACM Module', facExamModule:'Exam Module', facOffice:'Office Modules', facEST:'EST Module', facCash:'Cash / Fees Search',
+    facACM:'ACM Module', facStudentData:'Student Data (Branch / Year)',
+    facExamModule:'Exam Module', facOffice:'Office Modules', facEST:'EST Module', facCash:'Cash / Fees Search',
     facSearch:'Student Search', facStaff:'Staff & Invigilation', facActivities:'Institute Activities',
     facTimetable:'Timetable Upload', facResModule:'Result Management',
     facPlacement:'Placement Cell', facNSS:'NSS — National Service Scheme', facYRC:'Youth Red Cross',
@@ -260,7 +262,11 @@ function genCert() {
 let npOpen = false;
 function toggleNP() {
   npOpen = !npOpen;
-  document.getElementById('notifPanel').classList.toggle('open', npOpen);
+  const panel = document.getElementById('notifPanel');
+  if (panel) panel.classList.toggle('open', npOpen);
+  if (npOpen && typeof window.renderLiveNotifications === 'function') {
+    window.renderLiveNotifications();
+  }
 }
 
 function alertLogin() { alert('Please login to access this module.'); }
@@ -399,17 +405,38 @@ function createNewCommittee() {
   setTimeout(() => openCommittee(name), 200);
 }
 
-// ===== ACM TAB SWITCHER =====
+// ===== ACM TAB SWITCHER (admin + faculty ACM workspace) =====
 function showACMTab(tabId, btn) {
-  ['acmCerts','acmRepeaters','acmNOC'].forEach(id => {
+  // legacy alias
+  showAdACMTab(tabId, btn);
+}
+function showAdACMTab(tabId, btn) {
+  ['adAcmCerts', 'adAcmIssue', 'adAcmLookup', 'adAcmPrint', 'adAcmTc', 'adAcmTcReg', 'adAcmTcTpl',
+    'adAcmStudy', 'adAcmStudying', 'adAcmStudyReg', 'adAcmStudyTpl', 'adAcmStudyingTpl',
+    'acmCerts', 'acmRepeaters', 'acmNOC'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const el = document.getElementById(tabId); if (el) el.style.display = 'block';
   if (btn) {
-    btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
+    const tabs = btn.closest('.tabs');
+    if (tabs) tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
     btn.classList.add('act');
   }
+  if (typeof window.renderAcmModule === 'function') window.renderAcmModule();
+  if ((tabId === 'adAcmPrint' || tabId === 'facAcmPrint') && typeof window.acmPrintInitFields === 'function') {
+    window.acmPrintInitFields();
+  }
+  if (tabId === 'adAcmTc' && typeof window.mountTcForm === 'function') window.mountTcForm();
+  if (tabId === 'adAcmTcReg' && typeof window.renderTcRegister === 'function') window.renderTcRegister();
+  if (tabId === 'adAcmTcTpl' && typeof window.renderTcTemplateEditor === 'function') window.renderTcTemplateEditor();
+  if (tabId === 'adAcmStudy' && typeof window.mountStudyForm === 'function') window.mountStudyForm('study');
+  if (tabId === 'adAcmStudying' && typeof window.mountStudyForm === 'function') window.mountStudyForm('studying');
+  if (tabId === 'adAcmStudyReg' && typeof window.renderStudyRegister === 'function') window.renderStudyRegister();
+  if (tabId === 'adAcmStudyTpl' && typeof window.renderStudyTemplateEditor === 'function') window.renderStudyTemplateEditor('study');
+  if (tabId === 'adAcmStudyingTpl' && typeof window.renderStudyTemplateEditor === 'function') window.renderStudyTemplateEditor('studying');
 }
+window.showAdACMTab = showAdACMTab;
+window.showACMTab = showACMTab;
 
 // ===== EXAM TAB SWITCHER =====
 function showExamTab(tabId, btn) {
@@ -514,8 +541,8 @@ const facRoleData = {
   },
   acm: {
     color: 'var(--primary)', bg: 'var(--primary-light)',
-    desc: '📋 ACM Staff — Generate certificates (TC/Study/Studying), NOC, manage repeaters, upload student DB & templates.',
-    modules: ['ACM Module','Certificate Generation','Repeaters','NOC Generation','Student Search']
+    desc: '📋 ACM Admin — Same Approvals & Students tools as Root Admin, plus ACM certificate desk. No Cash/Fees or other admin menus.',
+    modules: ['Approvals (full)','Students (full)','ACM Module (Certificates)']
   },
   exam: {
     color: '#7a3a00', bg: '#fff7ed',
@@ -1563,12 +1590,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== FACULTY ACM TAB SWITCHER =====
 function showFacACMTab(tabId, btn) {
-  ['facAcmCerts','facAcmRepeaters','facAcmNOC'].forEach(id => {
+  ['facAcmCerts', 'facAcmIssue', 'facAcmLookup', 'facAcmPrint', 'facAcmTc', 'facAcmTcReg', 'facAcmTcTpl',
+    'facAcmStudy', 'facAcmStudying', 'facAcmStudyReg', 'facAcmStudyTpl', 'facAcmStudyingTpl',
+    'facAcmRepeaters', 'facAcmNOC'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const el = document.getElementById(tabId); if (el) el.style.display = 'block';
-  if (btn) { btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('act')); btn.classList.add('act'); }
+  if (btn) {
+    const tabs = btn.closest('.tabs');
+    if (tabs) tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
+    btn.classList.add('act');
+  }
+  if (typeof window.renderAcmModule === 'function') window.renderAcmModule();
+  if ((tabId === 'adAcmPrint' || tabId === 'facAcmPrint') && typeof window.acmPrintInitFields === 'function') {
+    window.acmPrintInitFields();
+  }
+  if (tabId === 'facAcmTc' && typeof window.mountTcForm === 'function') window.mountTcForm();
+  if (tabId === 'facAcmTcReg' && typeof window.renderTcRegister === 'function') window.renderTcRegister();
+  if (tabId === 'facAcmTcTpl' && typeof window.renderTcTemplateEditor === 'function') window.renderTcTemplateEditor();
+  if (tabId === 'facAcmStudy' && typeof window.mountStudyForm === 'function') window.mountStudyForm('study');
+  if (tabId === 'facAcmStudying' && typeof window.mountStudyForm === 'function') window.mountStudyForm('studying');
+  if (tabId === 'facAcmStudyReg' && typeof window.renderStudyRegister === 'function') window.renderStudyRegister();
+  if (tabId === 'facAcmStudyTpl' && typeof window.renderStudyTemplateEditor === 'function') window.renderStudyTemplateEditor('study');
+  if (tabId === 'facAcmStudyingTpl' && typeof window.renderStudyTemplateEditor === 'function') window.renderStudyTemplateEditor('studying');
 }
+window.showFacACMTab = showFacACMTab;
 
 // ===== FACULTY EXAM TAB SWITCHER =====
 function showFacExamTab(tabId, btn) {
@@ -2052,8 +2098,8 @@ function demoLogin(role) {
     hod:          { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','timetable','results','staff','activities'], sec: 'facAttendance', allBranches: false },
     teaching:     { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','results','staff','activities'], sec: 'facHome', allBranches: false },
     registrar:    { show: ['home','myprofile','submitforms','approvals','stuprofile','acm','exam','office','est','cash','search','staff','activities'], sec: 'facOffice', allBranches: false },
-    // ACM: Student Profile all-branches view only, remove Staff
-    acm:          { show: ['home','myprofile','submitforms','approvals','stuprofile','acm','cash'], sec: 'facACM', allBranches: true },
+    // ACM uses scoped admin shell (Approvals + Students + Student Data + ACM) — see applyAcmAdminScope
+    acm:          { show: ['acm', 'studentdata'], sec: 'facACM', allBranches: true },
     // Exam: Student Profile all-branches view only, remove Staff
     exam:         { show: ['home','myprofile','submitforms','approvals','stuprofile','exam','cash'], sec: 'facExamModule', allBranches: true },
     // EST: remove Office, Activities, Student Profile entirely
@@ -2296,22 +2342,23 @@ function showStuCertTab(id, btn) {
   const el = document.getElementById(id); if (el) el.style.display = '';
   document.querySelectorAll('#stuCertTabs .tab').forEach(t => t.classList.remove('act'));
   if (btn) btn.classList.add('act');
+  // Prefill / refresh live status when opening certificate panels
+  if (typeof window.prefillStudentCertForms === 'function') {
+    window.prefillStudentCertForms();
+  }
+  if (id === 'scMyReqs' && typeof window.renderStuCertRequests === 'function') {
+    window.renderStuCertRequests();
+  }
 }
 
 // ===== STUDENT CERTIFICATE REQUEST SUBMISSION + ROUTING =====
-function submitCertRequest(certType, routedTo) {
-  const reqId = 'CERT/' + new Date().getFullYear() + '/' + Math.floor(100 + Math.random()*900);
-  const today = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
-  // Add to My Requests table
-  const tbody = document.getElementById('stuCertReqBody');
-  if (tbody) {
-    const badgeColor = routedTo === 'Exam Cell' ? '#be185d' : '#1d4ed8';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">${reqId}</td><td><strong>${certType}</strong></td><td>${today}</td><td><span class="badge info" style="background:${badgeColor};color:white;">${routedTo}</span></td><td><span class="badge pending">&#x23F3; Under Review</span></td><td>Request received. Processing in progress.</td>`;
-    tbody.insertBefore(tr, tbody.firstChild);
+// Real submit is provided by legacy-bridge.js (window.submitCertRequest).
+// Keep a thin fallback so the page never crashes if bridge is delayed.
+function submitCertRequest(certType, routedTo, formKey) {
+  if (window.submitCertRequest && window.submitCertRequest !== submitCertRequest) {
+    return window.submitCertRequest(certType, routedTo, formKey);
   }
-  alert('&#x2705; ' + certType + ' request submitted!\n\nRequest ID: ' + reqId + '\nRouted to: ' + routedTo + '\n\nYou will be notified via WhatsApp & Email once ready.\n' + (routedTo === 'Exam Cell' ? 'Processing time: 5-7 working days (eligibility check by Exam Cell)' : 'Processing time: 1-3 working days'));
-  showStuCertTab('scMyReqs', document.querySelector('#stuCertTabs .tab:last-child'));
+  alert('Certificate service is still loading. Please wait a moment and try again.');
 }
 
 // ===== STUDENT PROFILE BRANCH SWITCHER =====
@@ -2709,6 +2756,30 @@ function handlePhotoUpload(input, role) {
     userPhotos[role] = dataURL;
     applyPhotoEverywhere(role, dataURL);
     const sizeKB = (file.size / 1024).toFixed(1);
+
+    // Student photos must go through Admin approval (profile request) to persist.
+    if (role === 'stu') {
+      window._stuPendingPhoto = dataURL;
+      if (window._stuProfileEditLocked) {
+        showPhotoMsg(
+          role,
+          '🔒 Profile is locked by Admin. Unlock is required before a photo change can be submitted for approval.',
+          'error'
+        );
+        return;
+      }
+      // Open request draft so the student can submit photo + any field changes
+      if (!window._stuProfileEditEnabled && typeof window.enableStuProfileEdit === 'function') {
+        try { window.enableStuProfileEdit(); } catch (err) { /* ignore */ }
+      }
+      showPhotoMsg(
+        role,
+        `✅ Photo selected (${sizeKB} KB). Click "Submit Update Request" so Admin can approve and save it permanently.`,
+        'success'
+      );
+      return;
+    }
+
     showPhotoMsg(role, `✅ Photo uploaded successfully! (${sizeKB} KB)`, 'success');
   };
   reader.readAsDataURL(file);
@@ -2716,27 +2787,28 @@ function handlePhotoUpload(input, role) {
 }
 
 function applyPhotoEverywhere(role, dataURL) {
+  if (!dataURL || typeof dataURL !== 'string') return;
+
   // 1. Topbar avatar
   const ava = document.getElementById(role + 'Ava');
   if (ava) {
     ava.innerHTML = `<img src="${dataURL}" alt="Profile Photo" style="width:100%;height:100%;object-fit:cover;border-radius:9px;" />`;
     ava.style.background = 'transparent';
     ava.style.padding = '0';
+    ava.style.overflow = 'hidden';
   }
 
   // 2. Profile card circle
   const circle = document.getElementById(role + 'ProfilePhotoCircle');
   if (circle) {
-    circle.innerHTML = `<img src="${dataURL}" alt="Profile Photo" />`;
+    circle.innerHTML = `<img src="${dataURL}" alt="Profile Photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
   }
 
   // 3. Student profile card header (stuPhotoPreview)
   if (role === 'stu') {
     const prev = document.getElementById('stuPhotoPreview');
     if (prev) {
-      const overlay = prev.querySelector('div');
       prev.innerHTML = `<img src="${dataURL}" alt="Photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-      if (overlay) prev.appendChild(overlay);
     }
   }
 
@@ -2744,12 +2816,12 @@ function applyPhotoEverywhere(role, dataURL) {
   if (role === 'pri') {
     const prev = document.getElementById('priPhotoPreview');
     if (prev) {
-      const overlay = prev.querySelector('div');
       prev.innerHTML = `<img src="${dataURL}" alt="Photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-      if (overlay) prev.appendChild(overlay);
     }
   }
 }
+window.applyPhotoEverywhere = applyPhotoEverywhere;
+window.userPhotos = userPhotos;
 
 function showPhotoMsg(role, msg, type) {
   const el = document.getElementById(role + 'PhotoMsg');
@@ -2766,65 +2838,97 @@ function showPhotoMsg(role, msg, type) {
    Changes auto-sync to student login and faculty/staff login.
    ================================================================ */
 
+// ── Official branches + Current Year options ────────────────
+const OFFICIAL_BRANCHES = [
+  'Civil Engineering',
+  'Computer Science and Engineering',
+  'Electronics and Communication Engineering',
+  'Mechanical Engineering',
+];
+window.OFFICIAL_BRANCHES = OFFICIAL_BRANCHES;
+
+const STU_YEAR_OPTIONS = ['1st Year', '2nd Year', '3rd Year', 'YEAR BACK', 'Completed'];
+
+/** Which fee-year blocks are editable / view-only / locked for a Current Year value. */
+function getStuFeeYearAccess(currentYear) {
+  const y = String(currentYear || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  // edit = can fill when request draft is open; view = show values but not edit; locked = disabled placeholder
+  if (y === '1st year' || y === '1 st year') return { 1: 'edit', 2: 'locked', 3: 'locked' };
+  if (y === '2nd year' || y === '2 nd year') return { 1: 'edit', 2: 'edit', 3: 'locked' };
+  if (y === '3rd year' || y === '3 rd year') return { 1: 'edit', 2: 'edit', 3: 'edit' };
+  if (y === 'year back') return { 1: 'edit', 2: 'edit', 3: 'edit' };
+  if (y === 'completed') return { 1: 'view', 2: 'view', 3: 'view' };
+  return { 1: 'locked', 2: 'locked', 3: 'locked' };
+}
+window.getStuFeeYearAccess = getStuFeeYearAccess;
+window.STU_YEAR_OPTIONS = STU_YEAR_OPTIONS;
+
 // ── Default Student Profile Schema ──────────────────────────────
 const defaultStuSections = [
   {
     id: 'stu_s1', title: '📚 Academic Information', visible: true,
     fields: [
-      { id:'f1', label:'Current Year',       type:'text',  value:'2nd Year',                      editable:false },
-      { id:'f2', label:'Branch',             type:'text',  value:'Computer Science Engineering',   editable:false },
-      { id:'f3', label:'Register Number',    type:'text',  value:'',                   editable:false },
+      { id:'f1', label:'Current Year', type:'select', options: STU_YEAR_OPTIONS.slice(), value:'1st Year', editable:true },
+      { id:'f2', label:'Branch', type:'select', options: OFFICIAL_BRANCHES.slice(), value:'', editable:false },
+      { id:'f3', label:'Register Number',    type:'text',  value:'',   editable:false },
     ]
   },
   {
     id: 'stu_s2', title: '👤 Personal Details', visible: true,
     fields: [
-      { id:'f4',  label:'Student (As per SSLC)',   type:'text', value:'Student', editable:false },
-      { id:'f5',  label:'Student (As per Aadhar)', type:'text', value:'Student',       editable:false },
-      { id:'f6',  label:'Father Name',                  type:'text', value:'Parent/Guardian',      editable:false },
-      { id:'f7',  label:'Mother Name',                  type:'text', value:'Sunita Sharma',      editable:false },
-      { id:'f8',  label:'Date of Birth',                type:'text', value:'15/03/2005',          editable:false },
-      { id:'f9',  label:'Gender',                       type:'text', value:'Male',               editable:false },
+      { id:'f4',  label:'Student (As per SSLC)',   type:'text', value:'', editable:false },
+      { id:'f5',  label:'Student (As per Aadhar)', type:'text', value:'', editable:false },
+      { id:'f6',  label:'Father Name',                  type:'text', value:'', editable:false },
+      { id:'f7',  label:'Mother Name',                  type:'text', value:'', editable:false },
+      { id:'f8',  label:'Date of Birth',                type:'text', value:'', editable:false },
+      { id:'f9',  label:'Gender',                       type:'text', value:'', editable:false },
     ]
   },
   {
     id: 'stu_s3', title: '🪪 Identity & IDs', visible: true,
     fields: [
-      { id:'f10', label:'Aadhar Number',           type:'text', value:'XXXX XXXX 4521',  editable:false },
-      { id:'f11', label:'Aadhar Registered Mobile',type:'text', value:'+91 9XXXXXXXX',   editable:false },
-      { id:'f12', label:'APAAR ID',                type:'text', value:'AP2023XXXXXX',    editable:false },
-      { id:'f13', label:'SSP ID',                  type:'text', value:'SSP-2023-XXXX',  editable:false },
-      { id:'f14', label:'NSP ID',                  type:'text', value:'NSP-XXXXXXXX',   editable:false },
-      { id:'f15', label:'RD Number (Caste)',        type:'text', value:'RDC-2023-XXXX', editable:false },
-      { id:'f16', label:'RD Number (Income)',       type:'text', value:'RDI-2023-XXXX', editable:false },
-      { id:'f17', label:'Income (Annual)',          type:'text', value:'₹ 1,80,000',    editable:false },
+      { id:'f10', label:'Aadhar Number',           type:'text', value:'', editable:false },
+      { id:'f11', label:'Aadhar Registered Mobile',type:'text', value:'', editable:false },
+      { id:'f12', label:'APAAR ID',                type:'text', value:'', editable:false },
+      { id:'f13', label:'SSP ID',                  type:'text', value:'', editable:false },
+      { id:'f14', label:'NSP ID',                  type:'text', value:'', editable:false },
+      { id:'f15', label:'RD Number (Caste)',        type:'text', value:'', editable:false },
+      { id:'f16', label:'RD Number (Income)',       type:'text', value:'', editable:false },
+      { id:'f17', label:'Income (Annual)',          type:'text', value:'', editable:false },
     ]
   },
   {
     id: 'stu_s4', title: '📋 Category & Background', visible: true,
     fields: [
-      { id:'f18', label:'Category',             type:'text', value:'OBC',    editable:false },
-      { id:'f19', label:'Religion',             type:'text', value:'Hindu',  editable:false },
-      { id:'f20', label:'Caste',                type:'text', value:'Kuruba', editable:false },
-      { id:'f21', label:'Physically Challenged?',type:'text', value:'No',   editable:false },
+      { id:'f18', label:'Category',             type:'text', value:'', editable:false },
+      { id:'f19', label:'Religion',             type:'text', value:'', editable:false },
+      { id:'f20', label:'Caste',                type:'text', value:'', editable:false },
+      { id:'f21', label:'Physically Challenged?',type:'text', value:'', editable:false },
     ]
   },
   {
     id: 'stu_s5', title: '📞 Contact Information', visible: true,
     fields: [
-      { id:'f22', label:'WhatsApp Number',        type:'text',  value:'+91 9876543210',           editable:true },
-      { id:'f23', label:'Parents Mobile Number',  type:'text',  value:'+91 9765432109',           editable:true },
-      { id:'f24', label:'Valid E-mail ID',        type:'email', value:'',   editable:true },
-      { id:'f25', label:'Staying in Hostel?',     type:'text',  value:'No',                       editable:false },
-      { id:'f26', label:'Home Address',           type:'textarea', value:'Address not provided', editable:true },
+      { id:'f22', label:'WhatsApp Number',        type:'text',  value:'', editable:true },
+      { id:'f23', label:'Parents Mobile Number',  type:'text',  value:'', editable:true },
+      { id:'f24', label:'Valid E-mail ID',        type:'email', value:'', editable:true },
+      { id:'f25', label:'Staying in Hostel?',     type:'text',  value:'', editable:false },
+      { id:'f26', label:'Home Address',           type:'textarea', value:'', editable:true },
     ]
   },
   {
     id: 'stu_s6', title: '💳 Fees Payment Details', visible: true,
     fields: [
-      { id:'f27', label:'1st Year Fee Paid',    type:'text', value:'₹ 12,500 — 15 Aug 2023 — RCP-2023-08-00315', editable:false },
-      { id:'f28', label:'2nd Year Fee Paid',    type:'text', value:'₹ 12,500 — 12 Jul 2024 — RCP-2024-07-00412', editable:false },
-      { id:'f29', label:'3rd Year Fee Paid',    type:'text', value:'Not yet paid',                               editable:false },
+      // Each year: Amount, Receipt No, Fees Paid Date (feeYear drives enable/lock rules)
+      { id:'f27a', label:'1st Year Fee Amount',      type:'text', value:'', editable:true, feeYear:1, feeGroup:'1st Year Fees' },
+      { id:'f27b', label:'1st Year Receipt No',       type:'text', value:'', editable:true, feeYear:1 },
+      { id:'f27c', label:'1st Year Fees Paid Date',   type:'date', value:'', editable:true, feeYear:1 },
+      { id:'f28a', label:'2nd Year Fee Amount',      type:'text', value:'', editable:true, feeYear:2, feeGroup:'2nd Year Fees' },
+      { id:'f28b', label:'2nd Year Receipt No',       type:'text', value:'', editable:true, feeYear:2 },
+      { id:'f28c', label:'2nd Year Fees Paid Date',   type:'date', value:'', editable:true, feeYear:2 },
+      { id:'f29a', label:'3rd Year Fee Amount',      type:'text', value:'', editable:true, feeYear:3, feeGroup:'3rd Year Fees' },
+      { id:'f29b', label:'3rd Year Receipt No',       type:'text', value:'', editable:true, feeYear:3 },
+      { id:'f29c', label:'3rd Year Fees Paid Date',   type:'date', value:'', editable:true, feeYear:3 },
     ]
   }
 ];
@@ -3109,91 +3213,249 @@ function saveStaffProfile_old()   { saveStaffProfile(currentSPTab); }
 function renderStaffBuilder_old() { renderStaffBuilder(currentSPTab); }
 
 /* ================================================================
-   STUDENT PROFILE MANAGER — ADMIN BUILDER
+   STUDENT PROFILE MANAGER — Google Form–style builder
+   Schema saved to DB via /api/profile-schema.
+   Student answers → profile request → approve → students.extra (DB).
    ================================================================ */
+function stuEscAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function markStuSchemaDirty(msg) {
+  const el = document.getElementById('stuSchemaSaveStatus');
+  if (el) {
+    el.textContent = msg || 'Unsaved changes — click Save & apply to store in database.';
+    el.style.color = '#b45309';
+  }
+}
+
 function renderStuBuilder() {
   const container = document.getElementById('stuSectionBuilder');
   if (!container) return;
-  container.innerHTML = '';
-  stuProfileSchema.forEach((sec, si) => {
-    const secDiv = document.createElement('div');
-    secDiv.style.cssText = 'background:#fff;border:1.5px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);';
-    secDiv.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:${sec.visible?'var(--primary)':'#999'};color:white;flex-wrap:wrap;">
-        <input value="${sec.title}" onchange="stuProfileSchema[${si}].title=this.value;renderStuPreview()"
-          style="flex:1;min-width:160px;background:rgba(255,255,255,0.15);border:none;border-radius:6px;padding:6px 10px;color:white;font-weight:700;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" />
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
-          <input type="checkbox" ${sec.visible?'checked':''} onchange="stuProfileSchema[${si}].visible=this.checked;renderStuBuilder();renderStuPreview();" style="cursor:pointer;" />
-          Visible in Student Login
-        </label>
-        <button onclick="addStuField(${si})" style="padding:5px 12px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:6px;cursor:pointer;font-size:0.75rem;font-family:'Plus Jakarta Sans',sans-serif;">+ Add Field</button>
-        <button onclick="deleteStuSection(${si})" style="padding:5px 12px;background:rgba(220,50,50,0.7);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.75rem;font-family:'Plus Jakarta Sans',sans-serif;">🗑 Remove Section</button>
-      </div>
-      <div style="padding:14px 16px;" id="stuFields_${si}"></div>
-    `;
-    container.appendChild(secDiv);
-    const fieldWrap = document.getElementById('stuFields_' + si);
-    sec.fields.forEach((field, fi) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;';
-      row.innerHTML = `
-        <input value="${field.label}" placeholder="Field Label" onchange="stuProfileSchema[${si}].fields[${fi}].label=this.value;renderStuPreview();"
-          style="flex:2;min-width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" />
-        <select onchange="stuProfileSchema[${si}].fields[${fi}].type=this.value;renderStuPreview();"
-          style="flex:1;min-width:100px;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
-          <option value="text" ${field.type==='text'?'selected':''}>Text</option>
-          <option value="email" ${field.type==='email'?'selected':''}>Email</option>
-          <option value="number" ${field.type==='number'?'selected':''}>Number</option>
-          <option value="textarea" ${field.type==='textarea'?'selected':''}>Textarea</option>
-          <option value="date" ${field.type==='date'?'selected':''}>Date</option>
-        </select>
-        <label style="display:flex;align-items:center;gap:4px;font-size:0.74rem;white-space:nowrap;cursor:pointer;">
-          <input type="checkbox" ${field.editable?'checked':''} onchange="stuProfileSchema[${si}].fields[${fi}].editable=this.checked;renderStuPreview();" style="cursor:pointer;" />
-          Student Can Edit
-        </label>
-        <button onclick="deleteStuField(${si},${fi})" style="padding:5px 10px;background:#fee;color:#c0392b;border:1.5px solid #f5c6cb;border-radius:6px;cursor:pointer;font-size:0.75rem;">🗑</button>
-      `;
-      fieldWrap.appendChild(row);
-    });
-    if (sec.fields.length === 0) {
-      fieldWrap.innerHTML = '<div style="color:var(--text-muted);font-size:0.78rem;padding:8px 0;">No fields yet. Click "+ Add Field" above.</div>';
-    }
-  });
+  if (!Array.isArray(stuProfileSchema) || stuProfileSchema.length === 0) {
+    container.innerHTML = '<div style="opacity:.7;padding:18px;text-align:center;">No sections yet. Click <strong>Add section</strong> to start your form.</div>';
+    renderStuPreview();
+    return;
+  }
+
+  container.innerHTML = stuProfileSchema.map((sec, si) => {
+    const fields = (sec.fields || []).map((field, fi) => {
+      const opts = Array.isArray(field.options) ? field.options.join(', ') : '';
+      const showOpts = field.type === 'select';
+      return `
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg);">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+            <span style="font-size:0.72rem;font-weight:700;color:var(--navy);opacity:.7;">Q${fi + 1}</span>
+            <input value="${stuEscAttr(field.label)}" placeholder="Question / field label"
+              onchange="stuProfileSchema[${si}].fields[${fi}].label=this.value;renderStuPreview();markStuSchemaDirty();"
+              style="flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;font-weight:600;" />
+            <select onchange="stuProfileSchema[${si}].fields[${fi}].type=this.value;if(this.value==='select'&&!stuProfileSchema[${si}].fields[${fi}].options){stuProfileSchema[${si}].fields[${fi}].options=['Option 1','Option 2'];}renderStuBuilder();renderStuPreview();markStuSchemaDirty();"
+              style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;min-width:120px;">
+              <option value="text" ${field.type==='text'?'selected':''}>Short answer</option>
+              <option value="textarea" ${field.type==='textarea'?'selected':''}>Paragraph</option>
+              <option value="email" ${field.type==='email'?'selected':''}>Email</option>
+              <option value="number" ${field.type==='number'?'selected':''}>Number</option>
+              <option value="date" ${field.type==='date'?'selected':''}>Date</option>
+              <option value="select" ${field.type==='select'?'selected':''}>Dropdown</option>
+            </select>
+          </div>
+          ${showOpts ? `
+          <div style="margin-bottom:8px;">
+            <label style="font-size:0.7rem;font-weight:600;opacity:.75;">Dropdown options (comma-separated)</label>
+            <input value="${stuEscAttr(opts)}" placeholder="e.g. Yes, No, Prefer not to say"
+              onchange="stuProfileSchema[${si}].fields[${fi}].options=this.value.split(',').map(function(x){return x.trim();}).filter(Boolean);renderStuPreview();markStuSchemaDirty();"
+              style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.8rem;margin-top:4px;" />
+          </div>` : ''}
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:0.75rem;">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" ${field.editable!==false?'checked':''}
+                onchange="stuProfileSchema[${si}].fields[${fi}].editable=this.checked;renderStuPreview();markStuSchemaDirty();" />
+              Student can edit / request update
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" ${field.required?'checked':''}
+                onchange="stuProfileSchema[${si}].fields[${fi}].required=this.checked;markStuSchemaDirty();" />
+              Required
+            </label>
+            <span style="flex:1;"></span>
+            <button type="button" class="btn ol" style="padding:4px 8px;font-size:0.7rem;" onclick="moveStuField(${si},${fi},-1)" title="Move up">↑</button>
+            <button type="button" class="btn ol" style="padding:4px 8px;font-size:0.7rem;" onclick="moveStuField(${si},${fi},1)" title="Move down">↓</button>
+            <button type="button" class="btn re" style="padding:4px 10px;font-size:0.7rem;" onclick="deleteStuField(${si},${fi})">🗑</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div style="border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;background:var(--surface);box-shadow:0 1px 4px rgba(15,23,42,.05);">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:${sec.visible!==false?'linear-gradient(120deg,#1a4fa0,#2a5abf)':'#94a3b8'};color:#fff;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;opacity:.85;font-weight:700;">SECTION ${si + 1}</span>
+          <input value="${stuEscAttr(sec.title)}" placeholder="Section title"
+            onchange="stuProfileSchema[${si}].title=this.value;renderStuPreview();markStuSchemaDirty();"
+            style="flex:1;min-width:160px;background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:8px 12px;color:#fff;font-weight:700;font-size:0.9rem;outline:none;" />
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" ${sec.visible!==false?'checked':''}
+              onchange="stuProfileSchema[${si}].visible=this.checked;renderStuBuilder();renderStuPreview();markStuSchemaDirty();" />
+            Visible
+          </label>
+          <button type="button" class="btn ol" style="padding:5px 8px;font-size:0.72rem;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);" onclick="moveStuSection(${si},-1)">↑</button>
+          <button type="button" class="btn ol" style="padding:5px 8px;font-size:0.72rem;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);" onclick="moveStuSection(${si},1)">↓</button>
+          <button type="button" style="padding:5px 10px;background:rgba(220,50,50,.75);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;" onclick="deleteStuSection(${si})">🗑</button>
+        </div>
+        <div style="padding:12px 14px;">
+          ${fields || '<div style="opacity:.65;font-size:0.8rem;padding:8px 0;">No questions yet. Add a field below.</div>'}
+          <button type="button" class="btn ol" style="width:100%;margin-top:4px;" onclick="addStuField(${si})">＋ Add question / field</button>
+        </div>
+      </div>`;
+  }).join('');
+
   renderStuPreview();
 }
 
 function addStuSection() {
-  stuProfileSchema.push({ id:'stu_new_'+(stuSecCounter++), title:'📁 New Section', visible:true, fields:[] });
+  stuProfileSchema.push({
+    id: 'stu_new_' + (stuSecCounter++),
+    title: 'Untitled section',
+    visible: true,
+    fields: [],
+  });
+  markStuSchemaDirty();
   renderStuBuilder();
 }
 
 function deleteStuSection(si) {
-  if (!confirm('Remove this section? This will hide it from student profile.')) return;
+  if (!confirm('Remove this section and all its fields from the form structure?\\n\\nExisting student data already in the database is kept.')) return;
   stuProfileSchema.splice(si, 1);
+  markStuSchemaDirty();
   renderStuBuilder();
 }
 
 function addStuField(si) {
-  stuProfileSchema[si].fields.push({ id:'nf'+(stuFieldCounter++), label:'New Field', type:'text', value:'', editable:true });
+  if (!stuProfileSchema[si].fields) stuProfileSchema[si].fields = [];
+  stuProfileSchema[si].fields.push({
+    id: 'nf' + (stuFieldCounter++),
+    label: 'Untitled question',
+    type: 'text',
+    value: '',
+    editable: true,
+    required: false,
+  });
+  markStuSchemaDirty();
   renderStuBuilder();
 }
 
 function deleteStuField(si, fi) {
+  if (!confirm('Remove this field from the form?')) return;
   stuProfileSchema[si].fields.splice(fi, 1);
+  markStuSchemaDirty();
   renderStuBuilder();
 }
 
-function saveStuProfile() {
-  renderStuDynamicProfile();
-  renderStuPreview();
-  alert('✅ Student Profile updated successfully!\n\nChanges are now live in the Student Login portal.');
+function moveStuSection(si, dir) {
+  const j = si + dir;
+  if (j < 0 || j >= stuProfileSchema.length) return;
+  const t = stuProfileSchema[si];
+  stuProfileSchema[si] = stuProfileSchema[j];
+  stuProfileSchema[j] = t;
+  markStuSchemaDirty();
+  renderStuBuilder();
+}
+
+function moveStuField(si, fi, dir) {
+  const fields = stuProfileSchema[si].fields || [];
+  const j = fi + dir;
+  if (j < 0 || j >= fields.length) return;
+  const t = fields[fi];
+  fields[fi] = fields[j];
+  fields[j] = t;
+  markStuSchemaDirty();
+  renderStuBuilder();
+}
+
+async function saveStuProfile() {
+  if (!Array.isArray(stuProfileSchema) || !stuProfileSchema.length) {
+    alert('Add at least one section before saving.');
+    return;
+  }
+  // Normalize before save
+  const payload = stuProfileSchema.map((sec, i) => ({
+    id: sec.id || ('stu_sec_' + i),
+    title: String(sec.title || 'Section').trim() || 'Section',
+    visible: sec.visible !== false,
+    fields: (sec.fields || []).map((f, j) => ({
+      id: f.id || ('f_' + i + '_' + j),
+      label: String(f.label || 'Field').trim() || 'Field',
+      type: f.type || 'text',
+      value: f.value != null ? f.value : '',
+      editable: f.editable !== false,
+      required: !!f.required,
+      options: Array.isArray(f.options) ? f.options : undefined,
+      feeYear: f.feeYear,
+      feeGroup: f.feeGroup,
+    })),
+  }));
+
+  const status = document.getElementById('stuSchemaSaveStatus');
+  if (status) {
+    status.textContent = 'Saving to database…';
+    status.style.color = '#1a4fa0';
+  }
+
+  try {
+    const res = await fetch('/api/profile-schema', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ key: 'student', schema: payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || ('HTTP ' + res.status));
+    }
+    stuProfileSchema = payload;
+    renderStuDynamicProfile();
+    renderStuPreview();
+    if (status) {
+      status.textContent = '✅ Saved to database · live on Student My Profile';
+      status.style.color = '#065f46';
+    }
+    alert(
+      '✅ Student My Profile form saved to the database.\\n\\n' +
+      '• New sections/fields are live for students.\\n' +
+      '• When a student fills them and Admin/ACM approves the request, values are stored in the student database (extra profile fields).'
+    );
+  } catch (e) {
+    console.error('[profile-schema] save failed', e);
+    if (status) {
+      status.textContent = 'Save failed: ' + (e.message || 'error');
+      status.style.color = '#991b1b';
+    }
+    alert('Failed to save form to database.\\n\\n' + (e.message || 'Unknown error') +
+      '\\n\\nMake sure you are logged in as Root Admin and the profile_schemas table exists (run DB migration).');
+  }
 }
 
 function renderStuPreview() {
   const preview = document.getElementById('stuProfilePreview');
   if (!preview) return;
-  preview.innerHTML = renderProfileHTML(stuProfileSchema, true);
+  if (!stuProfileSchema || !stuProfileSchema.length) {
+    preview.innerHTML = '<p style="opacity:.65;font-size:0.85rem;">Preview will appear here.</p>';
+    return;
+  }
+  preview.innerHTML = renderProfileHTML(stuProfileSchema, true, { forceReadonly: true });
 }
+
+window.addStuSection = addStuSection;
+window.deleteStuSection = deleteStuSection;
+window.addStuField = addStuField;
+window.deleteStuField = deleteStuField;
+window.moveStuSection = moveStuSection;
+window.moveStuField = moveStuField;
+window.saveStuProfile = saveStuProfile;
+window.renderStuBuilder = renderStuBuilder;
+window.markStuSchemaDirty = markStuSchemaDirty;
 
 /* ================================================================
    STAFF PROFILE MANAGER — ADMIN BUILDER
@@ -3201,23 +3463,57 @@ function renderStuPreview() {
 /* ================================================================
    SHARED — Render profile HTML (used for both preview and live portal)
    ================================================================ */
-function renderProfileHTML(schema, isStudent) {
+// opts.forceReadonly: when true, every field is view-only (student live portal default)
+// opts.liveStudent: student portal — fee blocks always visible (locked when not reached)
+function renderProfileHTML(schema, isStudent, opts) {
+  const forceReadonly = !!(opts && opts.forceReadonly);
+  const liveStudent = !!(opts && opts.liveStudent);
   let html = '';
   schema.forEach(sec => {
     if (!sec.visible) return;
     html += `<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:16px 0 10px;font-family:'Libre Baskerville',serif;border-bottom:1.5px solid var(--border);padding-bottom:6px;">${sec.title}</div>`;
     html += `<div class="form-row" style="flex-wrap:wrap;">`;
+    let lastFeeYear = null;
     sec.fields.forEach(field => {
-      const ro = !field.editable;
+      // Fee year group header
+      if (field.feeYear && field.feeYear !== lastFeeYear) {
+        lastFeeYear = field.feeYear;
+        const gTitle = field.feeGroup || ((field.feeYear === 1 ? '1st' : field.feeYear === 2 ? '2nd' : '3rd') + ' Year Fees');
+        html += `<div class="stu-fee-year-hd" data-fee-year="${field.feeYear}" style="flex:1 1 100%;margin:12px 0 6px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:0.78rem;font-weight:700;color:var(--navy);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span>💳 ${gTitle}</span>
+          <span class="stu-fee-year-status" data-fee-year="${field.feeYear}" style="font-size:0.68rem;font-weight:600;opacity:.75;"></span>
+        </div>`;
+      }
+
+      // Student live portal is always view-only until they start a request session
+      const ro = forceReadonly ? true : !field.editable;
       const roStyle = ro ? 'background:var(--bg);cursor:not-allowed;' : '';
+      const feeAttr = field.feeYear ? ` data-fee-year="${field.feeYear}"` : '';
+      const isCurrentYear = field.label === 'Current Year';
+      const fieldAttrs = isCurrentYear ? ' data-stu-current-year="1"' : '';
+
       if (field.type === 'textarea') {
-        html += `<div class="fg" style="flex:1 1 100%;"><label>${field.label}</label>
+        html += `<div class="fg" style="flex:1 1 100%;"${feeAttr}><label>${field.label}</label>
           <textarea ${ro?'readonly':''} style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;color:var(--text);resize:vertical;height:70px;${roStyle}">${field.value||''}</textarea>
           ${ro?'':'<div style="font-size:0.65rem;color:var(--green);margin-top:3px;">✏️ You can edit this field</div>'}
         </div>`;
+      } else if (field.type === 'select') {
+        const optsList = Array.isArray(field.options) ? field.options : (isCurrentYear ? STU_YEAR_OPTIONS : []);
+        const optionsHtml = optsList.map(o => {
+          const sel = String(field.value || '') === String(o) ? ' selected' : '';
+          return `<option value="${String(o).replace(/"/g,'&quot;')}"${sel}>${o}</option>`;
+        }).join('');
+        html += `<div class="fg"${feeAttr}${fieldAttrs}><label>${field.label}</label>
+          <select ${ro?'disabled':''} ${isCurrentYear ? 'onchange="onStuCurrentYearChange(this)"' : ''}
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;color:var(--text);${roStyle}">
+            ${optionsHtml}
+          </select>
+          ${ro?'':'<div style="font-size:0.65rem;color:var(--green);margin-top:3px;">✏️ Select your academic status</div>'}
+        </div>`;
       } else {
-        html += `<div class="fg"><label>${field.label}</label>
-          <input type="${field.type}" value="${field.value||''}" ${ro?'readonly':''} style="width:100%;${roStyle}" />
+        const inputType = field.type || 'text';
+        html += `<div class="fg"${feeAttr}><label>${field.label}</label>
+          <input type="${inputType}" value="${field.value||''}" ${ro?'readonly':''} style="width:100%;${roStyle}" />
           ${ro?'':'<div style="font-size:0.65rem;color:var(--green);margin-top:3px;">✏️ You can edit this field</div>'}
         </div>`;
       }
@@ -3228,13 +3524,125 @@ function renderProfileHTML(schema, isStudent) {
   return html;
 }
 
+/**
+ * Apply fee-year lock/view/edit state based on Current Year selection.
+ * editMode: when false, everything stays view-only (still show status badges).
+ */
+function applyStuFeeYearLocks(editMode) {
+  const container = document.getElementById('stuDynamicProfileSections');
+  if (!container) return;
+
+  let currentYear = '';
+  const yearSel = container.querySelector('[data-stu-current-year="1"] select, select[data-stu-current-year="1"]');
+  const yearWrap = container.querySelector('[data-stu-current-year="1"]');
+  if (yearSel) currentYear = yearSel.value;
+  else if (yearWrap) {
+    const inp = yearWrap.querySelector('select, input');
+    if (inp) currentYear = inp.value;
+  }
+  // Fallback from schema
+  if (!currentYear && typeof stuProfileSchema !== 'undefined') {
+    stuProfileSchema.forEach(sec => {
+      (sec.fields || []).forEach(f => {
+        if (f.label === 'Current Year' && f.value) currentYear = f.value;
+      });
+    });
+  }
+
+  const access = getStuFeeYearAccess(currentYear);
+  const statusText = {
+    edit: editMode ? '✅ Editable for this year' : 'Visible',
+    view: '👁 View only (Completed)',
+    locked: '🔒 Locked — unlocks when you reach this year',
+  };
+
+  [1, 2, 3].forEach(yr => {
+    const mode = access[yr] || 'locked';
+    container.querySelectorAll(`.stu-fee-year-status[data-fee-year="${yr}"]`).forEach(el => {
+      el.textContent = statusText[mode] || '';
+      el.style.color = mode === 'edit' ? 'var(--green)' : mode === 'view' ? '#1a4fa0' : '#b45309';
+    });
+    container.querySelectorAll(`.stu-fee-year-hd[data-fee-year="${yr}"]`).forEach(el => {
+      el.style.opacity = mode === 'locked' ? '0.75' : '1';
+      el.style.borderColor = mode === 'locked' ? 'var(--border)' : mode === 'edit' ? 'var(--green)' : '#1a4fa0';
+    });
+    container.querySelectorAll(`.fg[data-fee-year="${yr}"]`).forEach(fg => {
+      const field = fg.querySelector('input, textarea, select');
+      if (!field) return;
+      const allowEdit = editMode && mode === 'edit';
+      if (field.tagName === 'SELECT') {
+        field.disabled = !allowEdit;
+      } else {
+        if (allowEdit) {
+          field.removeAttribute('readonly');
+          field.disabled = false;
+          field.style.background = '';
+          field.style.cursor = '';
+        } else {
+          field.setAttribute('readonly', '');
+          field.disabled = mode === 'locked'; // locked: fully disabled; view: readonly
+          field.style.background = 'var(--bg)';
+          field.style.cursor = 'not-allowed';
+        }
+      }
+      // Locked empty hint
+      let hint = fg.querySelector('.stu-fee-lock-hint');
+      if (mode === 'locked' && !editMode) {
+        // view mode: no extra hint needed beyond badge
+      } else if (mode === 'locked') {
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.className = 'stu-fee-lock-hint';
+          hint.style.cssText = 'font-size:0.65rem;color:#b45309;margin-top:3px;';
+          fg.appendChild(hint);
+        }
+        hint.textContent = '🔒 Available when Current Year reaches this year (or YEAR BACK)';
+      } else if (hint) {
+        hint.remove();
+      }
+    });
+  });
+}
+window.applyStuFeeYearLocks = applyStuFeeYearLocks;
+
+function onStuCurrentYearChange(sel) {
+  // Keep schema in sync
+  if (typeof stuProfileSchema !== 'undefined' && sel) {
+    stuProfileSchema.forEach(sec => {
+      (sec.fields || []).forEach(f => {
+        if (f.label === 'Current Year') f.value = sel.value;
+      });
+    });
+  }
+  applyStuFeeYearLocks(!!window._stuProfileEditEnabled);
+}
+window.onStuCurrentYearChange = onStuCurrentYearChange;
+
 /* ================================================================
    LIVE SYNC — Render dynamic sections into Student / Staff portals
    ================================================================ */
 function renderStuDynamicProfile() {
   const target = document.getElementById('stuDynamicProfileSections');
   if (!target) return;
-  target.innerHTML = renderProfileHTML(stuProfileSchema, true);
+  // Always paint student portal as view-only. Edit mode is enabled only via
+  // submitStuProfileUpdate → enableStuProfileEdit after Admin has not locked it.
+  target.innerHTML = renderProfileHTML(stuProfileSchema, true, { forceReadonly: true, liveStudent: true });
+  // Re-render restores readonly schema fields — clear edit mode UI state
+  window._stuProfileEditEnabled = false;
+  applyStuFeeYearLocks(false);
+  const banner = document.getElementById('stuProfileEditBanner');
+  if (banner) banner.style.display = 'none';
+  const btn = document.getElementById('stuProfileUpdateBtn');
+  if (btn) {
+    btn.textContent = '📝 Request Profile Update';
+    btn.classList.remove('gr');
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+  }
+  if (typeof window.updateStuProfileLockUI === 'function') {
+    window.updateStuProfileLockUI();
+  }
 }
 
 /* ================================================================

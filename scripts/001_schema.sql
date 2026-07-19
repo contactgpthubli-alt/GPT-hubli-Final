@@ -17,9 +17,12 @@ CREATE TABLE IF NOT EXISTS users (
   display_name  TEXT NOT NULL,
   reg_no        TEXT,          -- linked student registration number (students.reg_no)
   staff_id      BIGINT,        -- linked staff record
-  status        TEXT NOT NULL DEFAULT 'pending', -- pending | approved | rejected
+  branch        TEXT,          -- diploma branch chosen at student registration
+  status        TEXT NOT NULL DEFAULT 'pending', -- pending | approved | rejected | deleted
   force_password_change BOOLEAN NOT NULL DEFAULT FALSE,
   is_demo       BOOLEAN NOT NULL DEFAULT FALSE,
+  deleted_at    TIMESTAMPTZ,   -- soft-delete timestamp (trash / undo)
+  prev_status   TEXT,          -- status before soft-delete (for restore)
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

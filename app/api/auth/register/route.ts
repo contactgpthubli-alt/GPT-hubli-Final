@@ -1,5 +1,6 @@
 import { query } from "@/lib/db"
 import { hashPassword, badRequest } from "@/lib/auth"
+import { isOfficialBranch, normalizeBranch } from "@/lib/branches"
 
 const ALLOWED_ROLES = [
   "student",
@@ -40,21 +41,82 @@ export async function POST(req: Request) {
   }
   const role = ALLOWED_ROLES.includes(body.role) ? body.role : "student"
 
-  const existing = await query("SELECT 1 FROM users WHERE lower(email) = lower($1)", [body.email])
+  let branch: string | null = normalizeBranch(body.branch ?? body.dept ?? null)
+  // Staff/office free-text department (ACM, EST, Library, …) when not an official diploma branch
+  if (!branch && body.branch) {
+    const raw = String(body.branch).replace(/\s+/g, " ").trim()
+    if (raw) branch = raw
+  }
+
+  // Username for staff login (stored in reg_no). Students use register number.
+  const usernameRaw =
+    body.username != null
+      ? String(body.username).trim()
+      : body.userName != null
+        ? String(body.userName).trim()
+        : ""
+  let regNo: string | null =
+    body.regNo != null && String(body.regNo).trim()
+      ? String(body.regNo).trim()
+      : usernameRaw
+        ? usernameRaw
+        : null
+
+  if (role === "student") {
+    if (!regNo) return badRequest("Register Number is required for students")
+    regNo = regNo.toUpperCase()
+    if (!branch || !isOfficialBranch(branch)) {
+      return badRequest(
+        "Please select a valid Branch: Civil Engineering, Computer Science and Engineering, Electronics and Communication Engineering, or Mechanical Engineering",
+      )
+    }
+  } else if (regNo) {
+    // Staff username: keep as typed (case-insensitive login match)
+    regNo = regNo.trim()
+    // Reject if username already taken (reg_no or email local-part collision)
+    const taken = await query(
+      `SELECT 1 FROM users
+        WHERE deleted_at IS NULL
+          AND (
+            lower(reg_no) = lower($1)
+            OR lower(split_part(email, '@', 1)) = lower($1)
+          )
+        LIMIT 1`,
+      [regNo],
+    )
+    if (taken.rowCount > 0) {
+      return Response.json({ error: "This username is already taken" }, { status: 409 })
+    }
+  }
+
+  const existing = await query(
+    `SELECT 1 FROM users WHERE lower(email) = lower($1) AND deleted_at IS NULL`,
+    [body.email],
+  )
   if (existing.rowCount > 0) {
     return Response.json({ error: "An account with this email already exists" }, { status: 409 })
   }
 
   const passwordHash = await hashPassword(password)
   await query(
-    `INSERT INTO users (email, password_hash, role, display_name, reg_no, status, force_password_change)
-     VALUES ($1, $2, $3, $4, $5, 'pending', $6)`,
-    [body.email, passwordHash, role, body.name, body.regNo ?? null, usedDefaultPassword],
+    `INSERT INTO users (email, password_hash, role, display_name, reg_no, branch, status, force_password_change)
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)`,
+    [
+      body.email,
+      passwordHash,
+      role,
+      body.name,
+      regNo,
+      branch,
+      usedDefaultPassword,
+    ],
   )
   return Response.json({
     ok: true,
     message:
       "Registration submitted. An admin must approve your account before you can log in." +
-      (usedDefaultPassword ? " A temporary password will be assigned after approval and must be changed on first login." : ""),
+      (usedDefaultPassword
+        ? " A temporary password will be assigned after approval and must be changed on first login."
+        : ""),
   })
 }
