@@ -4,6 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
+type MoreView =
+  | "menu"
+  | "certs"
+  | "notices"
+  | "attendance"
+  | "password"
+  | "grievances"
+  | "certRequest"
+  | "formFill"
 
 type User = {
   id: number
@@ -46,6 +55,15 @@ type ResultRow = {
   }>
 }
 
+type FormField = {
+  id?: string
+  type?: string
+  question?: string
+  label?: string
+  required?: boolean
+  options?: string[]
+}
+
 type FormRow = {
   id: number
   title: string
@@ -63,6 +81,7 @@ type CertRow = {
   req_code?: string
   created_at?: string
   remarks?: string
+  routed_to?: string
 }
 
 type NoticeRow = {
@@ -76,12 +95,100 @@ type NoticeRow = {
 type AcmCert = {
   id: number
   cert_kind?: string
-  reg_no?: string
-  student_name?: string
   cert_no?: string
   issued_on?: string
-  sent_to_student?: boolean
 }
+
+type Grievance = {
+  id: number
+  subject?: string
+  category?: string
+  description?: string
+  expectation?: string
+  status?: string
+  resolution?: string
+  created_at?: string
+}
+
+type SchemaField = {
+  id?: string
+  label: string
+  type?: string
+  options?: string[]
+  editable?: boolean
+  required?: boolean
+  value?: string
+}
+
+type SchemaSection = {
+  id?: string
+  title?: string
+  visible?: boolean
+  fields?: SchemaField[]
+}
+
+const CERT_TYPES = [
+  "Study Certificate",
+  "Studying Certificate",
+  "Transfer Certificate",
+  "NOC",
+  "PDC",
+  "Provisional Degree Certificate",
+] as const
+
+const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "Completed", "Lateral Entry"]
+const BRANCH_OPTIONS = [
+  "Civil Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
+  "Mechanical Engineering",
+]
+const GRIEVANCE_CATS = [
+  "Academic",
+  "Hostel",
+  "Harassment",
+  "Infrastructure",
+  "Fees / Accounts",
+  "Other",
+]
+
+const DEFAULT_SCHEMA: SchemaSection[] = [
+  {
+    title: "Academic Information",
+    visible: true,
+    fields: [
+      { label: "Current Year", type: "select", options: YEAR_OPTIONS, editable: true },
+      { label: "Branch", type: "select", options: BRANCH_OPTIONS, editable: true },
+      { label: "Register Number", type: "text", editable: false },
+    ],
+  },
+  {
+    title: "Personal Details",
+    visible: true,
+    fields: [
+      { label: "Student (As per SSLC)", type: "text", editable: true },
+      { label: "Student (As per Aadhar)", type: "text", editable: true },
+      { label: "Father Name", type: "text", editable: true },
+      { label: "Mother Name", type: "text", editable: true },
+      { label: "Date of Birth", type: "text", editable: true },
+      { label: "Gender", type: "select", options: ["Male", "Female", "Other"], editable: true },
+      { label: "Home Address", type: "textarea", editable: true },
+    ],
+  },
+  {
+    title: "Identity & Contact",
+    visible: true,
+    fields: [
+      { label: "Aadhar Number", type: "text", editable: true },
+      { label: "APAAR ID", type: "text", editable: true },
+      { label: "Category", type: "text", editable: true },
+      { label: "Religion", type: "text", editable: true },
+      { label: "Student Mobile", type: "text", editable: true },
+      { label: "Parent Mobile", type: "text", editable: true },
+      { label: "Email", type: "text", editable: true },
+    ],
+  },
+]
 
 async function api<T = unknown>(
   path: string,
@@ -135,16 +242,15 @@ function fmtDate(iso?: string | null) {
 
 function statusBadge(status?: string) {
   const s = String(status || "").toLowerCase()
-  if (["ready", "collected", "approved", "pass", "open"].includes(s)) return "stu-badge-ok"
-  if (["pending", "processing", "partial"].includes(s)) return "stu-badge-warn"
+  if (["ready", "collected", "approved", "pass", "resolved"].includes(s)) return "stu-badge-ok"
+  if (["pending", "processing", "partial", "open"].includes(s)) return "stu-badge-warn"
   if (["rejected", "fail", "closed"].includes(s)) return "stu-badge-err"
   return "stu-badge-info"
 }
 
-/** True when a cert request is ready for the student to collect / print. */
 function isCertReady(status?: string) {
   const s = String(status || "").toLowerCase().trim()
-  return s === "ready" || s.includes("ready") || s === "ready for collection"
+  return s === "ready" || s.includes("ready")
 }
 
 function isPhotoKey(key: string) {
@@ -155,11 +261,9 @@ function isDataImage(v: unknown): v is string {
   return typeof v === "string" && v.indexOf("data:image/") === 0
 }
 
-/** Prefer Profile Photo from students.extra (base64 data URL). */
 function extractProfilePhoto(extra?: Record<string, unknown> | null): string | null {
   if (!extra || typeof extra !== "object") return null
-  const preferred = ["Profile Photo", "profile_photo", "ProfilePhoto", "photo", "Photo"]
-  for (const k of preferred) {
+  for (const k of ["Profile Photo", "profile_photo", "ProfilePhoto", "photo", "Photo"]) {
     const v = extra[k]
     if (isDataImage(v)) return v
   }
@@ -172,25 +276,70 @@ function extractProfilePhoto(extra?: Record<string, unknown> | null): string | n
   return null
 }
 
-function formatFieldValue(v: unknown): string {
-  if (v == null || String(v).trim() === "") return "—"
-  if (typeof v === "object") return JSON.stringify(v)
-  return String(v)
+function parseFormFields(fields: unknown): FormField[] {
+  let raw: unknown = fields
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((f) => f && typeof f === "object")
+    .map((f) => f as FormField)
+    .filter((f) => String(f.type || "").toLowerCase() !== "section")
+}
+
+function fieldLabel(f: FormField) {
+  return String(f.question || f.label || f.id || "Question").trim() || "Question"
+}
+
+function compressImage(file: File, maxW = 480, quality = 0.72): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("Could not read image"))
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, maxW / Math.max(img.width, 1))
+        const w = Math.max(1, Math.round(img.width * scale))
+        const h = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement("canvas")
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          reject(new Error("Canvas not supported"))
+          return
+        }
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL("image/jpeg", quality))
+      }
+      img.onerror = () => reject(new Error("Invalid image"))
+      img.src = String(reader.result || "")
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function isLockedField(label: string) {
+  const l = label.toLowerCase()
+  return l.includes("register number") || l === "reg no" || l === "reg_no"
 }
 
 export default function StudentApp() {
   const [booting, setBooting] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [tab, setTab] = useState<Tab>("home")
-  const [moreView, setMoreView] = useState<"menu" | "certs" | "notices" | "attendance" | "password">("menu")
+  const [moreView, setMoreView] = useState<MoreView>("menu")
 
-  // Login form
   const [loginId, setLoginId] = useState("")
   const [loginPw, setLoginPw] = useState("")
   const [loginBusy, setLoginBusy] = useState(false)
   const [loginErr, setLoginErr] = useState("")
 
-  // Setup form
   const [setupEmail, setSetupEmail] = useState("")
   const [setupCurPw, setSetupCurPw] = useState("")
   const [setupNewPw, setSetupNewPw] = useState("")
@@ -199,17 +348,28 @@ export default function StudentApp() {
   const [setupErr, setSetupErr] = useState("")
   const [setupOk, setSetupOk] = useState("")
 
-  // Data
   const [student, setStudent] = useState<Student | null>(null)
   const [results, setResults] = useState<ResultRow[]>([])
   const [forms, setForms] = useState<FormRow[]>([])
   const [certs, setCerts] = useState<CertRow[]>([])
   const [acmCerts, setAcmCerts] = useState<AcmCert[]>([])
   const [notices, setNotices] = useState<NoticeRow[]>([])
+  const [grievances, setGrievances] = useState<Grievance[]>([])
+  const [schema, setSchema] = useState<SchemaSection[]>(DEFAULT_SCHEMA)
+  const [profilePending, setProfilePending] = useState(false)
   const [dataErr, setDataErr] = useState("")
   const [dataLoading, setDataLoading] = useState(false)
+  const [toast, setToast] = useState("")
 
-  // Change password (app)
+  // Profile edit
+  const [profileEditing, setProfileEditing] = useState(false)
+  const [profileDraft, setProfileDraft] = useState<Record<string, string>>({})
+  const [profilePhotoDraft, setProfilePhotoDraft] = useState<string | null>(null)
+  const [profileBusy, setProfileBusy] = useState(false)
+  const [profileMsg, setProfileMsg] = useState("")
+  const [profileErr, setProfileErr] = useState("")
+
+  // Password
   const [pwCur, setPwCur] = useState("")
   const [pwNew, setPwNew] = useState("")
   const [pwNew2, setPwNew2] = useState("")
@@ -217,26 +377,105 @@ export default function StudentApp() {
   const [pwErr, setPwErr] = useState("")
   const [pwOk, setPwOk] = useState("")
 
+  // Cert request
+  const [certType, setCertType] = useState<string>(CERT_TYPES[0])
+  const [certPurpose, setCertPurpose] = useState("")
+  const [certReason, setCertReason] = useState("")
+  const [certNote, setCertNote] = useState("")
+  const [certBusy, setCertBusy] = useState(false)
+  const [certErr, setCertErr] = useState("")
+  const [certOk, setCertOk] = useState("")
+
+  // Form fill
+  const [activeForm, setActiveForm] = useState<FormRow | null>(null)
+  const [formAnswers, setFormAnswers] = useState<Record<string, string>>({})
+  const [formBusy, setFormBusy] = useState(false)
+  const [formErr, setFormErr] = useState("")
+
+  // Grievance
+  const [gSubject, setGSubject] = useState("")
+  const [gCategory, setGCategory] = useState(GRIEVANCE_CATS[0])
+  const [gDesc, setGDesc] = useState("")
+  const [gExpect, setGExpect] = useState("")
+  const [gBusy, setGBusy] = useState(false)
+  const [gErr, setGErr] = useState("")
+  const [gOk, setGOk] = useState("")
+
   const requiresSetup = !!(user?.force_password_change || user?.requires_setup)
-  const profilePhoto = useMemo(() => extractProfilePhoto(student?.extra || null), [student])
-  const readyCerts = useMemo(
-    () => certs.filter((c) => isCertReady(c.status)),
-    [certs],
+  const profilePhoto = useMemo(() => {
+    if (profilePhotoDraft) return profilePhotoDraft
+    return extractProfilePhoto(student?.extra || null)
+  }, [student, profilePhotoDraft])
+  const readyCerts = useMemo(() => certs.filter((c) => isCertReady(c.status)), [certs])
+  const profileLocked = useMemo(() => {
+    const extra = student?.extra || {}
+    return extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
+  }, [student])
+  const openForms = useMemo(
+    () => forms.filter((f) => String(f.status).toLowerCase() === "open"),
+    [forms],
+  )
+  const pendingForms = openForms.filter((f) => !f.submitted_by_me)
+
+  const flash = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(""), 3200)
+  }
+
+  const buildDraftFromStudent = useCallback(
+    (stu: Student | null, u: User | null, sections: SchemaSection[]) => {
+      const extra = (stu?.extra && typeof stu.extra === "object" ? stu.extra : {}) as Record<
+        string,
+        unknown
+      >
+      const draft: Record<string, string> = {}
+      const seed: Record<string, string> = {
+        "Register Number": String(stu?.reg_no || u?.reg_no || ""),
+        Branch: String(stu?.dept || ""),
+        "Current Year": String(stu?.year || ""),
+        "Father Name": String(stu?.father || ""),
+        "Student (As per SSLC)": String(stu?.name || u?.display_name || ""),
+        Email: String(u?.email || ""),
+      }
+      for (const [k, v] of Object.entries(extra)) {
+        if (k === "profile_edit_locked" || isPhotoKey(k) || isDataImage(v)) continue
+        if (v == null) continue
+        draft[k] = String(v)
+      }
+      for (const [k, v] of Object.entries(seed)) {
+        if (v && !draft[k]) draft[k] = v
+      }
+      // Ensure every schema label has a key
+      for (const sec of sections) {
+        for (const f of sec.fields || []) {
+          if (!f?.label) continue
+          if (draft[f.label] == null) draft[f.label] = ""
+        }
+      }
+      return draft
+    },
+    [],
   )
 
   const loadDashboard = useCallback(async () => {
     setDataLoading(true)
     setDataErr("")
-    const [s, r, f, c, a, n] = await Promise.all([
+    const [s, r, f, c, a, n, pr, sch, g] = await Promise.all([
       api<{ students: Student[] }>("/api/students"),
       api<{ results: ResultRow[] }>("/api/results"),
       api<{ forms: FormRow[] }>("/api/forms"),
       api<{ requests: CertRow[] }>("/api/cert-requests"),
       api<{ certificates?: AcmCert[] }>("/api/acm-certs?kind=mine"),
       api<{ notices: NoticeRow[] }>("/api/notices"),
+      api<{ pending?: unknown[]; mine_pending?: number }>("/api/profile-requests?mine=1"),
+      api<{ schema?: SchemaSection[] | null }>("/api/profile-schema?key=student"),
+      api<{ grievances: Grievance[] }>("/api/grievances"),
     ])
-    if (s.ok && s.data?.students?.[0]) setStudent(s.data.students[0])
-    else setStudent(null)
+
+    let nextStudent: Student | null = null
+    if (s.ok && s.data?.students?.[0]) nextStudent = s.data.students[0]
+    setStudent(nextStudent)
+
     if (r.ok && Array.isArray(r.data?.results)) setResults(r.data.results)
     else setResults([])
     if (f.ok && Array.isArray(f.data?.forms)) setForms(f.data.forms)
@@ -247,9 +486,29 @@ export default function StudentApp() {
     else setAcmCerts([])
     if (n.ok && Array.isArray(n.data?.notices)) setNotices(n.data.notices.slice(0, 20))
     else setNotices([])
+    if (g.ok && Array.isArray(g.data?.grievances)) setGrievances(g.data.grievances)
+    else setGrievances([])
+
+    const pending =
+      (pr.ok && typeof pr.data?.mine_pending === "number" && pr.data.mine_pending > 0) ||
+      (pr.ok && Array.isArray(pr.data?.pending) && pr.data.pending.length > 0)
+    setProfilePending(!!pending)
+
+    let nextSchema = DEFAULT_SCHEMA
+    if (sch.ok && Array.isArray(sch.data?.schema) && sch.data.schema.length) {
+      nextSchema = sch.data.schema.filter((sec) => sec && sec.visible !== false)
+    }
+    setSchema(nextSchema)
+
+    // refresh draft when not actively editing
+    setProfileDraft((prev) => {
+      if (profileEditing && Object.keys(prev).length) return prev
+      return buildDraftFromStudent(nextStudent, user, nextSchema)
+    })
+
     if (!s.ok && s.status === 401) setDataErr("Session expired. Please sign in again.")
     setDataLoading(false)
-  }, [])
+  }, [buildDraftFromStudent, profileEditing, user])
 
   useEffect(() => {
     let cancelled = false
@@ -258,10 +517,8 @@ export default function StudentApp() {
       if (cancelled) return
       if (me.ok && me.data?.user) {
         const u = me.data.user
-        if (u.role !== "student") {
-          // Staff should use the main CMS portal
-          setUser(null)
-        } else {
+        if (u.role !== "student") setUser(null)
+        else {
           setUser({
             ...u,
             requires_setup: !!(u.force_password_change || me.data.requires_setup || u.requires_setup),
@@ -276,9 +533,7 @@ export default function StudentApp() {
   }, [])
 
   useEffect(() => {
-    if (user && !requiresSetup) {
-      loadDashboard()
-    }
+    if (user && !requiresSetup) loadDashboard()
   }, [user, requiresSetup, loadDashboard])
 
   async function doLogin() {
@@ -308,7 +563,6 @@ export default function StudentApp() {
       ...u,
       requires_setup: !!(u.force_password_change || res.data.requires_setup || u.requires_setup),
     })
-    setSetupCurPw("")
     setTab("home")
   }
 
@@ -342,11 +596,7 @@ export default function StudentApp() {
       return
     }
     setSetupOk(res.data.message || "Setup complete")
-    setUser({
-      ...res.data.user,
-      requires_setup: false,
-      force_password_change: false,
-    })
+    setUser({ ...res.data.user, requires_setup: false, force_password_change: false })
     setSetupCurPw("")
     setSetupNewPw("")
     setSetupNewPw2("")
@@ -360,6 +610,9 @@ export default function StudentApp() {
     setForms([])
     setCerts([])
     setAcmCerts([])
+    setGrievances([])
+    setProfileEditing(false)
+    setActiveForm(null)
     setTab("home")
     setMoreView("menu")
   }
@@ -380,7 +633,7 @@ export default function StudentApp() {
       return
     }
     setPwBusy(true)
-    const res = await api<{ ok?: boolean }>("/api/auth/change-password", {
+    const res = await api("/api/auth/change-password", {
       method: "POST",
       body: JSON.stringify({ currentPassword: pwCur, newPassword: pwNew }),
     })
@@ -393,30 +646,259 @@ export default function StudentApp() {
     setPwCur("")
     setPwNew("")
     setPwNew2("")
-    if (user) {
-      setUser({ ...user, force_password_change: false, requires_setup: false })
+    if (user) setUser({ ...user, force_password_change: false, requires_setup: false })
+  }
+
+  function startProfileEdit() {
+    if (profileLocked) {
+      setProfileErr("Profile editing is locked by Admin. Contact the office.")
+      return
+    }
+    if (profilePending) {
+      setProfileErr("You already have a profile update pending approval.")
+      return
+    }
+    setProfileErr("")
+    setProfileMsg("")
+    setProfileDraft(buildDraftFromStudent(student, user, schema))
+    setProfilePhotoDraft(extractProfilePhoto(student?.extra || null))
+    setProfileEditing(true)
+  }
+
+  function cancelProfileEdit() {
+    setProfileEditing(false)
+    setProfileErr("")
+    setProfileMsg("")
+    setProfileDraft(buildDraftFromStudent(student, user, schema))
+    setProfilePhotoDraft(null)
+  }
+
+  async function onPhotoPick(file: File | null) {
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      setProfileErr("Please choose a JPG or PNG photo.")
+      return
+    }
+    try {
+      const dataUrl = await compressImage(file)
+      setProfilePhotoDraft(dataUrl)
+      setProfileErr("")
+    } catch {
+      setProfileErr("Could not process photo.")
     }
   }
 
-  const openForms = useMemo(
-    () => forms.filter((f) => String(f.status).toLowerCase() === "open"),
-    [forms],
-  )
-  const pendingForms = openForms.filter((f) => !f.submitted_by_me)
+  async function submitProfileUpdate() {
+    if (!user?.reg_no) {
+      setProfileErr("Register number missing on account.")
+      return
+    }
+    if (profileLocked) {
+      setProfileErr("Profile editing is locked by Admin.")
+      return
+    }
+    setProfileBusy(true)
+    setProfileErr("")
+    setProfileMsg("")
 
-  if (booting) {
-    return <div className="stu-loading">Loading student app…</div>
+    const prev = buildDraftFromStudent(student, user, schema)
+    const prevPhoto = extractProfilePhoto(student?.extra || null)
+    const changes: Record<string, string> = {}
+
+    for (const [k, v] of Object.entries(profileDraft)) {
+      if (isLockedField(k)) continue
+      const next = String(v ?? "").trim()
+      const before = String(prev[k] ?? "").trim()
+      if (next !== before) changes[k] = next
+    }
+    if (profilePhotoDraft && profilePhotoDraft !== prevPhoto) {
+      changes["Profile Photo"] = profilePhotoDraft
+    }
+
+    if (!Object.keys(changes).length) {
+      setProfileBusy(false)
+      setProfileErr("No changes to submit.")
+      return
+    }
+
+    const res = await api("/api/profile-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        targetType: "student",
+        targetId: user.reg_no,
+        changes,
+      }),
+    })
+    setProfileBusy(false)
+    if (!res.ok) {
+      setProfileErr(res.error || "Could not submit profile update")
+      return
+    }
+    setProfileMsg("Update submitted. Waiting for Admin/HOD/ACM approval.")
+    setProfileEditing(false)
+    setProfilePending(true)
+    setProfilePhotoDraft(null)
+    flash("Profile update submitted for approval")
+    await loadDashboard()
   }
 
-  // ---- Login ----
+  async function submitCertRequest() {
+    setCertErr("")
+    setCertOk("")
+    if (!certType) {
+      setCertErr("Select a certificate type.")
+      return
+    }
+    if (!certPurpose.trim() && !certReason.trim()) {
+      setCertErr("Enter purpose or reason for the certificate.")
+      return
+    }
+    setCertBusy(true)
+    const res = await api<{ request?: CertRow }>("/api/cert-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        certType,
+        regNo: user?.reg_no || student?.reg_no,
+        studentName: student?.name || user?.display_name,
+        branch: student?.dept || profileDraft.Branch || "",
+        purpose: certPurpose.trim(),
+        reason: certReason.trim(),
+        remarks: certNote.trim(),
+        details: {
+          Purpose: certPurpose.trim(),
+          Reason: certReason.trim(),
+          "Student remarks": certNote.trim(),
+        },
+      }),
+    })
+    setCertBusy(false)
+    if (!res.ok) {
+      setCertErr(res.error || "Could not submit request")
+      return
+    }
+    setCertOk(
+      `Request submitted${res.data?.request?.req_code ? ` (${res.data.request.req_code})` : ""}. Status: pending.`,
+    )
+    setCertPurpose("")
+    setCertReason("")
+    setCertNote("")
+    flash("Certificate request submitted")
+    await loadDashboard()
+    setMoreView("certs")
+  }
+
+  function openFormFill(form: FormRow) {
+    if (form.submitted_by_me) {
+      flash("You already submitted this form")
+      return
+    }
+    if (String(form.status).toLowerCase() !== "open") {
+      flash("This form is closed")
+      return
+    }
+    setActiveForm(form)
+    setFormAnswers({})
+    setFormErr("")
+    setTab("forms")
+    setMoreView("formFill")
+  }
+
+  async function submitFormResponse() {
+    if (!activeForm) return
+    const fields = parseFormFields(activeForm.fields)
+    for (const f of fields) {
+      const key = fieldLabel(f)
+      if (f.required && !String(formAnswers[key] || "").trim()) {
+        setFormErr(`Please answer: ${key}`)
+        return
+      }
+    }
+    setFormBusy(true)
+    setFormErr("")
+    const res = await api(`/api/forms/${activeForm.id}/responses`, {
+      method: "POST",
+      body: JSON.stringify({ answers: formAnswers }),
+    })
+    setFormBusy(false)
+    if (!res.ok) {
+      setFormErr(res.error || "Could not submit form")
+      return
+    }
+    flash("Form submitted successfully")
+    setActiveForm(null)
+    setMoreView("menu")
+    setTab("forms")
+    await loadDashboard()
+  }
+
+  async function submitGrievance() {
+    setGErr("")
+    setGOk("")
+    if (!gSubject.trim() || !gCategory) {
+      setGErr("Subject and category are required.")
+      return
+    }
+    if (!gDesc.trim()) {
+      setGErr("Please describe the issue.")
+      return
+    }
+    setGBusy(true)
+    const res = await api("/api/grievances", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: gSubject.trim(),
+        category: gCategory,
+        description: gDesc.trim(),
+        expectation: gExpect.trim(),
+      }),
+    })
+    setGBusy(false)
+    if (!res.ok) {
+      setGErr(res.error || "Could not submit grievance")
+      return
+    }
+    setGOk("Grievance submitted to Principal.")
+    setGSubject("")
+    setGDesc("")
+    setGExpect("")
+    flash("Grievance submitted")
+    await loadDashboard()
+  }
+
+  const title = useMemo(() => {
+    if (tab === "home") return "Dashboard"
+    if (tab === "profile") return profileEditing ? "Edit Profile" : "My Profile"
+    if (tab === "results") return "Results"
+    if (tab === "forms") {
+      if (moreView === "formFill" && activeForm) return activeForm.title
+      return "Forms"
+    }
+    if (tab === "more") {
+      if (moreView === "certs") return "Certificates"
+      if (moreView === "certRequest") return "Request Certificate"
+      if (moreView === "notices") return "Notices"
+      if (moreView === "attendance") return "Attendance"
+      if (moreView === "password") return "Change Password"
+      if (moreView === "grievances") return "Grievances"
+      return "More"
+    }
+    return "Student"
+  }, [tab, moreView, profileEditing, activeForm])
+
+  if (booting) return <div className="stu-loading">Loading student app…</div>
+
   if (!user) {
     return (
       <div className="stu-auth">
         <div className="stu-auth-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/college-logo.png" alt="GPT Hubli" onError={(e) => {
-            ;(e.target as HTMLImageElement).src = "/images/gpt-logo.png"
-          }} />
+          <img
+            src="/images/college-logo.png"
+            alt="GPT Hubli"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = "/images/gpt-logo.png"
+            }}
+          />
           <div>
             <h1>Government Polytechnic Hubli</h1>
             <p>Student mobile app</p>
@@ -425,8 +907,8 @@ export default function StudentApp() {
         <div className="stu-auth-card">
           <h2>Student sign in</h2>
           <p className="sub">
-            Use your <strong>Register Number</strong> and password. First-time login uses the temporary password
-            given by the college — then you must set your own email and password.
+            Use your <strong>Register Number</strong> and password. Request certificates, update profile, and submit
+            forms from your phone.
           </p>
           {loginErr ? <div className="stu-msg stu-msg-err">{loginErr}</div> : null}
           <div className="stu-field">
@@ -444,7 +926,6 @@ export default function StudentApp() {
             <input
               type="password"
               autoComplete="current-password"
-              placeholder="Enter password"
               value={loginPw}
               onChange={(e) => setLoginPw(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && doLogin()}
@@ -455,74 +936,54 @@ export default function StudentApp() {
           </button>
         </div>
         <div className="stu-auth-foot">
-          Staff / Admin? Use the{" "}
-          <a href="/">main portal</a>
+          Staff / Admin? Use the <a href="/">main portal</a>
         </div>
       </div>
     )
   }
 
-  // ---- First-time setup (OTP-less) ----
   if (requiresSetup) {
     return (
       <div className="stu-auth">
         <div className="stu-auth-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/college-logo.png" alt="GPT Hubli" onError={(e) => {
-            ;(e.target as HTMLImageElement).src = "/images/gpt-logo.png"
-          }} />
+          <img
+            src="/images/college-logo.png"
+            alt="GPT Hubli"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = "/images/gpt-logo.png"
+            }}
+          />
           <div>
             <h1>Complete your account</h1>
-            <p>{user.display_name} · {user.reg_no || "Student"}</p>
+            <p>
+              {user.display_name} · {user.reg_no || "Student"}
+            </p>
           </div>
         </div>
         <div className="stu-auth-card">
           <h2>Update email &amp; password</h2>
-          <p className="sub">
-            First login is complete. You <strong>must</strong> set a personal email and a new password before using
-            the app. Use a real email you can access.
-          </p>
+          <p className="sub">You must set a personal email and new password before using the app.</p>
           <div className="stu-msg stu-msg-info">
-            Temporary / current login email on file: <strong>{user.email}</strong>
+            Current login email on file: <strong>{user.email}</strong>
           </div>
           {setupErr ? <div className="stu-msg stu-msg-err">{setupErr}</div> : null}
           {setupOk ? <div className="stu-msg stu-msg-ok">{setupOk}</div> : null}
           <div className="stu-field">
             <label>Your email ID</label>
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={setupEmail}
-              onChange={(e) => setSetupEmail(e.target.value)}
-            />
+            <input type="email" value={setupEmail} onChange={(e) => setSetupEmail(e.target.value)} />
           </div>
           <div className="stu-field">
             <label>Current (temporary) password</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={setupCurPw}
-              onChange={(e) => setSetupCurPw(e.target.value)}
-            />
+            <input type="password" value={setupCurPw} onChange={(e) => setSetupCurPw(e.target.value)} />
           </div>
           <div className="stu-field">
-            <label>New password (min 8 characters)</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={setupNewPw}
-              onChange={(e) => setSetupNewPw(e.target.value)}
-            />
+            <label>New password (min 8)</label>
+            <input type="password" value={setupNewPw} onChange={(e) => setSetupNewPw(e.target.value)} />
           </div>
           <div className="stu-field">
             <label>Confirm new password</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={setupNewPw2}
-              onChange={(e) => setSetupNewPw2(e.target.value)}
-            />
+            <input type="password" value={setupNewPw2} onChange={(e) => setSetupNewPw2(e.target.value)} />
           </div>
           <button type="button" className="stu-btn stu-btn-primary" disabled={setupBusy} onClick={doSetup}>
             {setupBusy ? "Saving…" : "Save & continue"}
@@ -537,28 +998,11 @@ export default function StudentApp() {
     )
   }
 
-  // ---- Main shell ----
   return (
     <div className="stu-app">
       <header className="stu-topbar">
         <div>
-          <h1>
-            {tab === "home" && "Dashboard"}
-            {tab === "profile" && "My Profile"}
-            {tab === "results" && "Results"}
-            {tab === "forms" && "Forms"}
-            {tab === "more" && (
-              moreView === "menu"
-                ? "More"
-                : moreView === "certs"
-                  ? "Certificates"
-                  : moreView === "notices"
-                    ? "Notices"
-                    : moreView === "password"
-                      ? "Change Password"
-                      : "Attendance"
-            )}
-          </h1>
+          <h1>{title}</h1>
           <div className="meta">
             {user.display_name}
             {user.reg_no ? ` · ${user.reg_no}` : ""}
@@ -575,11 +1019,12 @@ export default function StudentApp() {
       </header>
 
       <main className="stu-main">
+        {toast ? <div className="stu-msg stu-msg-ok">{toast}</div> : null}
         {dataErr ? <div className="stu-msg stu-msg-err">{dataErr}</div> : null}
 
+        {/* ---------- HOME ---------- */}
         {tab === "home" && (
           <>
-            {/* Notify only when a requested certificate is ready */}
             {readyCerts.length > 0 ? (
               <div className="stu-alert-ready" role="status">
                 <h3>🔔 Certificate ready for collection</h3>
@@ -587,13 +1032,13 @@ export default function StudentApp() {
                   {readyCerts.map((c) => (
                     <li key={c.id}>
                       <strong>{c.cert_type || "Certificate"}</strong>
-                      {c.req_code ? ` · ${c.req_code}` : ""} — status: {c.status}
+                      {c.req_code ? ` · ${c.req_code}` : ""}
                     </li>
                   ))}
                 </ul>
                 <button
                   type="button"
-                  className="stu-btn stu-btn-primary"
+                  className="stu-btn stu-btn-primary stu-btn-sm"
                   style={{ marginTop: 10 }}
                   onClick={() => {
                     setTab("more")
@@ -605,62 +1050,68 @@ export default function StudentApp() {
               </div>
             ) : null}
 
+            {profilePending ? (
+              <div className="stu-msg stu-msg-info">⏳ Profile update is pending Admin/HOD approval.</div>
+            ) : null}
+
             <div className="stu-kpis">
               <div className="stu-kpi">
                 <div className="label">CGPA</div>
                 <div className="value">{student?.cgpa || "—"}</div>
-                <div className="hint">From exam records</div>
               </div>
               <div className="stu-kpi">
                 <div className="label">Attendance</div>
                 <div className="value">{student?.att || "—"}</div>
-                <div className="hint">Summary %</div>
               </div>
               <div className="stu-kpi">
                 <div className="label">Open forms</div>
                 <div className="value">{pendingForms.length}</div>
-                <div className="hint">{pendingForms.length ? "Action needed" : "All clear"}</div>
               </div>
               <div className="stu-kpi">
                 <div className="label">Ready certs</div>
                 <div className="value">{readyCerts.length}</div>
-                <div className="hint">{readyCerts.length ? "Collect now" : "None ready"}</div>
               </div>
             </div>
 
-            <div className="stu-section-title">Quick access</div>
+            <div className="stu-section-title">Do something</div>
             <div className="stu-quick" style={{ marginBottom: 14 }}>
-              <button type="button" onClick={() => setTab("results")}>
-                <span className="ico">📊</span>
-                <span className="t">Results</span>
-                <span className="d">{results.length} semester record(s)</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("more")
+                  setMoreView("certRequest")
+                }}
+              >
+                <span className="ico">📄</span>
+                <span className="t">Request certificate</span>
+                <span className="d">Study, TC, NOC, PDC…</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("profile")
+                  if (!profilePending && !profileLocked) startProfileEdit()
+                }}
+              >
+                <span className="ico">✏️</span>
+                <span className="t">Update profile</span>
+                <span className="d">{profilePending ? "Pending approval" : "Send for approval"}</span>
               </button>
               <button type="button" onClick={() => setTab("forms")}>
                 <span className="ico">📝</span>
-                <span className="t">Forms</span>
-                <span className="d">{pendingForms.length} pending</span>
+                <span className="t">Submit forms</span>
+                <span className="d">{pendingForms.length} waiting</span>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setTab("more")
-                  setMoreView("certs")
+                  setMoreView("grievances")
                 }}
               >
-                <span className="ico">📜</span>
-                <span className="t">Certificates</span>
-                <span className="d">{certs.length + acmCerts.length} item(s)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("more")
-                  setMoreView("notices")
-                }}
-              >
-                <span className="ico">📢</span>
-                <span className="t">Notices</span>
-                <span className="d">{notices.length} recent</span>
+                <span className="ico">📨</span>
+                <span className="t">Grievance</span>
+                <span className="d">Write to Principal</span>
               </button>
             </div>
 
@@ -670,93 +1121,227 @@ export default function StudentApp() {
                 <div className="stu-empty">Loading…</div>
               ) : (
                 <>
-                  <div className="stu-row"><span className="k">Name</span><span className="v">{student?.name || user.display_name}</span></div>
-                  <div className="stu-row"><span className="k">Reg. No.</span><span className="v">{student?.reg_no || user.reg_no || "—"}</span></div>
-                  <div className="stu-row"><span className="k">Branch</span><span className="v">{student?.dept || "—"}</span></div>
-                  <div className="stu-row"><span className="k">Year</span><span className="v">{student?.year || "—"}</span></div>
-                  <div className="stu-row"><span className="k">Email</span><span className="v">{user.email}</span></div>
+                  <div className="stu-row">
+                    <span className="k">Name</span>
+                    <span className="v">{student?.name || user.display_name}</span>
+                  </div>
+                  <div className="stu-row">
+                    <span className="k">Reg. No.</span>
+                    <span className="v">{student?.reg_no || user.reg_no || "—"}</span>
+                  </div>
+                  <div className="stu-row">
+                    <span className="k">Branch</span>
+                    <span className="v">{student?.dept || "—"}</span>
+                  </div>
+                  <div className="stu-row">
+                    <span className="k">Year</span>
+                    <span className="v">{student?.year || "—"}</span>
+                  </div>
+                  <div className="stu-row">
+                    <span className="k">Email</span>
+                    <span className="v">{user.email}</span>
+                  </div>
                 </>
               )}
-            </div>
-
-            {notices[0] ? (
-              <div className="stu-card">
-                <h3>Latest notice</h3>
-                <div className="stu-list-item">
-                  <div>
-                    <div className="title">{notices[0].title}</div>
-                    <div className="desc">{notices[0].body || "—"}</div>
-                    <div className="desc">{fmtDate(notices[0].created_at)}</div>
-                  </div>
-                  <span className={`stu-badge ${statusBadge(notices[0].priority)}`}>
-                    {notices[0].priority || "notice"}
-                  </span>
-                </div>
+              <div className="stu-actions">
+                <button type="button" className="stu-btn stu-btn-primary stu-btn-sm" onClick={() => setTab("profile")}>
+                  Open profile
+                </button>
+                <button
+                  type="button"
+                  className="stu-btn stu-btn-ghost stu-btn-sm"
+                  onClick={() => loadDashboard()}
+                >
+                  Refresh
+                </button>
               </div>
-            ) : null}
+            </div>
           </>
         )}
 
+        {/* ---------- PROFILE ---------- */}
         {tab === "profile" && (
           <div className="stu-card">
-            <h3>My Profile</h3>
-            <div className="stu-photo-wrap">
+            {profileErr ? <div className="stu-msg stu-msg-err">{profileErr}</div> : null}
+            {profileMsg ? <div className="stu-msg stu-msg-ok">{profileMsg}</div> : null}
+            {profilePending ? (
+              <div className="stu-msg stu-msg-info">Profile is view-only while an update is pending approval.</div>
+            ) : null}
+            {profileLocked ? (
+              <div className="stu-msg stu-msg-info">Editing locked by Admin. Contact the office for changes.</div>
+            ) : null}
+
+            <div className="stu-photo-edit">
               {profilePhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className="stu-photo" src={profilePhoto} alt="Profile" />
               ) : (
                 <div className="stu-photo-ph">{initials(student?.name || user.display_name)}</div>
               )}
-              <div style={{ fontSize: "0.78rem", color: "var(--stu-muted)" }}>
-                {profilePhoto ? "Profile photo" : "No photo on file"}
-              </div>
+              {profileEditing ? (
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={(e) => onPhotoPick(e.target.files?.[0] || null)}
+                />
+              ) : null}
             </div>
-            <div className="stu-row"><span className="k">Name</span><span className="v">{student?.name || user.display_name}</span></div>
-            <div className="stu-row"><span className="k">Register No.</span><span className="v">{student?.reg_no || user.reg_no || "—"}</span></div>
-            <div className="stu-row"><span className="k">Branch / Dept</span><span className="v">{student?.dept || "—"}</span></div>
-            <div className="stu-row"><span className="k">Year</span><span className="v">{student?.year || "—"}</span></div>
-            <div className="stu-row"><span className="k">Father</span><span className="v">{student?.father || "—"}</span></div>
-            <div className="stu-row"><span className="k">CGPA</span><span className="v">{student?.cgpa || "—"}</span></div>
-            <div className="stu-row"><span className="k">Attendance</span><span className="v">{student?.att || "—"}</span></div>
-            <div className="stu-row"><span className="k">Email</span><span className="v">{user.email}</span></div>
-            {student?.extra && Object.keys(student.extra).filter((k) => k !== "profile_edit_locked").length > 0 ? (
+
+            {!profileEditing ? (
               <>
-                <h3 style={{ marginTop: 16 }}>Additional fields</h3>
-                {Object.entries(student.extra)
-                  .filter(([k, v]) => {
-                    if (k === "profile_edit_locked") return false
-                    // Never dump base64 photo as text
-                    if (isPhotoKey(k) || isDataImage(v)) return false
-                    return true
-                  })
-                  .slice(0, 40)
-                  .map(([k, v]) => (
-                    <div className="stu-row" key={k}>
-                      <span className="k">{k}</span>
-                      <span className="v">{formatFieldValue(v)}</span>
-                    </div>
-                  ))}
+                <div className="stu-row">
+                  <span className="k">Name</span>
+                  <span className="v">{student?.name || user.display_name}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Register No.</span>
+                  <span className="v">{student?.reg_no || user.reg_no || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Branch</span>
+                  <span className="v">{student?.dept || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Year</span>
+                  <span className="v">{student?.year || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Father</span>
+                  <span className="v">{student?.father || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">CGPA</span>
+                  <span className="v">{student?.cgpa || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Attendance</span>
+                  <span className="v">{student?.att || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Email</span>
+                  <span className="v">{user.email}</span>
+                </div>
+                {student?.extra
+                  ? Object.entries(student.extra)
+                      .filter(([k, v]) => k !== "profile_edit_locked" && !isPhotoKey(k) && !isDataImage(v))
+                      .slice(0, 30)
+                      .map(([k, v]) => (
+                        <div className="stu-row" key={k}>
+                          <span className="k">{k}</span>
+                          <span className="v">{v == null || String(v).trim() === "" ? "—" : String(v)}</span>
+                        </div>
+                      ))
+                  : null}
+                <div className="stu-actions">
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-primary"
+                    disabled={profilePending || profileLocked}
+                    onClick={startProfileEdit}
+                  >
+                    ✏️ Edit &amp; request update
+                  </button>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-ghost"
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("password")
+                    }}
+                  >
+                    🔐 Password
+                  </button>
+                </div>
               </>
             ) : (
-              <p className="stu-empty" style={{ padding: "12px 0 0" }}>
-                Full My Profile fields appear after you submit them on the web portal (or when staff imports data).
-              </p>
+              <>
+                {schema.map((sec, si) => (
+                  <div className="stu-sec-card" key={sec.id || sec.title || si}>
+                    <h4>{sec.title || `Section ${si + 1}`}</h4>
+                    {(sec.fields || []).map((f) => {
+                      const label = f.label
+                      if (!label || isPhotoKey(label)) return null
+                      const locked = isLockedField(label) || f.editable === false
+                      // Allow editing empty fields even if schema says not editable (first fill)
+                      const canEdit = !isLockedField(label) && (f.editable !== false || !String(profileDraft[label] || "").trim())
+                      const type = String(f.type || "text").toLowerCase()
+                      const options =
+                        Array.isArray(f.options) && f.options.length
+                          ? f.options
+                          : label === "Branch"
+                            ? BRANCH_OPTIONS
+                            : label === "Current Year"
+                              ? YEAR_OPTIONS
+                              : []
+                      return (
+                        <div className="stu-field" key={label}>
+                          <label>
+                            {label}
+                            {f.required ? " *" : ""}
+                          </label>
+                          {type === "select" || options.length ? (
+                            <select
+                              disabled={!canEdit}
+                              value={profileDraft[label] || ""}
+                              onChange={(e) =>
+                                setProfileDraft((d) => ({ ...d, [label]: e.target.value }))
+                              }
+                            >
+                              <option value="">Select…</option>
+                              {options.map((o) => (
+                                <option key={o} value={o}>
+                                  {o}
+                                </option>
+                              ))}
+                            </select>
+                          ) : type === "textarea" ? (
+                            <textarea
+                              disabled={!canEdit}
+                              value={profileDraft[label] || ""}
+                              onChange={(e) =>
+                                setProfileDraft((d) => ({ ...d, [label]: e.target.value }))
+                              }
+                            />
+                          ) : (
+                            <input
+                              disabled={!canEdit}
+                              value={profileDraft[label] || ""}
+                              onChange={(e) =>
+                                setProfileDraft((d) => ({ ...d, [label]: e.target.value }))
+                              }
+                            />
+                          )}
+                          {locked && isLockedField(label) ? (
+                            <div style={{ fontSize: "0.72rem", color: "var(--stu-muted)", marginTop: 4 }}>
+                              Cannot change register number
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+                <div className="stu-sticky-bar">
+                  <div className="stu-actions" style={{ marginTop: 0 }}>
+                    <button
+                      type="button"
+                      className="stu-btn stu-btn-primary"
+                      disabled={profileBusy}
+                      onClick={submitProfileUpdate}
+                    >
+                      {profileBusy ? "Submitting…" : "Submit for approval"}
+                    </button>
+                    <button type="button" className="stu-btn stu-btn-ghost" onClick={cancelProfileEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
-            <div style={{ marginTop: 14 }}>
-              <button
-                type="button"
-                className="stu-btn stu-btn-ghost"
-                onClick={() => {
-                  setTab("more")
-                  setMoreView("password")
-                }}
-              >
-                🔐 Change password
-              </button>
-            </div>
           </div>
         )}
 
+        {/* ---------- RESULTS ---------- */}
         {tab === "results" && (
           <div className="stu-card">
             <h3>Semester results</h3>
@@ -807,22 +1392,32 @@ export default function StudentApp() {
           </div>
         )}
 
-        {tab === "forms" && (
+        {/* ---------- FORMS LIST ---------- */}
+        {tab === "forms" && moreView !== "formFill" && (
           <div className="stu-card">
             <h3>Submit forms</h3>
+            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: "var(--stu-muted)" }}>
+              Tap a form to fill and submit. Already submitted forms stay marked Done.
+            </p>
             {!forms.length ? (
               <div className="stu-empty">No forms available.</div>
             ) : (
               forms.map((f) => (
                 <div className="stu-list-item" key={f.id}>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div className="title">{f.title}</div>
                     <div className="desc">{f.description || "No description"}</div>
-                    <div className="desc">
-                      {f.submitted_by_me ? "You already submitted this form" : "Not submitted yet"}
-                      {" · "}
-                      {fmtDate(f.created_at)}
-                    </div>
+                    <div className="desc">{fmtDate(f.created_at)}</div>
+                    {!f.submitted_by_me && String(f.status).toLowerCase() === "open" ? (
+                      <button
+                        type="button"
+                        className="stu-link-btn"
+                        style={{ marginTop: 6 }}
+                        onClick={() => openFormFill(f)}
+                      >
+                        Fill &amp; submit →
+                      </button>
+                    ) : null}
                   </div>
                   <span className={`stu-badge ${statusBadge(f.submitted_by_me ? "ready" : f.status)}`}>
                     {f.submitted_by_me ? "Done" : f.status}
@@ -830,100 +1425,246 @@ export default function StudentApp() {
                 </div>
               ))
             )}
-            <p className="stu-empty" style={{ paddingTop: 8 }}>
-              To fill multi-field forms, use the full portal on desktop if a form needs complex answers. Status here is live from the server.
-            </p>
           </div>
         )}
 
+        {/* ---------- FORM FILL ---------- */}
+        {tab === "forms" && moreView === "formFill" && activeForm && (
+          <div className="stu-card">
+            <button
+              type="button"
+              className="stu-btn stu-btn-ghost stu-btn-sm"
+              style={{ marginBottom: 12 }}
+              onClick={() => {
+                setActiveForm(null)
+                setMoreView("menu")
+                setTab("forms")
+              }}
+            >
+              ← Back to forms
+            </button>
+            <h3>{activeForm.title}</h3>
+            {activeForm.description ? (
+              <p style={{ fontSize: "0.84rem", color: "var(--stu-muted)" }}>{activeForm.description}</p>
+            ) : null}
+            {formErr ? <div className="stu-msg stu-msg-err">{formErr}</div> : null}
+            {parseFormFields(activeForm.fields).map((f, i) => {
+              const key = fieldLabel(f)
+              const type = String(f.type || "text").toLowerCase()
+              const opts = Array.isArray(f.options) ? f.options : []
+              return (
+                <div className="stu-field" key={f.id || key + i}>
+                  <label>
+                    {key}
+                    {f.required ? " *" : ""}
+                  </label>
+                  {type === "textarea" || type === "paragraph" ? (
+                    <textarea
+                      value={formAnswers[key] || ""}
+                      onChange={(e) => setFormAnswers((a) => ({ ...a, [key]: e.target.value }))}
+                    />
+                  ) : type === "select" || type === "dropdown" ? (
+                    <select
+                      value={formAnswers[key] || ""}
+                      onChange={(e) => setFormAnswers((a) => ({ ...a, [key]: e.target.value }))}
+                    >
+                      <option value="">Select…</option>
+                      {opts.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  ) : type === "radio" ? (
+                    <div className="stu-chip-row">
+                      {opts.map((o) => (
+                        <button
+                          type="button"
+                          key={o}
+                          className={`stu-chip ${formAnswers[key] === o ? "act" : ""}`}
+                          onClick={() => setFormAnswers((a) => ({ ...a, [key]: o }))}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <input
+                      type={type === "email" ? "email" : type === "number" ? "number" : "text"}
+                      value={formAnswers[key] || ""}
+                      onChange={(e) => setFormAnswers((a) => ({ ...a, [key]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              )
+            })}
+            {!parseFormFields(activeForm.fields).length ? (
+              <div className="stu-empty">This form has no questions configured.</div>
+            ) : (
+              <div className="stu-sticky-bar">
+                <button
+                  type="button"
+                  className="stu-btn stu-btn-primary"
+                  disabled={formBusy}
+                  onClick={submitFormResponse}
+                >
+                  {formBusy ? "Submitting…" : "Submit form"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---------- MORE MENU ---------- */}
         {tab === "more" && moreView === "menu" && (
           <>
             {readyCerts.length > 0 ? (
-              <div className="stu-alert-ready" role="status">
+              <div className="stu-alert-ready">
                 <h3>🔔 {readyCerts.length} certificate(s) ready</h3>
-                <p style={{ margin: "0 0 8px", fontSize: "0.84rem" }}>
-                  Open Certificates to see details for collection.
-                </p>
-                <button type="button" className="stu-btn stu-btn-primary" onClick={() => setMoreView("certs")}>
+                <button type="button" className="stu-btn stu-btn-primary stu-btn-sm" onClick={() => setMoreView("certs")}>
                   Open certificates
                 </button>
               </div>
             ) : null}
             <div className="stu-quick">
-              <button type="button" onClick={() => setMoreView("attendance")}>
-                <span className="ico">📅</span>
-                <span className="t">Attendance</span>
-                <span className="d">Summary from records</span>
+              <button type="button" onClick={() => setMoreView("certRequest")}>
+                <span className="ico">➕</span>
+                <span className="t">Request certificate</span>
+                <span className="d">New ACM / Exam request</span>
               </button>
               <button type="button" onClick={() => setMoreView("certs")}>
                 <span className="ico">📜</span>
-                <span className="t">Certificates</span>
-                <span className="d">
-                  {readyCerts.length ? `${readyCerts.length} ready` : `${certs.length} request(s)`}
-                </span>
+                <span className="t">My certificates</span>
+                <span className="d">{readyCerts.length ? `${readyCerts.length} ready` : `${certs.length} request(s)`}</span>
               </button>
-              <button type="button" onClick={() => setMoreView("password")}>
-                <span className="ico">🔐</span>
-                <span className="t">Change password</span>
-                <span className="d">Update login password</span>
+              <button type="button" onClick={() => setMoreView("grievances")}>
+                <span className="ico">📨</span>
+                <span className="t">Grievances</span>
+                <span className="d">{grievances.length} filed</span>
+              </button>
+              <button type="button" onClick={() => setMoreView("attendance")}>
+                <span className="ico">📅</span>
+                <span className="t">Attendance</span>
+                <span className="d">{student?.att || "Summary"}</span>
               </button>
               <button type="button" onClick={() => setMoreView("notices")}>
                 <span className="ico">📢</span>
                 <span className="t">Notices</span>
-                <span className="d">College announcements</span>
+                <span className="d">{notices.length} recent</span>
               </button>
-              <button type="button" onClick={() => loadDashboard()}>
-                <span className="ico">🔄</span>
-                <span className="t">Refresh data</span>
-                <span className="d">Pull latest from server</span>
+              <button type="button" onClick={() => setMoreView("password")}>
+                <span className="ico">🔐</span>
+                <span className="t">Change password</span>
+                <span className="d">Account security</span>
               </button>
             </div>
             <div className="stu-card" style={{ marginTop: 12 }}>
               <h3>Account</h3>
-              <div className="stu-row"><span className="k">Signed in as</span><span className="v">{user.email}</span></div>
-              <div className="stu-row"><span className="k">Register No.</span><span className="v">{user.reg_no || "—"}</span></div>
-              <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                <button type="button" className="stu-btn stu-btn-ghost" onClick={() => setMoreView("password")}>
-                  🔐 Change password
+              <div className="stu-row">
+                <span className="k">Email</span>
+                <span className="v">{user.email}</span>
+              </div>
+              <div className="stu-row">
+                <span className="k">Register No.</span>
+                <span className="v">{user.reg_no || "—"}</span>
+              </div>
+              <div className="stu-actions">
+                <button type="button" className="stu-btn stu-btn-ghost" onClick={() => loadDashboard()}>
+                  Refresh data
                 </button>
                 <button type="button" className="stu-btn stu-btn-danger" onClick={doLogout}>
                   Sign out
                 </button>
               </div>
-              <p className="stu-empty" style={{ paddingTop: 12 }}>
-                Full staff portal: <a href="/">open main site</a>
-              </p>
             </div>
           </>
         )}
 
-        {tab === "more" && moreView === "attendance" && (
+        {/* ---------- CERT REQUEST ---------- */}
+        {tab === "more" && moreView === "certRequest" && (
           <div className="stu-card">
-            <button type="button" className="stu-btn stu-btn-ghost" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
               ← Back
             </button>
-            <h3>Attendance summary</h3>
-            <div className="stu-row"><span className="k">Overall</span><span className="v">{student?.att || "—"}</span></div>
-            <p className="stu-empty" style={{ paddingTop: 12 }}>
-              Detailed day-wise attendance is managed by faculty. This screen shows the official summary on your student record.
+            <h3>Request a certificate</h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--stu-muted)", marginTop: 0 }}>
+              Request goes to ACM (Study/TC/NOC) or Exam Cell (PDC). You will be notified in the app when status is{" "}
+              <strong>ready</strong>.
             </p>
+            {certErr ? <div className="stu-msg stu-msg-err">{certErr}</div> : null}
+            {certOk ? <div className="stu-msg stu-msg-ok">{certOk}</div> : null}
+            <div className="stu-field">
+              <label>Certificate type</label>
+              <div className="stu-chip-row">
+                {CERT_TYPES.map((t) => (
+                  <button
+                    type="button"
+                    key={t}
+                    className={`stu-chip ${certType === t ? "act" : ""}`}
+                    onClick={() => setCertType(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="stu-field">
+              <label>Purpose *</label>
+              <input
+                placeholder="e.g. Higher studies / Passport / Job"
+                value={certPurpose}
+                onChange={(e) => setCertPurpose(e.target.value)}
+              />
+            </div>
+            <div className="stu-field">
+              <label>Reason / details</label>
+              <textarea
+                placeholder="Any extra details for ACM / Exam Cell"
+                value={certReason}
+                onChange={(e) => setCertReason(e.target.value)}
+              />
+            </div>
+            <div className="stu-field">
+              <label>Note (optional)</label>
+              <input value={certNote} onChange={(e) => setCertNote(e.target.value)} />
+            </div>
+            <div className="stu-row">
+              <span className="k">Name</span>
+              <span className="v">{student?.name || user.display_name}</span>
+            </div>
+            <div className="stu-row">
+              <span className="k">Reg. No.</span>
+              <span className="v">{user.reg_no || "—"}</span>
+            </div>
+            <div className="stu-row">
+              <span className="k">Branch</span>
+              <span className="v">{student?.dept || "—"}</span>
+            </div>
+            <button type="button" className="stu-btn stu-btn-primary" disabled={certBusy} onClick={submitCertRequest}>
+              {certBusy ? "Submitting…" : "Submit request"}
+            </button>
           </div>
         )}
 
+        {/* ---------- CERT LIST ---------- */}
         {tab === "more" && moreView === "certs" && (
           <div className="stu-card">
-            <button type="button" className="stu-btn stu-btn-ghost" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
               ← Back
             </button>
-            <h3>My certificate requests</h3>
+            <div className="stu-actions" style={{ marginTop: 0, marginBottom: 12 }}>
+              <button type="button" className="stu-btn stu-btn-primary stu-btn-sm" onClick={() => setMoreView("certRequest")}>
+                ➕ New request
+              </button>
+            </div>
+            <h3>My requests</h3>
             {readyCerts.length > 0 ? (
               <div className="stu-alert-ready" style={{ marginBottom: 12 }}>
                 <h3>Ready for collection</h3>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {readyCerts.map((c) => (
-                    <li key={`ready-${c.id}`}>
-                      <strong>{c.cert_type || "Certificate"}</strong>
-                      {c.req_code ? ` · ${c.req_code}` : ""}
+                    <li key={`r-${c.id}`}>
+                      {c.cert_type} {c.req_code ? `· ${c.req_code}` : ""}
                     </li>
                   ))}
                 </ul>
@@ -938,9 +1679,9 @@ export default function StudentApp() {
                     <div className="title">{c.cert_type || "Certificate"}</div>
                     <div className="desc">
                       {c.req_code || `#${c.id}`} · {fmtDate(c.created_at)}
-                      {c.remarks ? ` · ${c.remarks}` : ""}
-                      {isCertReady(c.status) ? " · Collect from office / ACM" : ""}
+                      {c.routed_to ? ` · ${c.routed_to}` : ""}
                     </div>
+                    {c.remarks ? <div className="desc">{c.remarks}</div> : null}
                   </div>
                   <span className={`stu-badge ${statusBadge(c.status)}`}>{c.status || "pending"}</span>
                 </div>
@@ -966,9 +1707,81 @@ export default function StudentApp() {
           </div>
         )}
 
+        {/* ---------- GRIEVANCES ---------- */}
+        {tab === "more" && moreView === "grievances" && (
+          <div className="stu-card">
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+              ← Back
+            </button>
+            <h3>Submit grievance</h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--stu-muted)" }}>Only the Principal can view this.</p>
+            {gErr ? <div className="stu-msg stu-msg-err">{gErr}</div> : null}
+            {gOk ? <div className="stu-msg stu-msg-ok">{gOk}</div> : null}
+            <div className="stu-field">
+              <label>Subject *</label>
+              <input value={gSubject} onChange={(e) => setGSubject(e.target.value)} />
+            </div>
+            <div className="stu-field">
+              <label>Category *</label>
+              <select value={gCategory} onChange={(e) => setGCategory(e.target.value)}>
+                {GRIEVANCE_CATS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="stu-field">
+              <label>Description *</label>
+              <textarea value={gDesc} onChange={(e) => setGDesc(e.target.value)} />
+            </div>
+            <div className="stu-field">
+              <label>Expected resolution</label>
+              <input value={gExpect} onChange={(e) => setGExpect(e.target.value)} />
+            </div>
+            <button type="button" className="stu-btn stu-btn-primary" disabled={gBusy} onClick={submitGrievance}>
+              {gBusy ? "Submitting…" : "Submit grievance"}
+            </button>
+            <h3 style={{ marginTop: 20 }}>My grievances</h3>
+            {!grievances.length ? (
+              <div className="stu-empty">None yet.</div>
+            ) : (
+              grievances.map((g) => (
+                <div className="stu-list-item" key={g.id}>
+                  <div>
+                    <div className="title">{g.subject}</div>
+                    <div className="desc">
+                      {g.category} · {fmtDate(g.created_at)}
+                    </div>
+                    {g.description ? <div className="desc">{g.description}</div> : null}
+                    {g.resolution ? <div className="desc">Resolution: {g.resolution}</div> : null}
+                  </div>
+                  <span className={`stu-badge ${statusBadge(g.status)}`}>{g.status || "open"}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {tab === "more" && moreView === "attendance" && (
+          <div className="stu-card">
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+              ← Back
+            </button>
+            <h3>Attendance summary</h3>
+            <div className="stu-row">
+              <span className="k">Overall</span>
+              <span className="v">{student?.att || "—"}</span>
+            </div>
+            <p className="stu-empty" style={{ paddingTop: 12 }}>
+              Day-wise attendance is marked by faculty. This shows your official summary.
+            </p>
+          </div>
+        )}
+
         {tab === "more" && moreView === "notices" && (
           <div className="stu-card">
-            <button type="button" className="stu-btn stu-btn-ghost" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
               ← Back
             </button>
             <h3>College notices</h3>
@@ -991,41 +1804,23 @@ export default function StudentApp() {
 
         {tab === "more" && moreView === "password" && (
           <div className="stu-card">
-            <button type="button" className="stu-btn stu-btn-ghost" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
               ← Back
             </button>
             <h3>Change password</h3>
-            <p className="sub" style={{ margin: "0 0 14px", fontSize: "0.84rem", color: "var(--stu-muted)" }}>
-              Update your login password. Minimum 8 characters.
-            </p>
             {pwErr ? <div className="stu-msg stu-msg-err">{pwErr}</div> : null}
             {pwOk ? <div className="stu-msg stu-msg-ok">{pwOk}</div> : null}
             <div className="stu-field">
               <label>Current password</label>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={pwCur}
-                onChange={(e) => setPwCur(e.target.value)}
-              />
+              <input type="password" value={pwCur} onChange={(e) => setPwCur(e.target.value)} />
             </div>
             <div className="stu-field">
               <label>New password</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={pwNew}
-                onChange={(e) => setPwNew(e.target.value)}
-              />
+              <input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} />
             </div>
             <div className="stu-field">
               <label>Confirm new password</label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={pwNew2}
-                onChange={(e) => setPwNew2(e.target.value)}
-              />
+              <input type="password" value={pwNew2} onChange={(e) => setPwNew2(e.target.value)} />
             </div>
             <button type="button" className="stu-btn stu-btn-primary" disabled={pwBusy} onClick={doChangePassword}>
               {pwBusy ? "Updating…" : "Update password"}
@@ -1035,22 +1830,52 @@ export default function StudentApp() {
       </main>
 
       <nav className="stu-nav" aria-label="Student navigation">
-        <button type="button" className={tab === "home" ? "act" : ""} onClick={() => setTab("home")}>
+        <button
+          type="button"
+          className={tab === "home" ? "act" : ""}
+          onClick={() => {
+            setTab("home")
+            setMoreView("menu")
+          }}
+        >
           <span className="ico">🏠</span>
           Home
           {readyCerts.length > 0 ? <span className="stu-nav-badge">{readyCerts.length}</span> : null}
         </button>
-        <button type="button" className={tab === "profile" ? "act" : ""} onClick={() => setTab("profile")}>
+        <button
+          type="button"
+          className={tab === "profile" ? "act" : ""}
+          onClick={() => {
+            setTab("profile")
+            setMoreView("menu")
+          }}
+        >
           <span className="ico">👤</span>
           Profile
         </button>
-        <button type="button" className={tab === "results" ? "act" : ""} onClick={() => setTab("results")}>
+        <button
+          type="button"
+          className={tab === "results" ? "act" : ""}
+          onClick={() => {
+            setTab("results")
+            setMoreView("menu")
+          }}
+        >
           <span className="ico">📊</span>
           Results
         </button>
-        <button type="button" className={tab === "forms" ? "act" : ""} onClick={() => setTab("forms")}>
+        <button
+          type="button"
+          className={tab === "forms" ? "act" : ""}
+          onClick={() => {
+            setTab("forms")
+            setMoreView("menu")
+            setActiveForm(null)
+          }}
+        >
           <span className="ico">📝</span>
           Forms
+          {pendingForms.length > 0 ? <span className="stu-nav-badge">{pendingForms.length}</span> : null}
         </button>
         <button
           type="button"
@@ -1062,7 +1887,6 @@ export default function StudentApp() {
         >
           <span className="ico">☰</span>
           More
-          {readyCerts.length > 0 ? <span className="stu-nav-badge">{readyCerts.length}</span> : null}
         </button>
       </nav>
     </div>
