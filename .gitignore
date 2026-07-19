@@ -27,3 +27,14 @@ scripts/data/
 tmp-adstudents.json
 *.xlsx
 
+# Student Android packaging (local SDK / builds / APKs)
+mobile/node_modules/
+mobile/.build-tools/
+mobile/dist/
+mobile/android/.gradle/
+mobile/android/**/build/
+mobile/android/local.properties
+mobile/android/app/build/
+*.apk
+GPT-Hubli-Student-debug.apk
+
