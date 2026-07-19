@@ -1,0 +1,21 @@
+{
+  "appId": "com.gpthubli.student",
+  "appName": "GPT Hubli Student",
+  "webDir": "www",
+  "server": {
+    "url": "https://gpt-hubli-final.vercel.app/student",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0f2d5c"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0f2d5c",
+      "showSpinner": false
+    }
+  }
+}

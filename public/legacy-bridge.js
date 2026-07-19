@@ -1015,6 +1015,65 @@ function __initGptBridge() {
     if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
   };
 
+  /** Student (and any role) self-service password change via /api/auth/change-password */
+  window.studentChangePassword = async function () {
+    var cur = document.getElementById('stuCurPw');
+    var nw = document.getElementById('stuNewPw');
+    var nw2 = document.getElementById('stuNewPw2');
+    var msg = document.getElementById('stuPwMsg');
+    var btn = document.getElementById('stuChangePwBtn');
+    function setMsg(text, isErr) {
+      if (!msg) return;
+      msg.textContent = text || '';
+      msg.style.color = isErr ? '#991b1b' : '#065f46';
+    }
+    var currentPassword = cur ? cur.value : '';
+    var newPassword = nw ? nw.value : '';
+    var confirmPassword = nw2 ? nw2.value : '';
+    if (!currentPassword || !newPassword) {
+      setMsg('Enter current and new password.', true);
+      return;
+    }
+    if (newPassword.length < 8) {
+      setMsg('New password must be at least 8 characters.', true);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMsg('New passwords do not match.', true);
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+    setMsg('');
+    try {
+      var r = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPassword, newPassword: newPassword }),
+      });
+      var data = await r.json().catch(function () { return null; });
+      if (!r.ok) {
+        setMsg((data && data.error) ? data.error : ('Failed (HTTP ' + r.status + ')'), true);
+        return;
+      }
+      setMsg('✅ Password updated successfully.', false);
+      if (cur) cur.value = '';
+      if (nw) nw.value = '';
+      if (nw2) nw2.value = '';
+      // Clear force-password banner
+      var forcePw = document.getElementById('stuForcePw');
+      if (forcePw) forcePw.style.display = 'none';
+      if (window.currentUser) window.currentUser.force_password_change = false;
+      alert('✅ Password changed successfully.');
+    } catch (e) {
+      setMsg('Network error. Please try again.', true);
+      console.error('[change-password]', e);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Update Password'; }
+    }
+  };
+
   /* ---------- registration (Create Account tabs) ----------
    * The legacy submit buttons call createAccount('Student'|'Faculty'|'Principal'|'Admin'),
    * so we replace that function with a real API-backed implementation. */
@@ -1090,6 +1149,10 @@ function __initGptBridge() {
     if (pass) payload.password = pass; // Faculty form has no password field -> server assigns a temporary password
     var res = await api.post('/api/auth/register', payload);
     if (!res) return;
+    // Registration never auto-logs in — account stays pending until Root Admin approves.
+    if (res.status && String(res.status).toLowerCase() !== 'pending') {
+      console.warn('[bridge] register returned unexpected status', res.status);
+    }
     alert(
       '📋 ' + type + ' account request submitted!\n\n' +
       'Role: ' + role +
@@ -1097,7 +1160,7 @@ function __initGptBridge() {
       '\nEmail: ' + email +
       '\n\n⏳ STATUS: PENDING ROOT ADMIN APPROVAL\n\n' +
       'Login will NOT work until Root Admin approves this account under:\n' +
-      'Admin → Account Approvals.\n\n' +
+      'Admin → Account Approvals (or User Management).\n\n' +
       'After approval, login with Username (or email) + your password.' +
       (pass ? '' : '\n\nA temporary password will be assigned after approval. Please change it on first login.')
     );
@@ -2656,6 +2719,7 @@ function __initGptBridge() {
       '<button type="button" class="cms-submit" id="cmsLoginBtn">Sign in →</button>' +
       '<div class="cms-foot">' +
       'Private portal — authorised users only.<br>' +
+      '<a href="/student" style="display:inline-block;margin:6px 0 2px;font-weight:700;">📱 Open Student Mobile App</a><br>' +
       '<a id="cmsRegisterLink" href="#">New student? Create account</a>' +
       '</div></div></div></div>';
 

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1a4fa0" />
+    <title>GPT Hubli Student</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: #0f2d5c;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 24px;
+      }
+      a {
+        color: #93c5fd;
+        font-weight: 700;
+      }
+      .card {
+        max-width: 360px;
+      }
+      h1 {
+        font-size: 1.2rem;
+        margin: 0 0 8px;
+      }
+      p {
+        opacity: 0.9;
+        line-height: 1.45;
+        font-size: 0.92rem;
+      }
+    </style>
+    <script>
+      // Capacitor loads the remote student app via capacitor.config server.url.
+      // Fallback if opened as plain local file:
+      (function () {
+        var target = "https://gpt-hubli-final.vercel.app/student";
+        try {
+          if (!window.Capacitor) {
+            location.replace(target);
+          }
+        } catch (e) {
+          location.replace(target);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="card">
+      <h1>GPT Hubli Student</h1>
+      <p>
+        Opening the student portal…<br />
+        If nothing happens,
+        <a href="https://gpt-hubli-final.vercel.app/student">tap here</a>.
+      </p>
+    </div>
+  </body>
+</html>

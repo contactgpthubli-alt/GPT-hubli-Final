@@ -4,6 +4,7 @@ import {
   unauthorized,
   badRequest,
   hashPassword,
+  clearUserSessions,
 } from "@/lib/auth"
 import { normalizeBranch } from "@/lib/branches"
 
@@ -248,6 +249,10 @@ async function mutateUsers(req: Request) {
         RETURNING id, email, role, display_name, status`,
       [id, restoreTo],
     )
+    // Restored-but-not-approved accounts must not regain a session
+    if (String(restoreTo) !== "approved") {
+      await clearUserSessions(id)
+    }
     return Response.json({ ok: true, user: rows[0], restored_to: restoreTo })
   }
 
@@ -309,6 +314,8 @@ async function mutateUsers(req: Request) {
       [id],
     )
     if (!rows[0]) return badRequest("Pending user not found (already processed?)")
+    // Ensure they cannot remain signed in if a session somehow exists
+    await clearUserSessions(id)
     return Response.json({ ok: true, user: rows[0] })
   }
 
@@ -324,6 +331,10 @@ async function mutateUsers(req: Request) {
        RETURNING id, email, role, status`,
       [id, b.status],
     )
+    // Deactivate / return to pending must immediately end any live sessions
+    if (b.status !== "approved") {
+      await clearUserSessions(id)
+    }
     return Response.json({ ok: true, user: rows[0] })
   }
 

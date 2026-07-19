@@ -98,9 +98,12 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(password)
-  await query(
+  // Always insert as pending — login is blocked until Root Admin approves.
+  // Never create a session here.
+  const { rows: created } = await query(
     `INSERT INTO users (email, password_hash, role, display_name, reg_no, branch, status, force_password_change)
-     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)`,
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)
+     RETURNING id, email, role, display_name, reg_no, status`,
     [
       body.email,
       passwordHash,
@@ -111,8 +114,20 @@ export async function POST(req: Request) {
       usedDefaultPassword,
     ],
   )
+  const u = created[0]
   return Response.json({
     ok: true,
+    status: "pending",
+    user: u
+      ? {
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          display_name: u.display_name,
+          reg_no: u.reg_no,
+          status: u.status,
+        }
+      : undefined,
     message:
       "Registration submitted. An admin must approve your account before you can log in." +
       (usedDefaultPassword

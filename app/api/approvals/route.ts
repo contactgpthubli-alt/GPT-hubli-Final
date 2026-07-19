@@ -1,5 +1,10 @@
 import { query } from "@/lib/db"
-import { requireRole, unauthorized, badRequest } from "@/lib/auth"
+import {
+  requireRole,
+  unauthorized,
+  badRequest,
+  clearUserSessions,
+} from "@/lib/auth"
 import { normalizeBranch } from "@/lib/branches"
 
 /**
@@ -89,6 +94,11 @@ export async function POST(req: Request) {
          END`,
       [String(approved.reg_no), approved.display_name || String(approved.reg_no), dept],
     )
+  }
+
+  // Rejected accounts must never keep a live session
+  if (approved.status === "rejected") {
+    await clearUserSessions(Number(approved.id))
   }
 
   return Response.json({ ok: true, user: approved })

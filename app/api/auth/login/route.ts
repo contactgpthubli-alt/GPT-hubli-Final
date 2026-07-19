@@ -1,5 +1,10 @@
 import { query } from "@/lib/db"
-import { verifyPassword, createSession, badRequest } from "@/lib/auth"
+import {
+  verifyPassword,
+  createSession,
+  badRequest,
+  isActiveApprovedAccount,
+} from "@/lib/auth"
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +21,13 @@ export async function POST(req: Request) {
 
     // Accept full email, email local-part (username), staff username (reg_no),
     // student reg no, or display_name as the login identifier.
+    // Soft-deleted rows are excluded so they cannot authenticate.
     const { rows } = await query(
       `SELECT id, email, password_hash, role, display_name, reg_no, status,
               force_password_change, is_demo, deleted_at
          FROM users
         WHERE deleted_at IS NULL
+          AND status IS DISTINCT FROM 'deleted'
           AND (
             lower(email) = lower($1)
             OR lower(split_part(email, '@', 1)) = lower($1)
@@ -45,7 +52,14 @@ export async function POST(req: Request) {
         { status: 401 },
       )
     }
-    if (user.status === "pending") {
+
+    const status = String(user.status || "")
+      .trim()
+      .toLowerCase()
+
+    // New registrations stay pending until Root Admin approves them.
+    // Login must never succeed for pending / rejected / inactive accounts.
+    if (status === "pending") {
       return Response.json(
         {
           error:
@@ -54,24 +68,33 @@ export async function POST(req: Request) {
         { status: 403 },
       )
     }
-    if (user.status === "rejected") {
+    if (status === "rejected") {
       return Response.json(
         { error: "Your registration was rejected. Contact the office." },
         { status: 403 },
       )
     }
-    if (user.status === "deleted" || user.deleted_at) {
+    if (status === "deleted" || user.deleted_at) {
       return Response.json(
-        { error: "This account has been deleted. Contact the Root Admin to restore it." },
+        {
+          error:
+            "This account has been deleted. Contact the Root Admin to restore it.",
+        },
         { status: 403 },
       )
     }
-    if (user.status !== "approved") {
+    if (!isActiveApprovedAccount(user)) {
       return Response.json({ error: "Account is not active" }, { status: 403 })
     }
 
     await createSession(user.id)
+
+    // First-time accounts (imported students, temp password) must update
+    // email + password before full portal use. No OTP on this step.
+    const requiresSetup = !!user.force_password_change
+
     return Response.json({
+      requires_setup: requiresSetup,
       user: {
         id: user.id,
         email: user.email,
@@ -80,6 +103,7 @@ export async function POST(req: Request) {
         reg_no: user.reg_no,
         force_password_change: user.force_password_change,
         is_demo: user.is_demo,
+        requires_setup: requiresSetup,
       },
     })
   } catch (err) {

@@ -83,7 +83,7 @@ function showSec(secId, linkEl) {
     facAlumni:'Alumni Cell', facSports:'Sports Section', facWelfare:'Student Welfare Office',
     facStudentAssoc:'Student Association', facStores:'Stores Section', facLibraryUpload:'E-Book Upload (Library)',
     stuHome:'My Dashboard', stuProfile:'My Profile', stuResults:'Academic Results',
-    stuAtt:'Attendance', stuForms:'Submit Forms', stuCerts:'Certificates', stuActivities:'Activities',
+    stuAtt:'Attendance', stuForms:'Submit Forms', stuCerts:'Certificates', stuSecurity:'Change Password', stuActivities:'Activities',
     stuLibrary:'Library & E-Books', stuTimetable:'Time Table', stuExamFees:'Exam Fees',
     priHome:'Principal Dashboard', priMyProfile:'My Profile', priPending:'EST Edit Requests', priWorkload:'Workload Review',
     priFacStatus:'Faculty Status', priHODStatus:'HOD Activity', priAttStatus:'Attendance Overview',

@@ -1,0 +1,22 @@
+{
+  "name": "gpthubli-student-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GPT Hubli Student Android shell (Capacitor WebView)",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open": "npx cap open android",
+    "build:debug": "cd android && .\\gradlew.bat assembleDebug",
+    "copy-apk": "node scripts/copy-apk.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0",
+    "typescript": "^5.7.3"
+  }
+}

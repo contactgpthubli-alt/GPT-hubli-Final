@@ -1,0 +1,25 @@
+{
+  "name": "GPT Hubli Student",
+  "short_name": "GPT Student",
+  "description": "Student mobile portal for Government Polytechnic Hubli",
+  "start_url": "/student",
+  "scope": "/student",
+  "display": "standalone",
+  "background_color": "#0f2d5c",
+  "theme_color": "#1a4fa0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/college-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/college-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
