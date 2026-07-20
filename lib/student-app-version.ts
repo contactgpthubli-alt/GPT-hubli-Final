@@ -2,9 +2,13 @@
  * Student mobile app version + changelog.
  * Bump STUDENT_APP_VERSION and add a changelog entry whenever you ship
  * user-visible app changes. The app only shows "What's new" once per version.
+ *
+ * Note: Students on older APK shells (e.g. 1.3.0) still load this web app from
+ * production. Use More → "Update / refresh app" to force-load the latest web build
+ * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.3.1"
+export const STUDENT_APP_VERSION = "1.4.0"
 
 export type StudentAppUpdate = {
   version: string
@@ -15,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.4.0",
+    date: "2026-07-20",
+    title: "PDF download, smoother typing, update button",
+    items: [
+      "Download profile and certificates as PDF (print removed — more reliable on phone).",
+      "Update / refresh app button — get the latest features without reinstalling the APK.",
+      "Smoother typing on Android (keyboard no longer zooms/jumps as much).",
+      "What's New offers Update now to reload the live app.",
+    ],
+  },
   {
     version: "1.3.1",
     date: "2026-07-20",

@@ -666,22 +666,24 @@ function __initGptBridge() {
       '<div id="' + p + '_meta" style="padding:8px 16px;font-size:0.78rem;opacity:.8;border-bottom:1px solid var(--border);">Loading…</div>' +
       '<div id="' + p + '_stats" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);"></div>' +
       '<div style="overflow-x:auto;max-height:calc(100vh - 280px);">' +
-      '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
       '<thead style="position:sticky;top:0;background:var(--surface);z-index:1;"><tr>' +
-      '<th style="padding:8px;text-align:left;">Reg No</th><th style="padding:8px;text-align:left;">Name</th>' +
-      '<th style="padding:8px;text-align:left;">Father</th><th style="padding:8px;text-align:left;">Mother</th>' +
-      '<th style="padding:8px;text-align:left;">Branch</th><th style="padding:8px;text-align:left;">Year</th>' +
-      '<th style="padding:8px;text-align:left;">Adm. Year</th><th style="padding:8px;text-align:left;">Phone</th>' +
-      '<th style="padding:8px;text-align:left;">Email</th><th style="padding:8px;text-align:left;">Action</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Reg. No</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Name of the student</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Father name</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Branch</th>' +
+      '<th style="padding:10px 8px;text-align:left;width:90px;">View</th>' +
       '</tr></thead>' +
-      '<tbody id="' + p + '_tbody"><tr><td colspan="10" style="padding:24px;text-align:center;opacity:.7;">Open this menu to load students.</td></tr></tbody>' +
+      '<tbody id="' + p + '_tbody"><tr><td colspan="5" style="padding:24px;text-align:center;opacity:.7;">Open this menu to load students.</td></tr></tbody>' +
       '</table></div></div>' +
-      '<div id="' + p + '_modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;align-items:center;justify-content:center;padding:16px;">' +
-      '<div style="background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;">' +
-      '<h3 style="margin:0;font-size:1rem;">Student Profile</h3>' +
-      '<button type="button" class="btn ol" onclick="window.closeStudentDataView&&window.closeStudentDataView()">Close</button>' +
-      '</div><div id="' + p + '_modalBody" style="padding:16px;"></div></div></div>';
+      '<div id="' + p + '_modal" class="sd-view-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99990;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;" ' +
+      'onclick="if(event.target===this){window.closeStudentDataView&&window.closeStudentDataView();}">' +
+      '<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.28);display:flex;flex-direction:column;" onclick="event.stopPropagation();">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;flex-shrink:0;">' +
+      '<h3 style="margin:0;font-size:1.05rem;color:var(--navy);">Student Profile</h3>' +
+      '<button type="button" class="btn ol sd-modal-close" style="min-width:44px;min-height:40px;font-weight:700;" ' +
+      'onclick="window.closeStudentDataView&&window.closeStudentDataView();return false;">✕ Close</button>' +
+      '</div><div id="' + p + '_modalBody" style="padding:16px 18px 20px;"></div></div></div>';
   }
 
   /**
@@ -5926,29 +5928,26 @@ setInterval(function () {
       '<div id="' + p + '_meta" style="padding:8px 16px;font-size:0.78rem;opacity:.8;border-bottom:1px solid var(--border);">Loading…</div>' +
       '<div id="' + p + '_stats" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);"></div>' +
       '<div style="overflow-x:auto;max-height:calc(100vh - 280px);">' +
-      '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
       '<thead style="position:sticky;top:0;background:var(--surface);z-index:1;"><tr>' +
-      '<th style="padding:8px;text-align:left;">Reg No</th>' +
-      '<th style="padding:8px;text-align:left;">Name</th>' +
-      '<th style="padding:8px;text-align:left;">Father</th>' +
-      '<th style="padding:8px;text-align:left;">Mother</th>' +
-      '<th style="padding:8px;text-align:left;">Branch</th>' +
-      '<th style="padding:8px;text-align:left;">Year</th>' +
-      '<th style="padding:8px;text-align:left;">Adm. Year</th>' +
-      '<th style="padding:8px;text-align:left;">Phone</th>' +
-      '<th style="padding:8px;text-align:left;">Email</th>' +
-      '<th style="padding:8px;text-align:left;">Action</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Reg. No</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Name of the student</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Father name</th>' +
+      '<th style="padding:10px 8px;text-align:left;">Branch</th>' +
+      '<th style="padding:10px 8px;text-align:left;width:90px;">View</th>' +
       '</tr></thead>' +
-      '<tbody id="' + p + '_tbody"><tr><td colspan="10" style="padding:24px;text-align:center;opacity:.7;">Open this menu to load students.</td></tr></tbody>' +
+      '<tbody id="' + p + '_tbody"><tr><td colspan="5" style="padding:24px;text-align:center;opacity:.7;">Open this menu to load students.</td></tr></tbody>' +
       '</table></div></div>' +
       // Modal
-      '<div id="' + p + '_modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;align-items:center;justify-content:center;padding:16px;">' +
-      '<div style="background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;">' +
-      '<h3 style="margin:0;font-size:1rem;">Student Profile</h3>' +
-      '<button type="button" class="btn ol" onclick="window.closeStudentDataView&&window.closeStudentDataView()">Close</button>' +
+      '<div id="' + p + '_modal" class="sd-view-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99990;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;" ' +
+      'onclick="if(event.target===this){window.closeStudentDataView&&window.closeStudentDataView();}">' +
+      '<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.28);display:flex;flex-direction:column;" onclick="event.stopPropagation();">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;flex-shrink:0;">' +
+      '<h3 style="margin:0;font-size:1.05rem;color:var(--navy);">Student Profile</h3>' +
+      '<button type="button" class="btn ol sd-modal-close" style="min-width:44px;min-height:40px;font-weight:700;" ' +
+      'onclick="window.closeStudentDataView&&window.closeStudentDataView();return false;">✕ Close</button>' +
       '</div>' +
-      '<div id="' + p + '_modalBody" style="padding:16px;"></div>' +
+      '<div id="' + p + '_modalBody" style="padding:16px 18px 20px;"></div>' +
       '</div></div>';
   }
 
@@ -6044,30 +6043,24 @@ setInterval(function () {
     var filtered = getFilteredList(p);
     paintStats(p, filtered, all);
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="10" style="padding:28px;text-align:center;opacity:.7;">No students match these filters.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:28px;text-align:center;opacity:.7;">No students match these filters.</td></tr>';
       return;
     }
-    // Sort: branch → year → name
+    // Sort: branch → name
     filtered = filtered.slice().sort(function (a, b) {
       var c = String(a.dept || '').localeCompare(String(b.dept || ''));
-      if (c) return c;
-      c = String(a.year || '').localeCompare(String(b.year || ''));
       if (c) return c;
       return String(a.name || '').localeCompare(String(b.name || ''));
     });
     tbody.innerHTML = filtered.map(function (s) {
       var keyJs = JSON.stringify(String(s.key));
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:7px 8px;font-family:JetBrains Mono,monospace;font-size:0.72rem;">' + sdEsc(s.reg_no || '—') + '</td>' +
-        '<td style="padding:7px 8px;"><strong>' + sdEsc(s.name) + '</strong></td>' +
-        '<td style="padding:7px 8px;">' + sdEsc(s.father || '—') + '</td>' +
-        '<td style="padding:7px 8px;">' + sdEsc(s.mother || '—') + '</td>' +
-        '<td style="padding:7px 8px;font-size:0.75rem;">' + sdEsc(s.dept || '—') + '</td>' +
-        '<td style="padding:7px 8px;">' + sdEsc(s.year || '—') + '</td>' +
-        '<td style="padding:7px 8px;">' + sdEsc(s.admission_year || '—') + '</td>' +
-        '<td style="padding:7px 8px;font-size:0.75rem;">' + sdEsc(s.phone || '—') + '</td>' +
-        '<td style="padding:7px 8px;font-size:0.72rem;">' + sdEsc(s.email || '—') + '</td>' +
-        '<td style="padding:7px 8px;"><button type="button" class="btn ol" style="padding:3px 8px;font-size:0.72rem;" ' +
+        '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + '</td>' +
+        '<td style="padding:10px 8px;"><strong>' + sdEsc(s.name) + '</strong></td>' +
+        '<td style="padding:10px 8px;">' + sdEsc(s.father || '—') + '</td>' +
+        '<td style="padding:10px 8px;font-size:0.82rem;">' + sdEsc(s.dept || '—') + '</td>' +
+        '<td style="padding:10px 8px;">' +
+        '<button type="button" class="btn pr" style="padding:6px 12px;font-size:0.78rem;font-weight:700;" ' +
         "onclick='window.viewStudentDataRow&&window.viewStudentDataRow(" + keyJs + ")'>View</button></td>" +
         '</tr>';
     }).join('');
@@ -6088,12 +6081,12 @@ setInterval(function () {
     var cu = window.currentUser;
     if (!cu) {
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;opacity:.75;">Sign in as Admin / ACM to view student data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;opacity:.75;">Sign in as Admin / Principal / HOD to view student data.</td></tr>';
       }
       return;
     }
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;opacity:.7;">Loading students…</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;opacity:.7;">Loading students…</td></tr>';
     }
     var data = null;
     try {
@@ -6109,7 +6102,7 @@ setInterval(function () {
     }
     if (!data || !Array.isArray(data.students)) {
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="10" style="padding:24px;text-align:center;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
       }
       return;
     }
@@ -6155,27 +6148,53 @@ setInterval(function () {
       return;
     }
     var p = activePrefix();
+    // Fallback: find any open modal body if prefix mismatch
     var body = document.getElementById(p + '_modalBody');
     var modal = document.getElementById(p + '_modal');
+    if (!body || !modal) {
+      ;['adSd', 'facSd', 'priSd'].forEach(function (px) {
+        if (!body && document.getElementById(px + '_modalBody')) {
+          body = document.getElementById(px + '_modalBody');
+          modal = document.getElementById(px + '_modal');
+        }
+      });
+    }
     if (!body || !modal) return;
 
     function row(label, val) {
-      return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem;">' +
-        '<div style="min-width:170px;font-weight:600;color:var(--navy);">' + sdEsc(label) + '</div>' +
-        '<div style="flex:1;word-break:break-word;">' + sdEsc(val == null || val === '' ? '—' : val) + '</div></div>';
+      return '<div style="display:grid;grid-template-columns:minmax(140px,38%) 1fr;gap:10px 14px;padding:9px 0;border-bottom:1px solid #e8eef5;font-size:0.86rem;">' +
+        '<div style="font-weight:700;color:#1e3a5f;letter-spacing:.01em;">' + sdEsc(label) + '</div>' +
+        '<div style="word-break:break-word;color:#0f172a;font-weight:500;">' + sdEsc(val == null || val === '' ? '—' : val) + '</div></div>';
     }
 
-    var html = '<div style="margin-bottom:12px;">' +
-      '<div style="font-size:1.05rem;font-weight:700;">' + sdEsc(s.name) + '</div>' +
-      '<div style="font-size:0.78rem;opacity:.75;margin-top:4px;">' +
-      sdEsc(s.reg_no || '—') + ' · ' + sdEsc(s.dept || '—') + ' · ' + sdEsc(s.year || '—') +
-      '</div></div>';
+    var extra = s.extra || {};
+    var photo = extra['Profile Photo'] || extra.profile_photo || extra.photo;
+    var photoHtml = '';
+    if (photo && typeof photo === 'string' && photo.indexOf('data:image/') === 0) {
+      photoHtml = '<img src="' + photo + '" alt="Photo" style="width:96px;height:114px;object-fit:cover;border-radius:10px;border:2px solid #cbd5e1;background:#f8fafc;flex-shrink:0;" />';
+    } else {
+      photoHtml = '<div style="width:96px;height:114px;border-radius:10px;border:2px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:#94a3b8;flex-shrink:0;">No photo</div>';
+    }
 
-    html += '<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Core</div>';
+    var html =
+      '<div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #0f2d5c;">' +
+      photoHtml +
+      '<div style="flex:1;min-width:0;">' +
+      '<div style="font-size:1.15rem;font-weight:800;color:#0f2d5c;line-height:1.3;">' + sdEsc(s.name || '—') + '</div>' +
+      '<div style="margin-top:6px;font-family:JetBrains Mono,ui-monospace,monospace;font-size:0.85rem;color:#334155;">' +
+      sdEsc(s.reg_no || '—') + '</div>' +
+      '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">' +
+      '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#e8f0fe;color:#1a4fa0;font-size:0.72rem;font-weight:700;">' +
+      sdEsc(s.dept || '—') + '</span>' +
+      (s.year ? '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:0.72rem;font-weight:700;">' +
+        sdEsc(s.year) + '</span>' : '') +
+      '</div></div></div>';
+
+    html += '<div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#1a4fa0;margin:4px 0 6px;background:#e8f0fe;padding:5px 8px;border-radius:6px;">Core details</div>';
     html += row('Register Number', s.reg_no);
-    html += row('Name', s.name);
-    html += row('Father Name', s.father);
-    html += row('Mother Name', s.mother);
+    html += row('Name of the student', s.name);
+    html += row('Father name', s.father);
+    html += row('Mother name', s.mother);
     html += row('Branch', s.dept);
     html += row('Current Year', s.year);
     html += row('Admission Year', s.admission_year);
@@ -6188,37 +6207,49 @@ setInterval(function () {
     html += row('Parents Mobile', s.parent_phone);
     html += row('Email', s.email);
 
-    var extra = s.extra || {};
     var skip = {
-      profile_edit_locked: 1, imported_from_excel: 1, imported_at: 1,
-      'Profile Photo': 1, profile_photo: 1, photo: 1,
+      profile_edit_locked: 1, imported_from_excel: 1, imported_at: 1, imported_missing_ece: 1,
+      email_source: 1, 'Profile Photo': 1, profile_photo: 1, photo: 1, Photo: 1,
     };
     var keys = Object.keys(extra).filter(function (k) { return !skip[k]; }).sort();
     if (keys.length) {
-      html += '<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:16px 0 4px;">Full My Profile (' + keys.length + ')</div>';
+      html += '<div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#1a4fa0;margin:16px 0 6px;background:#e8f0fe;padding:5px 8px;border-radius:6px;">Full profile (' + keys.length + ' fields)</div>';
       keys.forEach(function (k) {
         var v = extra[k];
         if (typeof v === 'string' && v.indexOf('data:image/') === 0) return;
+        if (v == null || String(v).trim() === '') return;
         html += row(k, v);
       });
     }
 
-    var photo = extra['Profile Photo'] || extra.profile_photo || extra.photo;
-    if (photo && typeof photo === 'string' && photo.indexOf('data:image/') === 0) {
-      html = '<div style="margin-bottom:12px;"><img src="' + photo +
-        '" alt="Photo" style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid var(--border);" /></div>' + html;
-    }
+    html +=
+      '<div style="margin-top:18px;display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:linear-gradient(transparent,#fff 30%);padding-top:12px;">' +
+      '<button type="button" class="btn ol sd-modal-close" style="min-height:42px;padding:8px 18px;font-weight:700;" ' +
+      'onclick="window.closeStudentDataView&&window.closeStudentDataView();return false;">Close</button></div>';
 
     body.innerHTML = html;
     modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
   };
 
   window.closeStudentDataView = function () {
-    ;['adSd_modal', 'facSd_modal'].forEach(function (id) {
+    ;['adSd_modal', 'facSd_modal', 'priSd_modal'].forEach(function (id) {
       var m = document.getElementById(id);
       if (m) m.style.display = 'none';
     });
+    document.querySelectorAll('.sd-view-modal').forEach(function (m) {
+      m.style.display = 'none';
+    });
+    document.body.style.overflow = '';
   };
+
+  // Escape key closes student data modal
+  if (!window._sdEscapeBound) {
+    window._sdEscapeBound = true;
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.closeStudentDataView && window.closeStudentDataView();
+    });
+  }
 
   window.exportStudentDataCsv = function () {
     var p = activePrefix();

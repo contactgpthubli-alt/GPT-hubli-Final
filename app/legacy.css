@@ -1007,6 +1007,23 @@ footer { background: var(--navy); color: rgba(255,255,255,0.65); padding: 50px 3
   .cm-est-meta{font-size:0.68rem;color:var(--text-muted);margin-top:3px;font-family:'JetBrains Mono',monospace;}
   .cm-est-arrow{font-size:1.3rem;color:var(--text-light);font-weight:300;flex-shrink:0;transition:transform 0.15s;}
   .cm-est-card:hover .cm-est-arrow{transform:translateX(3px);color:var(--primary);}
+/* Force CMS desk UI at 100% scale (no accidental browser zoom drift) */
+html {
+  zoom: 1;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  zoom: 1;
+}
+/* Keep form controls readable without focus-zoom on touch devices */
+input,
+select,
+textarea,
+button {
+  font-size: max(0.85rem, 14px);
+}
+
 /* ============================================================
    CMS Login Gate — private entry (college campus + logo)
    ============================================================ */

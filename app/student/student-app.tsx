@@ -1,10 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { buildStudyCertPrintHtml, formFromAcmCert, printStudyCertHtml } from "@/lib/study-cert-print"
+import { buildStudyCertPrintHtml, formFromAcmCert, downloadStudyCertPdf } from "@/lib/study-cert-print"
 import {
   buildStudentProfilePrintHtml,
-  printStudentProfileHtml,
+  downloadStudentProfilePdf,
 } from "@/lib/student-profile-print"
 import {
   STUDENT_APP_CHANGELOG,
@@ -905,7 +905,7 @@ export default function StudentApp() {
     setMoreView("certs")
   }
 
-  function printIssuedCert(c: AcmCert) {
+  async function downloadIssuedCertPdf(c: AcmCert) {
     setPrintBusyId(c.id)
     try {
       // Prefer profile photo if cert form has no photo
@@ -927,16 +927,17 @@ export default function StudentApp() {
         return
       }
       const html = buildStudyCertPrintHtml(kind, form)
-      printStudyCertHtml(html)
-      flash("Print preview open — use Print, Share, or Save")
+      flash("Preparing PDF…")
+      await downloadStudyCertPdf(html, form.reg_no)
+      flash("PDF ready — saved or shared")
     } catch {
-      flash("Could not open print. Try again.")
+      flash("Could not create PDF. Try again.")
     } finally {
-      setTimeout(() => setPrintBusyId(null), 800)
+      setTimeout(() => setPrintBusyId(null), 400)
     }
   }
 
-  function printFullProfile() {
+  async function downloadFullProfilePdf() {
     const extra = (student?.extra && typeof student.extra === "object" ? student.extra : {}) as Record<
       string,
       unknown
@@ -944,9 +945,10 @@ export default function StudentApp() {
     const mother =
       (extra["Mother Name"] != null ? String(extra["Mother Name"]) : "") ||
       (extra["Mother's Name"] != null ? String(extra["Mother's Name"]) : "")
+    const reg = student?.reg_no || user?.reg_no || ""
     const html = buildStudentProfilePrintHtml({
       name: student?.name || user?.display_name || "",
-      reg_no: student?.reg_no || user?.reg_no || "",
+      reg_no: reg,
       branch: student?.dept || String(extra.Branch || profileDraft.Branch || ""),
       year: student?.year || String(extra["Current Year"] || profileDraft["Current Year"] || ""),
       father: student?.father || String(extra["Father Name"] || ""),
@@ -959,12 +961,32 @@ export default function StudentApp() {
         ...extra,
         ...profileDraft,
         Email: user?.email || profileDraft.Email || extra.Email,
-        "Register Number": student?.reg_no || user?.reg_no || "",
+        "Register Number": reg,
         Branch: student?.dept || profileDraft.Branch || extra.Branch,
       },
     })
-    printStudentProfileHtml(html)
-    flash("Print preview open — use Print, Share, or Save")
+    try {
+      flash("Preparing PDF…")
+      await downloadStudentProfilePdf(html, reg)
+      flash("Profile PDF ready — saved or shared")
+    } catch {
+      flash("Could not create profile PDF. Try again.")
+    }
+  }
+
+  /** Hard-reload production web app so students get updates without reinstalling APK. */
+  function refreshAppUpdate() {
+    try {
+      if ("caches" in window) {
+        void caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      }
+    } catch {
+      /* ignore */
+    }
+    const url = new URL(window.location.href)
+    url.searchParams.set("_app_v", STUDENT_APP_VERSION)
+    url.searchParams.set("_ts", String(Date.now()))
+    window.location.replace(url.toString())
   }
 
   function openFormFill(form: FormRow) {
@@ -1251,9 +1273,14 @@ export default function StudentApp() {
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <button type="button" className="stu-btn stu-btn-primary" onClick={dismissWhatsNew}>
-                Got it
-              </button>
+              <div className="stu-actions" style={{ marginTop: 12 }}>
+                <button type="button" className="stu-btn stu-btn-primary" onClick={() => { dismissWhatsNew(); refreshAppUpdate() }}>
+                  Update now
+                </button>
+                <button type="button" className="stu-btn stu-btn-ghost" onClick={dismissWhatsNew}>
+                  Got it
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -1466,8 +1493,8 @@ export default function StudentApp() {
                 <button type="button" className="stu-btn stu-btn-primary stu-btn-sm" onClick={() => setTab("profile")}>
                   Open profile
                 </button>
-                <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" onClick={printFullProfile}>
-                  🖨️ Print A4
+                <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" onClick={() => void downloadFullProfilePdf()}>
+                  ⬇ PDF
                 </button>
                 <button
                   type="button"
@@ -1555,8 +1582,8 @@ export default function StudentApp() {
                       ))
                   : null}
                 <div className="stu-actions">
-                  <button type="button" className="stu-btn stu-btn-primary" onClick={printFullProfile}>
-                    🖨️ Print full profile (A4)
+                  <button type="button" className="stu-btn stu-btn-primary" onClick={() => void downloadFullProfilePdf()}>
+                    ⬇ Download profile PDF
                   </button>
                   <button
                     type="button"
@@ -1882,6 +1909,11 @@ export default function StudentApp() {
                 <span className="t">What&apos;s new</span>
                 <span className="d">App v{STUDENT_APP_VERSION}</span>
               </button>
+              <button type="button" onClick={() => refreshAppUpdate()}>
+                <span className="ico">🔄</span>
+                <span className="t">Update / refresh app</span>
+                <span className="d">Get latest features (no reinstall)</span>
+              </button>
               <button type="button" onClick={() => setMoreView("password")}>
                 <span className="ico">🔐</span>
                 <span className="t">Change password</span>
@@ -2017,15 +2049,15 @@ export default function StudentApp() {
                 </div>
               ))
             )}
-            <h3 style={{ marginTop: 18 }}>Issued certificates (ready to print)</h3>
+            <h3 style={{ marginTop: 18 }}>Issued certificates (PDF)</h3>
             <p style={{ fontSize: "0.8rem", color: "var(--stu-muted)", marginTop: 0 }}>
-              After ACM releases your Study / Studying certificate, use <strong>Print</strong> for your
-              own copy (includes profile photo when available).
+              After ACM releases your Study / Studying certificate, tap <strong>Download PDF</strong> to
+              save a copy (includes profile photo when available).
             </p>
             {!acmCerts.length ? (
               <div className="stu-empty">
                 No certificates released yet. When ACM completes and sends your Study / Studying
-                certificate, it will appear here with a Print button.
+                certificate, it will appear here with a Download PDF button.
               </div>
             ) : (
               acmCerts.map((c) => {
@@ -2051,9 +2083,9 @@ export default function StudentApp() {
                         type="button"
                         className="stu-btn stu-btn-primary stu-btn-sm"
                         disabled={printBusyId === c.id}
-                        onClick={() => printIssuedCert(c)}
+                        onClick={() => void downloadIssuedCertPdf(c)}
                       >
-                        {printBusyId === c.id ? "…" : "🖨️ Print"}
+                        {printBusyId === c.id ? "…" : "⬇ PDF"}
                       </button>
                     </div>
                   </div>
@@ -2166,8 +2198,17 @@ export default function StudentApp() {
             <h3>What&apos;s new</h3>
             <p style={{ fontSize: "0.84rem", color: "var(--stu-muted)", marginTop: 0 }}>
               App version <strong>{STUDENT_APP_VERSION}</strong>. This screen lists app updates. The popup only appears
-              once when a new version is released.
+              once when a new version is released. You do <strong>not</strong> need to reinstall the APK — use{" "}
+              <strong>Update / refresh app</strong> under More.
             </p>
+            <button
+              type="button"
+              className="stu-btn stu-btn-primary"
+              style={{ marginBottom: 14, width: "100%" }}
+              onClick={() => refreshAppUpdate()}
+            >
+              🔄 Update / refresh app now
+            </button>
             {STUDENT_APP_CHANGELOG.map((entry) => (
               <div className="stu-sec-card" key={entry.version}>
                 <h4>
@@ -2289,7 +2330,17 @@ export default function StudentApp() {
               ))}
             </ul>
             <div className="stu-actions" style={{ marginTop: 4 }}>
-              <button type="button" className="stu-btn stu-btn-primary" onClick={dismissWhatsNew}>
+              <button
+                type="button"
+                className="stu-btn stu-btn-primary"
+                onClick={() => {
+                  dismissWhatsNew()
+                  refreshAppUpdate()
+                }}
+              >
+                Update now
+              </button>
+              <button type="button" className="stu-btn stu-btn-ghost" onClick={dismissWhatsNew}>
                 Got it
               </button>
               <button

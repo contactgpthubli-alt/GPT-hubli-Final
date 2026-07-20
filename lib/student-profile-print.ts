@@ -2,7 +2,7 @@
  * Full student profile printout — single A4 sheet (app + web).
  */
 
-import { printHtmlDocument } from "./print-html"
+import { downloadHtmlAsPdf } from "./download-pdf"
 
 export type StudentProfilePrintInput = {
   name?: string | null
@@ -272,10 +272,13 @@ table.fields td.v{font-size:8.5pt;font-weight:600;color:#0f172a;word-wrap:break-
 </body></html>`
 }
 
-/** Print via full-screen preview (browser + Capacitor Android WebView). */
-export function printStudentProfileHtml(html: string): void {
-  printHtmlDocument(html, {
-    title: "Student Profile",
-    filename: "student-profile.html",
-  })
+/** Download profile as PDF (browser + Capacitor Android WebView). */
+export async function downloadStudentProfilePdf(html: string, regNo?: string): Promise<void> {
+  const name = regNo ? `profile-${regNo}` : "student-profile"
+  await downloadHtmlAsPdf(html, { filename: name })
+}
+
+/** @deprecated Use downloadStudentProfilePdf — print is unreliable on Android WebView. */
+export async function printStudentProfileHtml(html: string): Promise<void> {
+  await downloadStudentProfilePdf(html)
 }

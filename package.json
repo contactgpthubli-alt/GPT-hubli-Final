@@ -16,6 +16,8 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "pg": "^8.22.0",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
+    "@types/html2canvas": "^1.0.0",
     "@types/node": "^24",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

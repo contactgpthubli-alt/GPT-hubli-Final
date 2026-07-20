@@ -38,6 +38,36 @@
   font: inherit;
 }
 
+/* Android WebView typing: prevent zoom-on-focus + reduce keyboard jump */
+.stu-app input,
+.stu-app select,
+.stu-app textarea {
+  font-size: 16px !important; /* <16px triggers iOS/Android focus zoom */
+  line-height: 1.35;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+.stu-app input:focus,
+.stu-app select:focus,
+.stu-app textarea:focus {
+  scroll-margin-bottom: 120px;
+  scroll-margin-top: 80px;
+}
+
+/* Keep bottom nav from covering the focused field when keyboard opens */
+@supports (height: 100dvh) {
+  .stu-app {
+    min-height: 100dvh;
+  }
+}
+
+/* Profile edit sheet: smoother scroll while typing */
+.stu-profile-edit,
+.stu-card {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ---- Auth screens (full height, no bottom nav) ---- */
 .stu-auth {
   min-height: 100dvh;

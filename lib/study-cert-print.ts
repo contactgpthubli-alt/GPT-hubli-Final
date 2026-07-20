@@ -3,7 +3,7 @@
  * (mirrors public/legacy-acm-study.js buildStudyPrintHtml for student self-print).
  */
 
-import { printHtmlDocument } from "./print-html"
+import { downloadHtmlAsPdf } from "./download-pdf"
 
 export type StudyCertForm = {
   cert_no?: string
@@ -126,12 +126,15 @@ ${photoBlock}
 </body></html>`
 }
 
-/** Open print preview + system dialog (works in browser + Capacitor Android WebView). */
-export function printStudyCertHtml(html: string): void {
-  printHtmlDocument(html, {
-    title: "Certificate",
-    filename: "study-certificate.html",
-  })
+/** Download certificate as PDF (browser + Capacitor Android WebView). */
+export async function downloadStudyCertPdf(html: string, regNo?: string): Promise<void> {
+  const name = regNo ? `certificate-${regNo}` : "study-certificate"
+  await downloadHtmlAsPdf(html, { filename: name })
+}
+
+/** @deprecated Use downloadStudyCertPdf — print is unreliable on Android WebView. */
+export async function printStudyCertHtml(html: string): Promise<void> {
+  await downloadStudyCertPdf(html)
 }
 
 export function formFromAcmCert(c: {
