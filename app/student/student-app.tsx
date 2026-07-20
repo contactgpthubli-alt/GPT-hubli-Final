@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { buildStudyCertPrintHtml, formFromAcmCert, printStudyCertHtml } from "@/lib/study-cert-print"
 import {
+  buildStudentProfilePrintHtml,
+  printStudentProfileHtml,
+} from "@/lib/student-profile-print"
+import {
   STUDENT_APP_CHANGELOG,
   STUDENT_APP_VERSION,
   currentUpdate,
@@ -932,6 +936,37 @@ export default function StudentApp() {
     }
   }
 
+  function printFullProfile() {
+    const extra = (student?.extra && typeof student.extra === "object" ? student.extra : {}) as Record<
+      string,
+      unknown
+    >
+    const mother =
+      (extra["Mother Name"] != null ? String(extra["Mother Name"]) : "") ||
+      (extra["Mother's Name"] != null ? String(extra["Mother's Name"]) : "")
+    const html = buildStudentProfilePrintHtml({
+      name: student?.name || user?.display_name || "",
+      reg_no: student?.reg_no || user?.reg_no || "",
+      branch: student?.dept || String(extra.Branch || profileDraft.Branch || ""),
+      year: student?.year || String(extra["Current Year"] || profileDraft["Current Year"] || ""),
+      father: student?.father || String(extra["Father Name"] || ""),
+      mother,
+      email: user?.email || String(extra.Email || extra["Valid E-mail ID"] || ""),
+      cgpa: student?.cgpa || null,
+      attendance: student?.att || null,
+      photo: profilePhoto || extractProfilePhoto(extra),
+      fields: {
+        ...extra,
+        ...profileDraft,
+        Email: user?.email || profileDraft.Email || extra.Email,
+        "Register Number": student?.reg_no || user?.reg_no || "",
+        Branch: student?.dept || profileDraft.Branch || extra.Branch,
+      },
+    })
+    printStudentProfileHtml(html)
+    flash("Opening full profile print (A4)…")
+  }
+
   function openFormFill(form: FormRow) {
     if (form.submitted_by_me) {
       flash("You already submitted this form")
@@ -1431,6 +1466,9 @@ export default function StudentApp() {
                 <button type="button" className="stu-btn stu-btn-primary stu-btn-sm" onClick={() => setTab("profile")}>
                   Open profile
                 </button>
+                <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" onClick={printFullProfile}>
+                  🖨️ Print A4
+                </button>
                 <button
                   type="button"
                   className="stu-btn stu-btn-ghost stu-btn-sm"
@@ -1517,9 +1555,12 @@ export default function StudentApp() {
                       ))
                   : null}
                 <div className="stu-actions">
+                  <button type="button" className="stu-btn stu-btn-primary" onClick={printFullProfile}>
+                    🖨️ Print full profile (A4)
+                  </button>
                   <button
                     type="button"
-                    className="stu-btn stu-btn-primary"
+                    className="stu-btn stu-btn-ghost"
                     disabled={profilePending || profileLocked}
                     onClick={startProfileEdit}
                   >

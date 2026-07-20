@@ -4,7 +4,7 @@
  * user-visible app changes. The app only shows "What's new" once per version.
  */
 
-export const STUDENT_APP_VERSION = "1.1.0"
+export const STUDENT_APP_VERSION = "1.2.0"
 
 export type StudentAppUpdate = {
   version: string
@@ -15,6 +15,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.2.0",
+    date: "2026-07-20",
+    title: "Print full profile on A4",
+    items: [
+      "Print your complete student profile on a single A4 sheet from Profile.",
+      "Same full-profile print on the website (My Profile).",
+      "Includes photo, register number, branch, and all profile fields.",
+    ],
+  },
   {
     version: "1.1.0",
     date: "2026-07-20",
