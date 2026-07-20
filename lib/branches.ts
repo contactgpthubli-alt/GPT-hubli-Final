@@ -18,22 +18,27 @@ export function normalizeBranch(input: string | null | undefined): string | null
   if (OFFICIAL_BRANCHES.includes(raw as OfficialBranch)) return raw
 
   // Common aliases / older labels
+  // IMPORTANT: check Electronics BEFORE Computer Science.
+  // "electronics and communication" contains the substring "cs and",
+  // which would otherwise mis-map ECE → CSE.
   if (lower.includes("civil")) return "Civil Engineering"
-  if (
-    lower.includes("computer") ||
-    lower === "cse" ||
-    lower.includes("cs &") ||
-    lower.includes("cs and")
-  ) {
-    return "Computer Science and Engineering"
-  }
   if (
     lower.includes("electron") ||
     lower.includes("ece") ||
     lower.includes("e&c") ||
-    lower.includes("e & c")
+    lower.includes("e & c") ||
+    lower.includes("e and c")
   ) {
     return "Electronics and Communication Engineering"
+  }
+  if (
+    lower.includes("computer") ||
+    lower === "cse" ||
+    lower.includes("cs &") ||
+    lower.includes("cs and") ||
+    lower.includes("cse ")
+  ) {
+    return "Computer Science and Engineering"
   }
   if (lower.includes("mech")) return "Mechanical Engineering"
 

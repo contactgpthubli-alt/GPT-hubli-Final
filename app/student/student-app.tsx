@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { buildStudyCertPrintHtml, formFromAcmCert, printStudyCertHtml } from "@/lib/study-cert-print"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
@@ -97,6 +98,16 @@ type AcmCert = {
   cert_kind?: string
   cert_no?: string
   issued_on?: string
+  reg_no?: string
+  student_name?: string
+  father_name?: string
+  mother_name?: string
+  branch?: string
+  photo?: string
+  form_data?: unknown
+  printed_at?: string
+  sent_to_student_at?: string
+  status?: string
 }
 
 type Grievance = {
@@ -385,6 +396,7 @@ export default function StudentApp() {
   const [certBusy, setCertBusy] = useState(false)
   const [certErr, setCertErr] = useState("")
   const [certOk, setCertOk] = useState("")
+  const [printBusyId, setPrintBusyId] = useState<number | null>(null)
 
   // Form fill
   const [activeForm, setActiveForm] = useState<FormRow | null>(null)
@@ -785,6 +797,37 @@ export default function StudentApp() {
     flash("Certificate request submitted")
     await loadDashboard()
     setMoreView("certs")
+  }
+
+  function printIssuedCert(c: AcmCert) {
+    setPrintBusyId(c.id)
+    try {
+      // Prefer profile photo if cert form has no photo
+      const profilePhoto = extractProfilePhoto(student?.extra || null)
+      const enriched: AcmCert = {
+        ...c,
+        photo:
+          (typeof c.photo === "string" && c.photo.indexOf("data:image/") === 0 ? c.photo : "") ||
+          profilePhoto ||
+          undefined,
+        student_name: c.student_name || student?.name || user?.display_name || "",
+        reg_no: c.reg_no || student?.reg_no || user?.reg_no || "",
+        branch: c.branch || student?.dept || "",
+        father_name: c.father_name || student?.father || "",
+      }
+      const { kind, form } = formFromAcmCert(enriched)
+      if (!form.student_name || !form.reg_no) {
+        flash("Certificate details incomplete. Contact ACM.")
+        return
+      }
+      const html = buildStudyCertPrintHtml(kind, form)
+      printStudyCertHtml(html)
+      flash("Opening print…")
+    } catch {
+      flash("Could not open print. Try again.")
+    } finally {
+      setTimeout(() => setPrintBusyId(null), 800)
+    }
   }
 
   function openFormFill(form: FormRow) {
@@ -1687,22 +1730,48 @@ export default function StudentApp() {
                 </div>
               ))
             )}
-            <h3 style={{ marginTop: 18 }}>Issued to me (ACM)</h3>
+            <h3 style={{ marginTop: 18 }}>Issued certificates (ready to print)</h3>
+            <p style={{ fontSize: "0.8rem", color: "var(--stu-muted)", marginTop: 0 }}>
+              After ACM releases your Study / Studying certificate, use <strong>Print</strong> for your
+              own copy (includes profile photo when available).
+            </p>
             {!acmCerts.length ? (
-              <div className="stu-empty">No certificates sent to you yet.</div>
+              <div className="stu-empty">
+                No certificates released yet. When ACM completes and sends your Study / Studying
+                certificate, it will appear here with a Print button.
+              </div>
             ) : (
-              acmCerts.map((c) => (
-                <div className="stu-list-item" key={c.id}>
-                  <div>
-                    <div className="title">{c.cert_kind || "Certificate"}</div>
-                    <div className="desc">
-                      {c.cert_no || `#${c.id}`}
-                      {c.issued_on ? ` · ${fmtDate(c.issued_on)}` : ""}
+              acmCerts.map((c) => {
+                const typeLabel =
+                  String(c.cert_kind || "").toLowerCase() === "studying"
+                    ? "Studying Certificate"
+                    : String(c.cert_kind || "").toLowerCase() === "study"
+                      ? "Study Certificate"
+                      : c.cert_kind || "Certificate"
+                const when = c.sent_to_student_at || c.printed_at || c.issued_on
+                return (
+                  <div className="stu-list-item" key={c.id} style={{ flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ flex: "1 1 140px" }}>
+                      <div className="title">{typeLabel}</div>
+                      <div className="desc">
+                        {c.cert_no || `#${c.id}`}
+                        {when ? ` · ${fmtDate(when)}` : ""}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span className="stu-badge stu-badge-ok">Ready</span>
+                      <button
+                        type="button"
+                        className="stu-btn stu-btn-primary stu-btn-sm"
+                        disabled={printBusyId === c.id}
+                        onClick={() => printIssuedCert(c)}
+                      >
+                        {printBusyId === c.id ? "…" : "🖨️ Print"}
+                      </button>
                     </div>
                   </div>
-                  <span className="stu-badge stu-badge-ok">Issued</span>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         )}

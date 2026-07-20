@@ -84,21 +84,25 @@ function normalizeBranch(input) {
   if (OFFICIAL.includes(raw)) return raw
   const lower = raw.toLowerCase()
   if (lower.includes("civil")) return "Civil Engineering"
-  if (
-    lower.includes("computer") ||
-    lower === "cse" ||
-    lower.includes("cs &") ||
-    lower.includes("cs and")
-  ) {
-    return "Computer Science and Engineering"
-  }
+  // Electronics BEFORE Computer Science — "electronics and communication"
+  // contains substring "cs and" which would mis-map ECE → CSE.
   if (
     lower.includes("electron") ||
     lower.includes("ece") ||
     lower.includes("e&c") ||
-    lower.includes("e & c")
+    lower.includes("e & c") ||
+    lower.includes("e and c")
   ) {
     return "Electronics and Communication Engineering"
+  }
+  if (
+    lower.includes("computer") ||
+    lower === "cse" ||
+    lower.includes("cs &") ||
+    lower.includes("cs and") ||
+    lower.includes("cse ")
+  ) {
+    return "Computer Science and Engineering"
   }
   if (lower.includes("mech")) return "Mechanical Engineering"
   return null // unknown = mismatch → skip
