@@ -703,6 +703,111 @@
   text-decoration: underline;
 }
 
+/* Auth: Sign in / Create account tabs */
+.stu-auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.stu-auth-tabs button {
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--stu-muted);
+  cursor: pointer;
+}
+
+.stu-auth-tabs button.act {
+  background: #fff;
+  color: var(--stu-navy);
+  box-shadow: 0 1px 4px rgba(15, 45, 92, 0.12);
+}
+
+.stu-auth-switch {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--stu-muted);
+}
+
+/* What's new modal — only when version changes */
+.stu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.stu-modal {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px 18px 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+  max-height: min(80dvh, 560px);
+  overflow: auto;
+  color: var(--stu-text);
+}
+
+.stu-modal-badge {
+  display: inline-block;
+  background: var(--stu-blue-soft);
+  color: var(--stu-blue);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.stu-modal h2 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  color: var(--stu-navy);
+}
+
+.stu-modal-sub {
+  margin: 0 0 12px;
+  font-size: 0.84rem;
+  color: var(--stu-muted);
+}
+
+.stu-whats-list {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--stu-text);
+}
+
+.stu-whats-list li {
+  margin-bottom: 6px;
+}
+
+.stu-auth .stu-modal-backdrop {
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .stu-modal-backdrop {
+    align-items: center;
+  }
+}
+
 @media (min-width: 640px) {
   .stu-main {
     padding-top: 18px;

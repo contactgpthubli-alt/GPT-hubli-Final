@@ -2,9 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { buildStudyCertPrintHtml, formFromAcmCert, printStudyCertHtml } from "@/lib/study-cert-print"
+import {
+  STUDENT_APP_CHANGELOG,
+  STUDENT_APP_VERSION,
+  currentUpdate,
+  setSeenAppVersion,
+  shouldShowWhatsNew,
+} from "@/lib/student-app-version"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
+type AuthMode = "login" | "register"
 type MoreView =
   | "menu"
   | "certs"
@@ -14,6 +22,7 @@ type MoreView =
   | "grievances"
   | "certRequest"
   | "formFill"
+  | "whatsNew"
 
 type User = {
   id: number
@@ -346,10 +355,25 @@ export default function StudentApp() {
   const [tab, setTab] = useState<Tab>("home")
   const [moreView, setMoreView] = useState<MoreView>("menu")
 
+  const [authMode, setAuthMode] = useState<AuthMode>("login")
   const [loginId, setLoginId] = useState("")
   const [loginPw, setLoginPw] = useState("")
   const [loginBusy, setLoginBusy] = useState(false)
   const [loginErr, setLoginErr] = useState("")
+
+  // Create account
+  const [regName, setRegName] = useState("")
+  const [regNo, setRegNo] = useState("")
+  const [regBranch, setRegBranch] = useState(BRANCH_OPTIONS[0])
+  const [regEmail, setRegEmail] = useState("")
+  const [regPw, setRegPw] = useState("")
+  const [regPw2, setRegPw2] = useState("")
+  const [regBusy, setRegBusy] = useState(false)
+  const [regErr, setRegErr] = useState("")
+  const [regOk, setRegOk] = useState("")
+
+  // What's new (only when version changes)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
 
   const [setupEmail, setSetupEmail] = useState("")
   const [setupCurPw, setSetupCurPw] = useState("")
@@ -538,6 +562,10 @@ export default function StudentApp() {
         }
       }
       setBooting(false)
+      // Show What's New only after a real version bump (once per version)
+      if (!cancelled && shouldShowWhatsNew()) {
+        setShowWhatsNew(true)
+      }
     })()
     return () => {
       cancelled = true
@@ -547,6 +575,17 @@ export default function StudentApp() {
   useEffect(() => {
     if (user && !requiresSetup) loadDashboard()
   }, [user, requiresSetup, loadDashboard])
+
+  function dismissWhatsNew() {
+    setSeenAppVersion(STUDENT_APP_VERSION)
+    setShowWhatsNew(false)
+  }
+
+  function openWhatsNewHistory() {
+    setShowWhatsNew(false)
+    setMoreView("whatsNew")
+    setTab("more")
+  }
 
   async function doLogin() {
     setLoginErr("")
@@ -576,6 +615,69 @@ export default function StudentApp() {
       requires_setup: !!(u.force_password_change || res.data.requires_setup || u.requires_setup),
     })
     setTab("home")
+  }
+
+  async function doRegister() {
+    setRegErr("")
+    setRegOk("")
+    const name = regName.trim()
+    const reg = regNo.trim().toUpperCase()
+    const email = regEmail.trim().toLowerCase()
+    if (!name || name.length < 2) {
+      setRegErr("Enter your full name.")
+      return
+    }
+    if (!reg || reg.length < 6) {
+      setRegErr("Enter a valid Register Number.")
+      return
+    }
+    if (!regBranch) {
+      setRegErr("Select your branch.")
+      return
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setRegErr("Enter a valid email address.")
+      return
+    }
+    if (regPw.length < 8) {
+      setRegErr("Password must be at least 8 characters.")
+      return
+    }
+    if (regPw !== regPw2) {
+      setRegErr("Passwords do not match.")
+      return
+    }
+    setRegBusy(true)
+    const res = await api<{ ok?: boolean; message?: string; status?: string }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        email,
+        password: regPw,
+        role: "student",
+        regNo: reg,
+        branch: regBranch,
+      }),
+    })
+    setRegBusy(false)
+    if (!res.ok) {
+      setRegErr(res.error || "Could not create account")
+      return
+    }
+    setRegOk(
+      res.data?.message ||
+        "Account created. An admin must approve your account before you can sign in.",
+    )
+    setRegPw("")
+    setRegPw2("")
+    flash("Registration submitted — wait for admin approval")
+  }
+
+  function switchAuthMode(mode: AuthMode) {
+    setAuthMode(mode)
+    setLoginErr("")
+    setRegErr("")
+    setRegOk("")
   }
 
   async function doSetup() {
@@ -923,10 +1025,13 @@ export default function StudentApp() {
       if (moreView === "attendance") return "Attendance"
       if (moreView === "password") return "Change Password"
       if (moreView === "grievances") return "Grievances"
+      if (moreView === "whatsNew") return "What's New"
       return "More"
     }
     return "Student"
   }, [tab, moreView, profileEditing, activeForm])
+
+  const whatsNewUpdate = currentUpdate()
 
   if (booting) return <div className="stu-loading">Loading student app…</div>
 
@@ -944,43 +1049,179 @@ export default function StudentApp() {
           />
           <div>
             <h1>Government Polytechnic Hubli</h1>
-            <p>Student mobile app</p>
+            <p>Student mobile app · v{STUDENT_APP_VERSION}</p>
           </div>
         </div>
         <div className="stu-auth-card">
-          <h2>Student sign in</h2>
-          <p className="sub">
-            Use your <strong>Register Number</strong> and password. Request certificates, update profile, and submit
-            forms from your phone.
-          </p>
-          {loginErr ? <div className="stu-msg stu-msg-err">{loginErr}</div> : null}
-          <div className="stu-field">
-            <label>Register No. / Email</label>
-            <input
-              autoComplete="username"
-              placeholder="e.g. 171CS15003"
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && doLogin()}
-            />
+          <div className="stu-auth-tabs">
+            <button
+              type="button"
+              className={authMode === "login" ? "act" : ""}
+              onClick={() => switchAuthMode("login")}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className={authMode === "register" ? "act" : ""}
+              onClick={() => switchAuthMode("register")}
+            >
+              Create account
+            </button>
           </div>
-          <div className="stu-field">
-            <label>Password</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={loginPw}
-              onChange={(e) => setLoginPw(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && doLogin()}
-            />
-          </div>
-          <button type="button" className="stu-btn stu-btn-primary" disabled={loginBusy} onClick={doLogin}>
-            {loginBusy ? "Signing in…" : "Sign in"}
-          </button>
+
+          {authMode === "login" ? (
+            <>
+              <h2>Student sign in</h2>
+              <p className="sub">
+                Use your <strong>Register Number</strong> and password. Imported students use the temporary password
+                until first login setup.
+              </p>
+              {loginErr ? <div className="stu-msg stu-msg-err">{loginErr}</div> : null}
+              <div className="stu-field">
+                <label>Register No. / Email</label>
+                <input
+                  autoComplete="username"
+                  placeholder="e.g. 171CS15003"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doLogin()}
+                />
+              </div>
+              <div className="stu-field">
+                <label>Password</label>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={loginPw}
+                  onChange={(e) => setLoginPw(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doLogin()}
+                />
+              </div>
+              <button type="button" className="stu-btn stu-btn-primary" disabled={loginBusy} onClick={doLogin}>
+                {loginBusy ? "Signing in…" : "Sign in"}
+              </button>
+              <p className="stu-auth-switch">
+                New student?{" "}
+                <button type="button" className="stu-link-btn" onClick={() => switchAuthMode("register")}>
+                  Create account
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Create student account</h2>
+              <p className="sub">
+                After you register, a <strong>college admin must approve</strong> your account before you can sign in.
+              </p>
+              {regErr ? <div className="stu-msg stu-msg-err">{regErr}</div> : null}
+              {regOk ? <div className="stu-msg stu-msg-ok">{regOk}</div> : null}
+              <div className="stu-field">
+                <label>Full name *</label>
+                <input
+                  autoComplete="name"
+                  placeholder="As per SSLC"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                />
+              </div>
+              <div className="stu-field">
+                <label>Register Number *</label>
+                <input
+                  autoComplete="off"
+                  placeholder="e.g. 171CS15003"
+                  value={regNo}
+                  onChange={(e) => setRegNo(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="stu-field">
+                <label>Branch *</label>
+                <select value={regBranch} onChange={(e) => setRegBranch(e.target.value)}>
+                  {BRANCH_OPTIONS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="stu-field">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                />
+              </div>
+              <div className="stu-field">
+                <label>Password * (min 8)</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={regPw}
+                  onChange={(e) => setRegPw(e.target.value)}
+                />
+              </div>
+              <div className="stu-field">
+                <label>Confirm password *</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={regPw2}
+                  onChange={(e) => setRegPw2(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doRegister()}
+                />
+              </div>
+              <button type="button" className="stu-btn stu-btn-primary" disabled={regBusy} onClick={doRegister}>
+                {regBusy ? "Submitting…" : "Create account"}
+              </button>
+              {regOk ? (
+                <button
+                  type="button"
+                  className="stu-btn stu-btn-ghost"
+                  style={{ marginTop: 10 }}
+                  onClick={() => {
+                    switchAuthMode("login")
+                    setLoginId(regEmail || regNo)
+                  }}
+                >
+                  Go to sign in
+                </button>
+              ) : (
+                <p className="stu-auth-switch">
+                  Already have an account?{" "}
+                  <button type="button" className="stu-link-btn" onClick={() => switchAuthMode("login")}>
+                    Sign in
+                  </button>
+                </p>
+              )}
+            </>
+          )}
         </div>
         <div className="stu-auth-foot">
           Staff / Admin? Use the <a href="/">main portal</a>
         </div>
+
+        {showWhatsNew && whatsNewUpdate ? (
+          <div className="stu-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
+            <div className="stu-modal">
+              <div className="stu-modal-badge">Update v{whatsNewUpdate.version}</div>
+              <h2 id="whats-new-title">What&apos;s new</h2>
+              <p className="stu-modal-sub">
+                {whatsNewUpdate.title} · {whatsNewUpdate.date}
+              </p>
+              <ul className="stu-whats-list">
+                {whatsNewUpdate.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <button type="button" className="stu-btn stu-btn-primary" onClick={dismissWhatsNew}>
+                Got it
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -1595,6 +1836,11 @@ export default function StudentApp() {
                 <span className="t">Notices</span>
                 <span className="d">{notices.length} recent</span>
               </button>
+              <button type="button" onClick={() => setMoreView("whatsNew")}>
+                <span className="ico">✨</span>
+                <span className="t">What&apos;s new</span>
+                <span className="d">App v{STUDENT_APP_VERSION}</span>
+              </button>
               <button type="button" onClick={() => setMoreView("password")}>
                 <span className="ico">🔐</span>
                 <span className="t">Change password</span>
@@ -1871,6 +2117,35 @@ export default function StudentApp() {
           </div>
         )}
 
+        {tab === "more" && moreView === "whatsNew" && (
+          <div className="stu-card">
+            <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
+              ← Back
+            </button>
+            <h3>What&apos;s new</h3>
+            <p style={{ fontSize: "0.84rem", color: "var(--stu-muted)", marginTop: 0 }}>
+              App version <strong>{STUDENT_APP_VERSION}</strong>. This screen lists app updates. The popup only appears
+              once when a new version is released.
+            </p>
+            {STUDENT_APP_CHANGELOG.map((entry) => (
+              <div className="stu-sec-card" key={entry.version}>
+                <h4>
+                  v{entry.version} · {entry.title}
+                </h4>
+                <div className="desc" style={{ fontSize: "0.78rem", color: "var(--stu-muted)", marginBottom: 8 }}>
+                  {entry.date}
+                  {entry.version === STUDENT_APP_VERSION ? " · Current" : ""}
+                </div>
+                <ul className="stu-whats-list">
+                  {entry.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
         {tab === "more" && moreView === "password" && (
           <div className="stu-card">
             <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" style={{ marginBottom: 12 }} onClick={() => setMoreView("menu")}>
@@ -1958,6 +2233,38 @@ export default function StudentApp() {
           More
         </button>
       </nav>
+
+      {showWhatsNew && whatsNewUpdate ? (
+        <div className="stu-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="whats-new-title-in">
+          <div className="stu-modal">
+            <div className="stu-modal-badge">Update v{whatsNewUpdate.version}</div>
+            <h2 id="whats-new-title-in">What&apos;s new in the app</h2>
+            <p className="stu-modal-sub">
+              {whatsNewUpdate.title} · {whatsNewUpdate.date}
+            </p>
+            <ul className="stu-whats-list">
+              {whatsNewUpdate.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <div className="stu-actions" style={{ marginTop: 4 }}>
+              <button type="button" className="stu-btn stu-btn-primary" onClick={dismissWhatsNew}>
+                Got it
+              </button>
+              <button
+                type="button"
+                className="stu-btn stu-btn-ghost"
+                onClick={() => {
+                  dismissWhatsNew()
+                  openWhatsNewHistory()
+                }}
+              >
+                Full history
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

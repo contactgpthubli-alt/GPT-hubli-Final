@@ -70,6 +70,19 @@ export async function POST(req: Request) {
         "Please select a valid Branch: Civil Engineering, Computer Science and Engineering, Electronics and Communication Engineering, or Mechanical Engineering",
       )
     }
+    // Block double registration on the same register number
+    const regTaken = await query(
+      `SELECT 1 FROM users
+        WHERE deleted_at IS NULL AND upper(reg_no) = upper($1)
+        LIMIT 1`,
+      [regNo],
+    )
+    if (regTaken.rowCount > 0) {
+      return Response.json(
+        { error: "An account with this Register Number already exists. Please sign in instead." },
+        { status: 409 },
+      )
+    }
   } else if (regNo) {
     // Staff username: keep as typed (case-insensitive login match)
     regNo = regNo.trim()
