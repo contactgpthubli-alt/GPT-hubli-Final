@@ -711,59 +711,65 @@
       return '<div class="lab-block">' + lv(keyA) + '</div>' +
         '<div class="lab-block lab-block-2">' + lv(keyB) + '</div>';
     }
-    /** Stack two values with matching gap (Suresh / Radha, Hindu / Uppar, …) */
-    function valPair(a, b, strongB) {
-      var top = '<div class="val-line">' + (a || '&nbsp;') + '</div>';
-      var bot = strongB
-        ? '<div class="val-line val-line-2"><strong>' + (b || '&nbsp;') + '</strong></div>'
-        : '<div class="val-line val-line-2">' + (b || '&nbsp;') + '</div>';
+    /** Stack two values with matching gap (Suresh / Radha, Hindu / Uppar, …) — always bold */
+    function valPair(a, b) {
+      var top = '<div class="val-line"><span class="val-text">' + (a || '&nbsp;') + '</span></div>';
+      var bot = '<div class="val-line val-line-2"><span class="val-text">' + (b || '&nbsp;') + '</span></div>';
       return top + bot;
     }
     function cell(sl, lab, val) {
+      // Wrap plain text values in bold span (paired/multi-line vals already use .val-line)
+      var body = val || '&nbsp;';
+      if (body.indexOf('<') === -1) {
+        body = '<span class="val-text">' + body + '</span>';
+      }
       return '<tr><td class="sl">' + sl + '</td>' +
         '<td class="lab">' + lab + '</td>' +
-        '<td class="val">' + (val || '&nbsp;') + '</td></tr>';
+        '<td class="val">' + body + '</td></tr>';
     }
     var dobVal =
-      '<div class="val-line">' + esc(form.dob_figures || '') + '</div>' +
+      '<div class="val-line"><span class="val-text">' + esc(form.dob_figures || '') + '</span></div>' +
       (form.dob_words
         ? '<div class="val-line val-line-2 sub">(' + esc(form.dob_words) + ')</div>'
         : '');
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>TC - ' + esc(form.reg_no) + '</title>' +
       '<style>' +
-      '@page{size:A4 portrait;margin:9mm 11mm;}' +
+      '@page{size:A4 portrait;margin:8mm 10mm;}' +
       'html,body{margin:0;padding:0;}' +
-      'body{font-family:"Times New Roman",Times,serif;color:#000;font-size:11px;line-height:1.35;}' +
+      'body{font-family:"Times New Roman",Times,serif;color:#000;font-size:12.5px;line-height:1.38;}' +
       '.page{width:100%;box-sizing:border-box;}' +
-      '.hdr{text-align:center;margin:0 0 5px;line-height:1.25;}' +
-      '.hdr img{width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 3px;}' +
-      '.hdr .gkn{font-size:12px;font-weight:700;}' +
-      '.hdr .gen{font-size:10.5px;font-weight:700;letter-spacing:.02em;}' +
-      '.hdr .dept{font-size:9.5px;}' +
-      '.hdr .col{font-size:13px;font-weight:800;margin-top:2px;}' +
-      '.hdr .colkn{font-size:11px;font-weight:700;}' +
-      '.hdr .title{font-size:13.5px;font-weight:800;text-decoration:underline;margin-top:5px;}' +
-      '.hdr .titlekn{font-size:11.5px;font-weight:700;}' +
-      '.meta{display:flex;justify-content:space-between;gap:10px;margin:6px 0 5px;font-size:10.5px;}' +
-      'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;}' +
-      /* Comfortable row padding so labels/values are not cramped */
-      'td{border:1px solid #000;padding:6px 7px;vertical-align:middle;line-height:1.4;}' +
-      'td.sl{width:28px;text-align:center;font-weight:700;padding:6px 3px;}' +
-      'td.lab{width:42%;}' +
-      'td.val{word-wrap:break-word;}' +
-      '.kn{font-weight:600;font-size:10.5px;line-height:1.35;}' +
-      '.en{font-size:10.5px;line-height:1.35;}' +
-      '.sub{font-size:9.5px;}' +
+      '.hdr{text-align:center;margin:0 0 5px;line-height:1.28;}' +
+      '.hdr img{width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 3px;}' +
+      '.hdr .gkn{font-size:13px;font-weight:700;}' +
+      '.hdr .gen{font-size:12px;font-weight:700;letter-spacing:.02em;}' +
+      '.hdr .dept{font-size:10.5px;font-weight:600;}' +
+      '.hdr .col{font-size:14px;font-weight:800;margin-top:2px;}' +
+      '.hdr .colkn{font-size:12.5px;font-weight:700;}' +
+      '.hdr .title{font-size:14.5px;font-weight:800;text-decoration:underline;margin-top:5px;}' +
+      '.hdr .titlekn{font-size:12.5px;font-weight:700;}' +
+      '.meta{display:flex;justify-content:space-between;gap:10px;margin:6px 0 5px;font-size:12px;font-weight:700;}' +
+      /* Wider value column, slightly narrower labels — less empty look on the right */
+      'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px;}' +
+      'td{border:1px solid #000;padding:7px 8px;vertical-align:middle;line-height:1.42;}' +
+      'td.sl{width:30px;text-align:center;font-weight:800;font-size:12.5px;padding:7px 3px;}' +
+      'td.lab{width:46%;}' +
+      'td.val{width:auto;word-wrap:break-word;font-size:13px;font-weight:700;}' +
+      '.val-text{font-size:13px;font-weight:700;}' +
+      /* Kannada + English labels same size/weight */
+      '.kn{font-weight:700;font-size:12px;line-height:1.4;}' +
+      '.en{font-weight:700;font-size:12px;line-height:1.4;}' +
+      '.sub{font-size:11px;font-weight:600;}' +
       /* Clear gap between stacked pairs (Father/Mother, Religion/Caste, DOB lines, …) */
       '.lab-block{display:block;}' +
       '.lab-block-2{margin-top:8px;padding-top:6px;border-top:1px dotted #999;}' +
-      '.val-line{display:block;min-height:1.15em;}' +
-      '.val-line-2{margin-top:8px;padding-top:6px;}' +
-      '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;font-size:10.5px;line-height:1.45;}' +
-      '.sig{text-align:center;min-width:130px;}' +
-      '.sig .line{border-top:1px solid #000;margin-top:26px;padding-top:3px;line-height:1.3;}' +
-      '.note{margin-top:6px;font-size:9.5px;font-style:italic;line-height:1.3;}' +
+      '.val-line{display:block;min-height:1.2em;font-size:13px;font-weight:700;}' +
+      '.val-line-2{margin-top:8px;padding-top:6px;font-size:13px;font-weight:700;}' +
+      '.val-line strong,.val-line-2 strong{font-weight:800;font-size:13px;}' +
+      '.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;font-size:12px;line-height:1.45;font-weight:600;}' +
+      '.sig{text-align:center;min-width:140px;}' +
+      '.sig .line{border-top:1px solid #000;margin-top:28px;padding-top:3px;line-height:1.35;font-weight:700;font-size:12px;}' +
+      '.note{margin-top:6px;font-size:10.5px;font-style:italic;line-height:1.35;font-weight:600;}' +
       '@media print{' +
       '  body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
       '  .page{page-break-inside:avoid;}' +
@@ -798,7 +804,7 @@
           {
             key: 'row4',
             lab: lvPair('row4_adm', 'row4_reg'),
-            val: valPair(esc(form.admission_date), esc(form.reg_no), true),
+            val: valPair(esc(form.admission_date), esc(form.reg_no)),
           },
           { key: 'row5', lab: lv('row5'), val: esc(form.leaving_date) },
           { key: 'row6', lab: lv('row6'), val: esc(form.class_leaving) },
