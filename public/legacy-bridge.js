@@ -1126,6 +1126,11 @@ function __initGptBridge() {
     if (typeof origShowSec !== 'function') return;
     window.showSec = function (secId, linkEl) {
       origShowSec(secId, linkEl);
+      // Keep principal / HOD shells free of static demo rows when opening sections
+      if (currentUser && (currentUser.role === 'principal' || currentUser.role === 'hod' ||
+          currentUser.role === 'faculty' || currentUser.role === 'teaching')) {
+        try { stripDummyDashboards(currentUser); } catch (e) { /* ignore */ }
+      }
       if ((secId === 'adUserApprovals' || secId === 'adUsers' || secId === 'adApprovals' ||
            secId === 'priUserApprovals' || secId === 'facUserApprovals') &&
           currentUser &&
@@ -1330,10 +1335,242 @@ function __initGptBridge() {
     }
   }
 
+  /**
+   * Remove static demo/dummy cards, fake KPIs, sample approval rows, and
+   * sidebar count badges from Principal + Faculty/HOD shells.
+   * Real modules (Approvals, Students, Student Data, Account Approvals) inject live UI separately.
+   */
+  function stripDummyDashboards(user) {
+    if (!user) return;
+    var role = user.role;
+    var isPri = role === 'principal';
+    var isFacShell = role === 'hod' || role === 'faculty' || role === 'teaching' ||
+      role === 'registrar' || role === 'exam' || role === 'est' || role === 'library' ||
+      role === 'placement' || role === 'nss' || role === 'yrc' || role === 'alumni' ||
+      role === 'sports' || role === 'welfare' || role === 'cash' || role === 'accounts' ||
+      role === 'stores' || role === 'studentassoc' || role === 'nonteaching' || role === 'guest';
+    if (!isPri && !isFacShell) return;
+
+    function emptyState(msg) {
+      return '<div class="info-box" style="margin:12px 0;opacity:.9;">' +
+        (msg || 'No data yet. Live records will appear here when available.') + '</div>';
+    }
+
+    // ---- Sidebar fake badges (not bridge live badges) ----
+    ;['#dbPrincipal', '#dbFaculty'].forEach(function (sel) {
+      var root = document.querySelector(sel);
+      if (!root) return;
+      root.querySelectorAll('.slb').forEach(function (b) {
+        if (!b.classList.contains('bridge-badge')) {
+          b.style.display = 'none';
+          b.textContent = '';
+        }
+      });
+    });
+
+    // ---- Principal ----
+    if (isPri) {
+      var priWelcome = document.querySelector('#priHome .welcome-card h2');
+      var priWelcomeP = document.querySelector('#priHome .welcome-card p');
+      if (priWelcome) {
+        priWelcome.textContent = 'Welcome, ' + (user.display_name || 'Principal') + ' 👔';
+      }
+      if (priWelcomeP) {
+        priWelcomeP.textContent = 'Full institutional oversight · Government Polytechnic Hubli';
+      }
+      // KPI numbers → placeholders until live paint
+      document.querySelectorAll('#priHome .kpi-num').forEach(function (el, i) {
+        if (i === 0) el.setAttribute('data-pri-kpi', 'students');
+        else if (i === 1) el.setAttribute('data-pri-kpi', 'faculty');
+        else if (i === 2) el.setAttribute('data-pri-kpi', 'pending');
+        else if (i === 3) el.setAttribute('data-pri-kpi', 'other');
+        el.textContent = '—';
+      });
+      document.querySelectorAll('#priHome .kpi-trend').forEach(function (el) {
+        el.textContent = '';
+        el.className = 'kpi-trend';
+      });
+      document.querySelectorAll('#priHome .pm-status .badge, #priHome .pr-module-card .badge').forEach(function (el) {
+        el.textContent = '—';
+        el.className = 'badge';
+      });
+
+      // Remove ALL demo app-items (onclick alert = static mock UI)
+      document.querySelectorAll('#dbPrincipal .app-item').forEach(function (el) {
+        if (/alert\s*\(/.test(el.innerHTML || '')) el.remove();
+        else if (/hrs ago|Staff Member|Mr\.|Mrs\.|Ms\./i.test(el.textContent || '')) el.remove();
+      });
+
+      // EST pending demo cards
+      var priPending = document.getElementById('priPending');
+      if (priPending) {
+        priPending.querySelectorAll('.app-item').forEach(function (el) { el.remove(); });
+        var body = document.getElementById('priProfileApprovalBody');
+        if (body) {
+          body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;opacity:.7;">No pending staff profile requests.</td></tr>';
+        }
+        var pc = document.getElementById('priProfilePendingCount');
+        if (pc) { pc.textContent = '0'; pc.className = 'badge'; }
+        // If cards still show demo tables with sample rows, clear tbody rows that look demo
+        priPending.querySelectorAll('tbody').forEach(function (tb) {
+          if (tb.id === 'priProfileApprovalBody') return;
+          if (tb.id && tb.id.indexOf('bridge') === 0) return;
+          var hasDemo = /PRF\/|Staff Member|Mr\.|hrs ago|KGD|98XXXX/i.test(tb.textContent || '');
+          if (hasDemo || (tb.querySelectorAll('tr').length && /onclick="alert\(/.test(tb.innerHTML))) {
+            tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:18px;opacity:.7;">No pending items.</td></tr>';
+          }
+        });
+      }
+
+      // Other principal panels with static sample tables / lists
+      ;[
+        'priCommittee', 'priOfficers', 'priLibrary', 'priWorkload',
+        'priFacStatus', 'priHODStatus', 'priAttStatus', 'priOffice', 'priEST',
+        'priStudents', 'priGallery',
+      ].forEach(function (id) {
+        var sec = document.getElementById(id);
+        if (!sec) return;
+        sec.querySelectorAll('.app-item').forEach(function (el) { el.remove(); });
+        sec.querySelectorAll('tbody').forEach(function (tb) {
+          if (tb.id && (tb.id.indexOf('bridge') === 0 || tb.id.indexOf('adStu') === 0 || tb.id.indexOf('priStu') === 0)) return;
+          var text = tb.textContent || '';
+          var html = tb.innerHTML || '';
+          if (/Staff Member|Mr\.|Mrs\.|Ms\.|Guest Faculty|Sample|demo|XXXX|hrs ago|Pending Principal|All Active|Civil Engineering · HOD/i.test(text) ||
+              /onclick="alert\(/i.test(html)) {
+            var cols = (tb.closest('table') && tb.closest('table').querySelectorAll('thead th').length) || 6;
+            tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:20px;opacity:.75;">No records yet.</td></tr>';
+          }
+        });
+        // Demo grid cards with fake numbers
+        sec.querySelectorAll('.kpi-num').forEach(function (el) {
+          if (/^\d|Today|—/.test((el.textContent || '').trim()) && !el.getAttribute('data-live')) {
+            el.textContent = '—';
+          }
+        });
+      });
+
+      // Grievances: keep live host empty if only demo
+      var gList = document.getElementById('priGrievanceList');
+      if (gList && /demo|sample|Student complaint/i.test(gList.textContent || '')) {
+        gList.innerHTML = '';
+      }
+      var gEmpty = document.getElementById('priGrievEmpty');
+      if (gEmpty) gEmpty.style.display = '';
+
+      // Live paint principal KPIs (students count)
+      paintPrincipalLiveKpis(user);
+    }
+
+    // ---- Faculty / HOD shell ----
+    if (isFacShell) {
+      var name = user.display_name || (role === 'hod' ? 'HOD' : 'Staff');
+      var branch = user.branch || '';
+      var facWelcome = document.querySelector('#facHome .welcome-card h2');
+      var facWelcomeP = document.querySelector('#facHome .welcome-card p');
+      if (facWelcome) {
+        facWelcome.textContent = 'Welcome, ' + name + (role === 'hod' ? ' 🎓' : ' 👋');
+      }
+      if (facWelcomeP) {
+        facWelcomeP.textContent =
+          (branch ? branch + ' · ' : '') +
+          (role === 'hod' ? 'Head of Department' : 'Faculty / Staff') +
+          ' · Government Polytechnic Hubli';
+      }
+      document.querySelectorAll('#facHome .kpi-num').forEach(function (el, i) {
+        el.setAttribute('data-fac-kpi', String(i));
+        el.textContent = '—';
+      });
+      document.querySelectorAll('#facHome .kpi-trend').forEach(function (el) {
+        el.textContent = '';
+        el.className = 'kpi-trend';
+      });
+
+      // Remove ALL faculty demo app-items (mock alerts / sample students)
+      document.querySelectorAll('#dbFaculty .app-item').forEach(function (el) {
+        if (el.closest('#bridgeProfileRequestsFac') || el.closest('[data-live="1"]') || el.closest('[data-live-approvals="1"]')) return;
+        if (/alert\s*\(/.test(el.innerHTML || '') ||
+            /hrs ago|NSS Registration|Guest Faculty|Sports Activity|Staff Member/i.test(el.textContent || '')) {
+          el.remove();
+        }
+      });
+
+      // facApprovals demo app-items — clear; live profile approvals re-render into host
+      var facAp = document.getElementById('facApprovals');
+      if (facAp) {
+        facAp.querySelectorAll('.app-item').forEach(function (el) { el.remove(); });
+        var card = facAp.querySelector('.card');
+        if (card && !card.querySelector('#bridgeProfileRequestsFac') && !document.getElementById('facApprovalsEmptyHint')) {
+          var host = document.createElement('div');
+          host.setAttribute('data-live-approvals', '1');
+          host.id = 'facApprovalsEmptyHint';
+          host.innerHTML = emptyState(
+            role === 'hod'
+              ? 'No pending department items right now. Profile update requests for your branch appear when students submit them.'
+              : 'No pending department approvals right now.'
+          );
+          card.appendChild(host);
+        }
+      }
+      document.querySelectorAll('#dbFaculty tbody').forEach(function (tb) {
+        if (tb.id && (
+          tb.id.indexOf('bridge') === 0 ||
+          tb.id.indexOf('facStu') === 0 ||
+          tb.id.indexOf('facSd') === 0 ||
+          tb.id.indexOf('adStu') === 0
+        )) return;
+        var text = tb.textContent || '';
+        var html = tb.innerHTML || '';
+        if (/Staff Member|Student\b|hrs ago|XXXX|Mr\.|Mrs\.|onclick="alert\(/i.test(text + html)) {
+          var cols = (tb.closest('table') && tb.closest('table').querySelectorAll('thead th').length) || 5;
+          tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:18px;opacity:.75;">No records yet.</td></tr>';
+        }
+      });
+
+      if (role === 'hod') {
+        paintHodLiveKpis(user);
+      }
+    }
+  }
+  window.stripDummyDashboards = stripDummyDashboards;
+
+  async function paintPrincipalLiveKpis(user) {
+    try {
+      var s = await apiReqQuiet('/api/students?_ts=' + Date.now());
+      var n = (s && Array.isArray(s.students)) ? s.students.length : null;
+      var el = document.querySelector('#priHome [data-pri-kpi="students"]');
+      if (el && n != null) el.textContent = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      var pend = await apiReqQuiet('/api/users?status=pending&_ts=' + Date.now());
+      var pEl = document.querySelector('#priHome [data-pri-kpi="pending"]');
+      if (pEl && pend && pend.counts) pEl.textContent = String(pend.counts.pending || 0);
+      var fEl = document.querySelector('#priHome [data-pri-kpi="faculty"]');
+      if (fEl) fEl.textContent = '—';
+      var oEl = document.querySelector('#priHome [data-pri-kpi="other"]');
+      if (oEl) oEl.textContent = '—';
+    } catch (e) { /* ignore */ }
+  }
+
+  async function paintHodLiveKpis(user) {
+    try {
+      var s = await apiReqQuiet('/api/students?_ts=' + Date.now());
+      var n = (s && Array.isArray(s.students)) ? s.students.length : 0;
+      var el0 = document.querySelector('#facHome [data-fac-kpi="0"]');
+      if (el0) el0.textContent = String(n);
+      var el2 = document.querySelector('#facHome [data-fac-kpi="2"]');
+      var pend = await apiReqQuiet('/api/users?status=pending&_ts=' + Date.now());
+      if (el2 && pend && pend.counts) el2.textContent = String(pend.counts.pending || 0);
+      var el1 = document.querySelector('#facHome [data-fac-kpi="1"]');
+      if (el1) el1.textContent = '—';
+      var el3 = document.querySelector('#facHome [data-fac-kpi="3"]');
+      if (el3) el3.textContent = '—';
+    } catch (e) { /* ignore */ }
+  }
+
   async function afterAuth(user) {
     setCurrentUser(user);
     await hydratePrivate();
     await paintStudentDashboard(user);
+    // Strip static demo content from Principal / HOD shells first
+    try { stripDummyDashboards(user); } catch (e) { console.warn('[bridge] stripDummy', e); }
     // Profile edit requests: Admin, Principal, HOD, ACM
     if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal') &&
         typeof window.renderProfileRequestApprovals === 'function') {
