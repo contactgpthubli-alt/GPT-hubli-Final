@@ -83,9 +83,18 @@ export async function POST(req: Request) {
         { status: 409 },
       )
     }
-  } else if (regNo) {
+  } else {
+    // Faculty / staff / principal / admin / office roles
+    if (!regNo) {
+      return badRequest(
+        "Username is required for staff accounts (this will be your login id, e.g. ACMGPTH).",
+      )
+    }
     // Staff username: keep as typed (case-insensitive login match)
     regNo = regNo.trim()
+    if (regNo.length < 3) {
+      return badRequest("Username must be at least 3 characters")
+    }
     // Reject if username already taken (reg_no or email local-part collision)
     const taken = await query(
       `SELECT 1 FROM users

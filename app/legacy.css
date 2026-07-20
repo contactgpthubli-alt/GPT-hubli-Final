@@ -1031,6 +1031,11 @@ body.cms-login-mode .demo-bar,
 body.cms-login-mode #demoBar {
   display: none !important;
 }
+/* Create-account modals must sit above the CMS login gate */
+html.cms-login-mode .overlay,
+body.cms-login-mode .overlay {
+  z-index: 10050 !important;
+}
 #cmsLoginGate {
   min-height: 100vh;
   display: flex;

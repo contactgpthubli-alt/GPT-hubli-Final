@@ -1089,18 +1089,26 @@ function __initGptBridge() {
     var box = document.getElementById(REGISTER_PANELS[type] || '');
     if (!box) { alert('Registration form not found.'); return; }
 
-    // Resolve the account role
-    var role = type === 'Student' ? 'student' : type === 'Principal' ? 'principal' : type === 'Admin' ? 'admin' : '';
+    // Resolve the account role — Faculty must never fall through to empty/student
+    var role = type === 'Student' ? 'student' : type === 'Principal' ? 'principal' : type === 'Admin' ? 'admin' : type === 'Faculty' ? 'faculty' : '';
     if (type === 'Faculty') {
       var roleSelect = document.getElementById('facRoleSelect');
-      var roleVal = roleSelect ? roleSelect.value : '';
+      var roleVal = roleSelect ? String(roleSelect.value || '').trim() : '';
       if (!roleVal) { alert('⚠️ Please select a Role before creating the account.'); return; }
       role = FACULTY_ROLE_MAP[roleVal] || 'faculty';
     }
+    if (!role) {
+      alert('Unknown account type. Please use Student, Faculty, Principal, or Admin Create Account.');
+      return;
+    }
 
-    // Collect form fields by their labels
-    var name = '', email = '', pass = '', passConfirm = '', regNo = '', username = '', branch = '';
+    // Collect form fields by their labels (+ known field ids)
+    var name = '', email = '', pass = '', passConfirm = '', regNo = '', username = '', branch = '', mobile = '';
     var pwCount = 0;
+    // Prefer stable ids when present (faculty username)
+    var facUserEl = document.getElementById('facRegUsername');
+    if (facUserEl && type === 'Faculty') username = String(facUserEl.value || '').trim();
+
     box.querySelectorAll('input').forEach(function (inp) {
       var fg = inp.closest('.fg');
       var label = (fg ? (fg.querySelector('label') || {}).textContent : '') || '';
@@ -1110,19 +1118,28 @@ function __initGptBridge() {
         if (pwCount === 1) pass = inp.value;
         else if (pwCount === 2) passConfirm = inp.value;
       } else if (inp.type === 'email' || l.indexOf('email') !== -1) email = inp.value.trim();
-      else if (l.indexOf('username') !== -1 || l.indexOf('user name') !== -1) username = inp.value.trim();
+      else if (
+        l.indexOf('username') !== -1 ||
+        l.indexOf('user name') !== -1 ||
+        l.indexOf('principal id') !== -1 ||
+        (l.indexOf(' id') !== -1 && l.indexOf('email') === -1)
+      ) {
+        if (!username) username = inp.value.trim();
+      } else if (l.indexOf('mobile') !== -1 || l.indexOf('whatsapp') !== -1) mobile = inp.value.trim();
       else if (l.indexOf('full name') !== -1 || (l.indexOf('name') !== -1 && !name && l.indexOf('user') === -1)) name = inp.value.trim();
       else if (l.indexOf('register number') !== -1) regNo = inp.value.trim().toUpperCase();
     });
-    // Branch / Department from labeled select (student + faculty)
+    // Branch / Department from labeled select (student + faculty) — never use Role select
     var branchSel = document.getElementById('stuRegBranch') || null;
     box.querySelectorAll('select').forEach(function (sel) {
+      if (sel.id === 'facRoleSelect') return;
       var fg = sel.closest('.fg');
       var label = (fg ? (fg.querySelector('label') || {}).textContent : '') || '';
       var ll = label.toLowerCase();
       if (ll.indexOf('branch') !== -1 || ll.indexOf('department') !== -1) branchSel = sel;
     });
-    if (branchSel) branch = (branchSel.value || '').trim();
+    if (branchSel) branch = (branchSel.value || branchSel.options[branchSel.selectedIndex] && branchSel.options[branchSel.selectedIndex].text || '').trim();
+    if (branch === 'Select Branch / Department' || branch.indexOf('Select') === 0) branch = '';
 
     if (!name || !email) { alert('Please fill in your full name and email address.'); return; }
     if (pwCount >= 1 && !pass) { alert('Please set a password.'); return; }
@@ -1133,8 +1150,22 @@ function __initGptBridge() {
       alert('Please select your Branch (Civil / Computer Science and Engineering / Electronics and Communication / Mechanical).');
       return;
     }
-    if (type === 'Faculty' && !username) {
-      alert('Please enter a Username for login (e.g. ACMGPTH).');
+    if (type === 'Faculty') {
+      if (!username) {
+        alert('Please enter a Username for login (e.g. ACMGPTH or your staff id).');
+        return;
+      }
+      if (!branch) {
+        alert('Please select Branch / Department.');
+        return;
+      }
+    }
+    if (type === 'Principal' && !username) {
+      alert('Please enter Principal ID (this will be your login username).');
+      return;
+    }
+    if (type === 'Admin' && !username) {
+      alert('Please enter a Username for the admin account.');
       return;
     }
 
@@ -1145,6 +1176,7 @@ function __initGptBridge() {
       regNo: regNo || undefined,
       username: username || undefined,
       branch: branch || undefined,
+      mobile: mobile || undefined,
     };
     if (pass) payload.password = pass; // Faculty form has no password field -> server assigns a temporary password
     var res = await api.post('/api/auth/register', payload);
@@ -2728,6 +2760,17 @@ function __initGptBridge() {
     landing.insertBefore(gate, landing.firstChild);
 
     window._cmsLoginRole = 'student';
+
+    function updateCmsRegisterLink() {
+      var regLinkEl = document.getElementById('cmsRegisterLink');
+      if (!regLinkEl) return;
+      var r = window._cmsLoginRole || 'student';
+      if (r === 'faculty') regLinkEl.textContent = 'Faculty / Staff? Create account';
+      else if (r === 'principal') regLinkEl.textContent = 'Principal? Create account';
+      else if (r === 'admin') regLinkEl.textContent = 'Admin / ACM? Create account';
+      else regLinkEl.textContent = 'New student? Create account';
+    }
+
     gate.querySelectorAll('[data-cms-role]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         gate.querySelectorAll('[data-cms-role]').forEach(function (b) { b.classList.remove('act'); });
@@ -2739,8 +2782,10 @@ function __initGptBridge() {
             ? 'Register number or email'
             : 'Username or email';
         }
+        updateCmsRegisterLink();
       });
     });
+    updateCmsRegisterLink();
 
     function setMsg(text, isError) {
       var msg = document.getElementById('cmsLoginMsg');
@@ -2809,17 +2854,37 @@ function __initGptBridge() {
     if (regLink) {
       regLink.addEventListener('click', function (e) {
         e.preventDefault();
-        // Student self-registration only (existing modal) — still private, not public CMS content
+        // Open Create Account for the role selected on the CMS gate
+        // (student / faculty / principal / admin — not student-only)
+        var roleKey = window._cmsLoginRole || 'student';
+        var modalMap = {
+          student: { modal: 'mStudent', reg: 'stuRegister', login: 'stuLogin', tab2: 'stuTab2', tab1: 'stuTab1' },
+          faculty: { modal: 'mFaculty', reg: 'facRegister', login: 'facLogin', tab2: 'facTab2', tab1: 'facTab1' },
+          principal: { modal: 'mPrincipal', reg: 'priRegister', login: 'priLogin', tab2: 'priTab2', tab1: 'priTab1' },
+          admin: { modal: 'mAdmin', reg: 'adRegister', login: 'adLogin', tab2: 'adTab2', tab1: 'adTab1' },
+        };
+        var cfg = modalMap[roleKey] || modalMap.student;
         if (typeof window.openM === 'function') {
-          window.openM('mStudent');
-          // Prefer Create Account tab if present
-          var tab = document.querySelector('#mStudent .tab[onclick*="Register"], #mStudent button[onclick*="Register"]');
-          if (tab) try { tab.click(); } catch (err) { /* ignore */ }
-          var regPanel = document.getElementById('stuRegister');
-          var loginPanel = document.getElementById('stuLogin');
-          if (regPanel) regPanel.style.display = '';
-          if (loginPanel) loginPanel.style.display = 'none';
+          window.openM(cfg.modal);
+        } else {
+          var ov = document.getElementById(cfg.modal);
+          if (ov) ov.classList.add('open');
         }
+        // Prefer Create Account tab
+        if (typeof window.switchTab === 'function') {
+          try { window.switchTab(cfg.reg, cfg.login, cfg.tab2, cfg.tab1); } catch (err) { /* ignore */ }
+        } else {
+          var tab = document.getElementById(cfg.tab2);
+          if (tab) try { tab.click(); } catch (err2) { /* ignore */ }
+        }
+        var regPanel = document.getElementById(cfg.reg);
+        var loginPanel = document.getElementById(cfg.login);
+        if (regPanel) regPanel.style.display = 'block';
+        if (loginPanel) loginPanel.style.display = 'none';
+        var t1 = document.getElementById(cfg.tab1);
+        var t2 = document.getElementById(cfg.tab2);
+        if (t1) t1.classList.remove('active');
+        if (t2) t2.classList.add('active');
       });
     }
 
