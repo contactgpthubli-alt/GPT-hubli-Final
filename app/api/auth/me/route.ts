@@ -12,6 +12,7 @@ export async function GET() {
       role: user.role,
       display_name: user.display_name,
       reg_no: user.reg_no,
+      branch: user.branch,
       force_password_change: user.force_password_change,
       is_demo: user.is_demo,
       requires_setup: requiresSetup,

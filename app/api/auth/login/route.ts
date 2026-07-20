@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     // student reg no, or display_name as the login identifier.
     // Soft-deleted rows are excluded so they cannot authenticate.
     const { rows } = await query(
-      `SELECT id, email, password_hash, role, display_name, reg_no, status,
+      `SELECT id, email, password_hash, role, display_name, reg_no, branch, status,
               force_password_change, is_demo, deleted_at
          FROM users
         WHERE deleted_at IS NULL
@@ -101,6 +101,7 @@ export async function POST(req: Request) {
         role: user.role,
         display_name: user.display_name,
         reg_no: user.reg_no,
+        branch: user.branch,
         force_password_change: user.force_password_change,
         is_demo: user.is_demo,
         requires_setup: requiresSetup,

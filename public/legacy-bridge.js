@@ -342,8 +342,11 @@ function __initGptBridge() {
         safeCall(window.updatePriGrievanceCounts);
       } catch (e) { console.error('[bridge] grievances hydrate', e); }
     }
-    // Pending account registrations (admin only)
-    if (currentUser && currentUser.role === 'admin') renderAccountApprovals();
+    // Pending account registrations (admin / principal / HOD)
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'principal' || currentUser.role === 'hod')) {
+      ensureAccountApprovalPanels();
+      renderAccountApprovals();
+    }
     // Certificate requests
     if (currentUser && currentUser.role === 'student') {
       renderStuCertRequests();
@@ -385,18 +388,118 @@ function __initGptBridge() {
   }
 
   /**
+   * Ensure Principal + HOD have Account Approvals nav + host panels
+   * (Admin already has adUserApprovals in markup).
+   */
+  function ensureAccountApprovalPanels() {
+    // ---- Principal ----
+    var priMenu = document.querySelector('#dbPrincipal .sb-menu');
+    if (priMenu && !document.getElementById('priUserApprovalsNav')) {
+      var insertAfter = null;
+      priMenu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        if (oc.indexOf('priPending') !== -1 || oc.indexOf('priHome') !== -1) insertAfter = sl;
+      });
+      var nav = document.createElement('div');
+      nav.className = 'sl';
+      nav.id = 'priUserApprovalsNav';
+      nav.setAttribute('onclick', "showSec('priUserApprovals',this)");
+      nav.innerHTML = '<span class="sli">✅</span>Account Approvals';
+      if (insertAfter && insertAfter.nextSibling) {
+        insertAfter.parentNode.insertBefore(nav, insertAfter.nextSibling);
+      } else if (insertAfter) {
+        insertAfter.parentNode.appendChild(nav);
+      } else {
+        priMenu.appendChild(nav);
+      }
+    }
+    var priContent = document.querySelector('#dbPrincipal .db-content');
+    if (priContent && !document.getElementById('priUserApprovals')) {
+      var pPanel = document.createElement('div');
+      pPanel.id = 'priUserApprovals';
+      pPanel.style.display = 'none';
+      pPanel.innerHTML =
+        '<div class="info-box">✅ <strong>Account Approvals</strong> — Same as Root Admin: approve or reject pending student and staff registrations for the whole institute.</div>' +
+        '<div id="bridgeAccountApprovalsPri"><div class="card"><p style="opacity:.7;margin:16px;">Loading accounts…</p></div></div>';
+      priContent.appendChild(pPanel);
+    }
+
+    // ---- HOD (faculty shell) ----
+    var facMenu = document.querySelector('#dbFaculty .sb-menu');
+    if (facMenu && !document.getElementById('facUserApprovalsNav')) {
+      var facInsert = null;
+      facMenu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        var df = sl.getAttribute('data-fac') || '';
+        if (oc.indexOf('facApprovals') !== -1 || df === 'approvals') facInsert = sl;
+      });
+      var fnav = document.createElement('div');
+      fnav.className = 'sl';
+      fnav.id = 'facUserApprovalsNav';
+      fnav.setAttribute('data-fac', 'accountapprovals');
+      fnav.setAttribute('onclick', "showSec('facUserApprovals',this)");
+      fnav.innerHTML = '<span class="sli">✅</span>Account Approvals';
+      // Hide by default; shown when HOD logs in via roleAccess
+      fnav.style.display = (currentUser && currentUser.role === 'hod') ? '' : 'none';
+      if (facInsert && facInsert.nextSibling) {
+        facInsert.parentNode.insertBefore(fnav, facInsert.nextSibling);
+      } else if (facInsert) {
+        facInsert.parentNode.appendChild(fnav);
+      } else {
+        facMenu.appendChild(fnav);
+      }
+    } else if (document.getElementById('facUserApprovalsNav') && currentUser) {
+      document.getElementById('facUserApprovalsNav').style.display =
+        currentUser.role === 'hod' ? '' : 'none';
+    }
+    var facContent = document.querySelector('#dbFaculty .db-content');
+    if (facContent && !document.getElementById('facUserApprovals')) {
+      var fPanel = document.createElement('div');
+      fPanel.id = 'facUserApprovals';
+      fPanel.style.display = 'none';
+      fPanel.innerHTML =
+        '<div class="info-box">✅ <strong>Branch Account Approvals</strong> — You only see <strong>student</strong> registrations for <strong>your branch</strong>. Approve / Reject so they can log in.</div>' +
+        '<div id="bridgeAccountApprovalsHod"><div class="card"><p style="opacity:.7;margin:16px;">Loading branch accounts…</p></div></div>';
+      facContent.appendChild(fPanel);
+    }
+  }
+  window.ensureAccountApprovalPanels = ensureAccountApprovalPanels;
+
+  /**
    * Full Account Control Center — pending + all accounts + trash,
    * multi-select bulk delete, password reset, restore.
+   * Principal / HOD see a simplified approve-only view.
    */
   async function renderAccountApprovals() {
+    ensureAccountApprovalPanels();
     var panel = document.getElementById('bridgeAccountApprovals') ||
-      document.getElementById('bridgeUserManagement');
-    if (!panel && !document.getElementById('adUserApprovals') && !document.getElementById('adUsers')) return;
+      document.getElementById('bridgeUserManagement') ||
+      document.getElementById('bridgeAccountApprovalsPri') ||
+      document.getElementById('bridgeAccountApprovalsHod');
+    if (!panel &&
+        !document.getElementById('adUserApprovals') &&
+        !document.getElementById('adUsers') &&
+        !document.getElementById('priUserApprovals') &&
+        !document.getElementById('facUserApprovals')) return;
 
-    var statusF = (document.getElementById('accStatusFilter') && document.getElementById('accStatusFilter').value) || 'all';
-    var roleF = (document.getElementById('accApRoleFilter') && document.getElementById('accApRoleFilter').value) || '';
+    var actorRole = (currentUser && currentUser.role) || '';
+    var isFullAdmin = actorRole === 'admin';
+    var isPrincipal = actorRole === 'principal';
+    var isHod = actorRole === 'hod';
+    var approveOnly = isPrincipal || isHod;
+
+    var statusF = (document.getElementById('accStatusFilter') && document.getElementById('accStatusFilter').value) ||
+      (approveOnly ? 'pending' : 'all');
+    var roleF = (document.getElementById('accApRoleFilter') && document.getElementById('accApRoleFilter').value) ||
+      (isHod ? 'student' : '');
     var qF = (document.getElementById('accApSearch') && document.getElementById('accApSearch').value) || '';
     var branchF = (document.getElementById('accApBranchFilter') && document.getElementById('accApBranchFilter').value) || '';
+    if (isHod && currentUser && currentUser.branch) {
+      branchF = currentUser.branch;
+    }
+    if (approveOnly && statusF !== 'pending' && statusF !== 'approved' && statusF !== 'rejected') {
+      statusF = 'pending';
+    }
 
     function buildQs(status) {
       var qs = [
@@ -490,17 +593,21 @@ function __initGptBridge() {
           (extra || '') + '>' + text + '</button>';
       }
       if (mode === 'trash') {
-        html += btn('gr', 'restore', '↩ Restore');
-        html += btn('re', 'purge', '☠ Purge');
-      } else if (mode === 'pending') {
+        if (isFullAdmin) {
+          html += btn('gr', 'restore', '↩ Restore');
+          html += btn('re', 'purge', '☠ Purge');
+        }
+      } else if (mode === 'pending' || a.status === 'pending') {
         html += btn('gr', 'approve', '✓ Approve');
         html += btn('re', 'reject', '✕ Reject');
-        html += btn('re', 'trash', '🗑 Trash');
-      } else {
+        if (isFullAdmin) html += btn('re', 'trash', '🗑 Trash');
+      } else if (isFullAdmin) {
         if (a.status === 'approved') html += btn('ol', 'deactivate', 'Deactivate');
         else if (a.status === 'rejected') html += btn('gr', 'activate', 'Re-activate');
         html += btn('ol', 'password', '🔑 Password');
         html += btn('re', 'trash', '🗑 Trash');
+      } else {
+        html += '<span style="font-size:0.72rem;opacity:.7;">—</span>';
       }
       html += '</div>';
       return html;
@@ -510,7 +617,9 @@ function __initGptBridge() {
       var idNum = Number(a.id);
       // Skip checkbox for trash rows in bulk-delete of actives (still selectable for bulk purge later)
       return '<tr data-acc-id="' + idNum + '">' +
-        '<td><input type="checkbox" class="acc-select-cb" data-acc-id="' + idNum + '" data-mode="' + mode + '" data-demo="' + (a.is_demo ? '1' : '0') + '" /></td>' +
+        (isFullAdmin
+          ? '<td><input type="checkbox" class="acc-select-cb" data-acc-id="' + idNum + '" data-mode="' + mode + '" data-demo="' + (a.is_demo ? '1' : '0') + '" /></td>'
+          : '') +
         '<td><strong>' + esc(a.display_name) + '</strong>' +
         (a.is_demo ? ' <span class="badge" style="font-size:0.65rem;">demo</span>' : '') +
         '<div style="font-size:0.68rem;opacity:.7;">' + esc(a.email) + '</div></td>' +
@@ -530,40 +639,64 @@ function __initGptBridge() {
         '</tr>';
     }
 
+    var scopeNote = '';
+    if (isHod) {
+      var hb = (data.scope && data.scope.branch) || (currentUser && currentUser.branch) || branchF || 'your branch';
+      scopeNote = '<div class="info-box" style="margin-bottom:12px;">🎓 HOD scope: only <strong>student</strong> accounts in <strong>' +
+        esc(hb) + '</strong>. Other branches are hidden.</div>';
+    } else if (isPrincipal) {
+      scopeNote = '<div class="info-box" style="margin-bottom:12px;">👔 Principal: approve / reject any pending registration (students &amp; staff), same as Admin Approvals.</div>';
+    }
+
     var filterBar =
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">' +
       '<input id="accApSearch" type="text" value="' + esc(qF) + '" placeholder="Search name, email, reg no…" ' +
       'style="flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" ' +
       'onkeydown="if(event.key===\'Enter\'){window.renderAccountApprovals&&window.renderAccountApprovals();}" />' +
       '<select id="accStatusFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" onchange="window.renderAccountApprovals&&window.renderAccountApprovals()">' +
-      statusOpts + '</select>' +
-      '<select id="accApRoleFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" onchange="window.renderAccountApprovals&&window.renderAccountApprovals()">' +
-      roleOpts + '</select>' +
-      '<select id="accApBranchFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:160px;" onchange="window.renderAccountApprovals&&window.renderAccountApprovals()">' +
-      branchOpts + '</select>' +
+      (approveOnly
+        ? [
+            ['pending', 'Pending only'],
+            ['approved', 'Approved only'],
+            ['rejected', 'Rejected only'],
+          ].map(function (p) {
+            return '<option value="' + p[0] + '"' + (statusF === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
+          }).join('')
+        : statusOpts) + '</select>' +
+      (isHod
+        ? ''
+        : ('<select id="accApRoleFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" onchange="window.renderAccountApprovals&&window.renderAccountApprovals()">' +
+          roleOpts + '</select>')) +
+      (isHod
+        ? '<span style="font-size:0.8rem;font-weight:700;padding:8px 10px;background:#e8f0fe;border-radius:8px;color:#1a4fa0;">Branch: ' + esc(branchF || '—') + '</span>'
+        : ('<select id="accApBranchFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:160px;" onchange="window.renderAccountApprovals&&window.renderAccountApprovals()">' +
+          branchOpts + '</select>')) +
       '<button class="btn ol" type="button" onclick="window.renderAccountApprovals&&window.renderAccountApprovals()">Apply</button>' +
-      '<button class="btn ol" type="button" onclick="window.clearAccountFilters&&window.clearAccountFilters()">Clear</button>' +
+      (isHod ? '' : '<button class="btn ol" type="button" onclick="window.clearAccountFilters&&window.clearAccountFilters()">Clear</button>') +
       '</div>' +
       '<div style="font-size:0.75rem;opacity:.75;margin-bottom:10px;">' +
-      'Active users: <strong>' + (counts.total_users || 0) + '</strong> · ' +
+      (isFullAdmin ? ('Active users: <strong>' + (counts.total_users || 0) + '</strong> · ') : '') +
       'Pending: <strong>' + pendingCount + '</strong> · ' +
       'Approved: <strong>' + (counts.approved || 0) + '</strong> · ' +
-      'Rejected: <strong>' + (counts.rejected || 0) + '</strong> · ' +
-      'Trash: <strong>' + (counts.deleted || 0) + '</strong>' +
+      'Rejected: <strong>' + (counts.rejected || 0) + '</strong>' +
+      (isFullAdmin ? (' · Trash: <strong>' + (counts.deleted || 0) + '</strong>') : '') +
       '</div>';
 
     // Bulk bar lives with ALL ACCOUNTS (where the checkboxes users select are)
-    var bulkBar =
-      '<div class="acc-bulk-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#fef2f2;border-radius:8px;border:1.5px solid #fecaca;">' +
-      '<label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">' +
-      '<input type="checkbox" class="acc-select-all-cb" style="width:16px;height:16px;" /> Select all</label>' +
-      '<button type="button" class="btn re acc-bulk-delete-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete selected</button>' +
-      '<button type="button" class="btn re acc-bulk-demo-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete all DEMO</button>' +
-      '<span class="acc-selected-count" style="font-size:0.8rem;font-weight:700;color:#991b1b;">0 selected</span>' +
-      '<span style="font-size:0.72rem;opacity:.75;">Checked rows → Trash (can Restore later)</span>' +
-      '</div>';
+    var bulkBar = isFullAdmin
+      ? ('<div class="acc-bulk-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#fef2f2;border-radius:8px;border:1.5px solid #fecaca;">' +
+        '<label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">' +
+        '<input type="checkbox" class="acc-select-all-cb" style="width:16px;height:16px;" /> Select all</label>' +
+        '<button type="button" class="btn re acc-bulk-delete-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete selected</button>' +
+        '<button type="button" class="btn re acc-bulk-demo-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete all DEMO</button>' +
+        '<span class="acc-selected-count" style="font-size:0.8rem;font-weight:700;color:#991b1b;">0 selected</span>' +
+        '<span style="font-size:0.72rem;opacity:.75;">Checked rows → Trash (can Restore later)</span>' +
+        '</div>')
+      : '';
 
-    var thead = '<thead><tr><th style="width:40px;">☐</th><th>Name / Email</th><th>Role</th><th>Branch</th><th>Reg No</th><th>Year</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>';
+    var thead = '<thead><tr>' +
+      (isFullAdmin ? '<th style="width:40px;">☐</th>' : '') +
+      '<th>Name / Email</th><th>Role</th><th>Branch</th><th>Reg No</th><th>Year</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>';
 
     function tableFor(list, mode, emptyMsg) {
       if (!list.length) return '<p style="opacity:.7;margin:0;">' + emptyMsg + '</p>';
@@ -578,42 +711,56 @@ function __initGptBridge() {
       : statusF === 'deleted' ? []
       : statusF === 'all' ? pending.concat(others) : others;
 
-    var html =
-      '<div class="card" style="margin-bottom:16px;">' +
-      '<div class="card-hd"><h3>⏳ Pending only (quick view)</h3>' +
-      '<span class="badge pending">' + pendingCount + ' pending</span></div>' +
-      '<div style="padding:12px 16px;">' +
-      (statusF === 'deleted'
-        ? '<p style="opacity:.7;">Viewing trash — use Deleted Accounts section below.</p>'
-        : (pending.length
-          ? '<p style="font-size:0.78rem;opacity:.8;margin:0 0 8px;">' + pending.length + ' registration(s) waiting. Full list with bulk delete is below.</p>' +
-            tableFor(pending, 'pending', '')
-          : '<p style="opacity:.7;margin:0;">No pending account registrations.</p>')) +
-      '</div></div>' +
-      '<div class="card" style="margin-bottom:16px;">' +
-      '<div class="card-hd"><h3>👥 All Accounts — select &amp; delete <span style="font-size:0.7rem;opacity:.6;font-weight:500;">(actions v4)</span></h3>' +
-      '<button class="btn ol" type="button" onclick="window.renderAccountApprovals()">↻ Refresh</button></div>' +
-      '<div style="padding:12px 16px;">' +
-      filterBar +
-      bulkBar +
-      (statusF === 'deleted'
-        ? '<p style="opacity:.7;">Switch filter to “All Active” to manage accounts.</p>'
-        : tableFor(mainList, 'active', 'No accounts match these filters.')) +
-      '</div></div>' +
-      '<div class="card" style="border-left:4px solid #b45309;">' +
-      '<div class="card-hd"><h3>🗑 Deleted Accounts (Trash)</h3>' +
-      '<span class="badge" style="background:#fef3c7;color:#92400e;">' + (counts.deleted || trash.length) + ' in trash</span></div>' +
-      '<div style="padding:12px 16px;">' +
-      '<p style="font-size:0.78rem;opacity:.8;margin:0 0 10px;">Accidentally deleted? Click <strong>Restore</strong>. ' +
-      '<strong>Purge</strong> permanently removes the account.</p>' +
-      tableFor(trash, 'trash', 'Trash is empty.') +
-      '</div></div>';
+    var html = scopeNote;
+    if (approveOnly) {
+      html +=
+        '<div class="card" style="margin-bottom:16px;">' +
+        '<div class="card-hd"><h3>⏳ Account Approval Queue</h3>' +
+        '<span class="badge pending">' + pendingCount + ' pending</span>' +
+        '<button class="btn ol" type="button" style="margin-left:auto;" onclick="window.renderAccountApprovals()">↻ Refresh</button></div>' +
+        '<div style="padding:12px 16px;">' +
+        filterBar +
+        tableFor(mainList.length ? mainList : pending, statusF === 'pending' ? 'pending' : 'active',
+          statusF === 'pending' ? 'No pending registrations in your scope.' : 'No accounts match these filters.') +
+        '</div></div>';
+    } else {
+      html +=
+        '<div class="card" style="margin-bottom:16px;">' +
+        '<div class="card-hd"><h3>⏳ Pending only (quick view)</h3>' +
+        '<span class="badge pending">' + pendingCount + ' pending</span></div>' +
+        '<div style="padding:12px 16px;">' +
+        (statusF === 'deleted'
+          ? '<p style="opacity:.7;">Viewing trash — use Deleted Accounts section below.</p>'
+          : (pending.length
+            ? '<p style="font-size:0.78rem;opacity:.8;margin:0 0 8px;">' + pending.length + ' registration(s) waiting. Full list with bulk delete is below.</p>' +
+              tableFor(pending, 'pending', '')
+            : '<p style="opacity:.7;margin:0;">No pending account registrations.</p>')) +
+        '</div></div>' +
+        '<div class="card" style="margin-bottom:16px;">' +
+        '<div class="card-hd"><h3>👥 All Accounts — select &amp; delete <span style="font-size:0.7rem;opacity:.6;font-weight:500;">(actions v4)</span></h3>' +
+        '<button class="btn ol" type="button" onclick="window.renderAccountApprovals()">↻ Refresh</button></div>' +
+        '<div style="padding:12px 16px;">' +
+        filterBar +
+        bulkBar +
+        (statusF === 'deleted'
+          ? '<p style="opacity:.7;">Switch filter to “All Active” to manage accounts.</p>'
+          : tableFor(mainList, 'active', 'No accounts match these filters.')) +
+        '</div></div>' +
+        '<div class="card" style="border-left:4px solid #b45309;">' +
+        '<div class="card-hd"><h3>🗑 Deleted Accounts (Trash)</h3>' +
+        '<span class="badge" style="background:#fef3c7;color:#92400e;">' + (counts.deleted || trash.length) + ' in trash</span></div>' +
+        '<div style="padding:12px 16px;">' +
+        '<p style="font-size:0.78rem;opacity:.8;margin:0 0 10px;">Accidentally deleted? Click <strong>Restore</strong>. ' +
+        '<strong>Purge</strong> permanently removes the account.</p>' +
+        tableFor(trash, 'trash', 'Trash is empty.') +
+        '</div></div>';
+    }
 
-    // Always paint the Account Approvals host; also User Management if open
-    var ap = document.getElementById('bridgeAccountApprovals');
-    var um = document.getElementById('bridgeUserManagement');
-    if (ap) ap.innerHTML = html;
-    if (um) um.innerHTML = html;
+    // Paint all hosts that exist (admin, principal, HOD)
+    ;['bridgeAccountApprovals', 'bridgeUserManagement', 'bridgeAccountApprovalsPri', 'bridgeAccountApprovalsHod'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    });
 
     // Count starts at 0
     document.querySelectorAll('.acc-selected-count').forEach(function (el) {
@@ -689,11 +836,17 @@ function __initGptBridge() {
   function updateSidebarBadges(profilePending, accountPending) {
     var p = Number(profilePending) || 0;
     var a = Number(accountPending) || 0;
-    document.querySelectorAll('#dbAdmin .sl').forEach(function (link) {
+    document.querySelectorAll('#dbAdmin .sl, #dbPrincipal .sl, #dbFaculty .sl').forEach(function (link) {
       var onclick = link.getAttribute('onclick') || '';
       var text = (link.textContent || '').replace(/\s+/g, ' ');
-      var isAccountAppr = onclick.indexOf('adUserApprovals') !== -1 || text.indexOf('Account Approvals') !== -1;
-      var isProfileAppr = onclick.indexOf('adApprovals') !== -1 && !isAccountAppr;
+      var isAccountAppr =
+        onclick.indexOf('adUserApprovals') !== -1 ||
+        onclick.indexOf('priUserApprovals') !== -1 ||
+        onclick.indexOf('facUserApprovals') !== -1 ||
+        text.indexOf('Account Approvals') !== -1;
+      var isProfileAppr =
+        (onclick.indexOf('adApprovals') !== -1 || onclick.indexOf('facApprovals') !== -1) &&
+        !isAccountAppr;
 
       // Hide any hardcoded demo .slb badges
       link.querySelectorAll('.slb').forEach(function (b) {
@@ -721,10 +874,11 @@ function __initGptBridge() {
     updateSidebarBadges(window._lastProfilePending || 0, count);
   }
 
-  /* Poll for new registrations while an admin session is active so the badge stays fresh.
+  /* Poll for new registrations while an approver session is active so the badge stays fresh.
      Skip full re-render if the admin has checkboxes selected (would wipe selection). */
   setInterval(function () {
-    if (!currentUser || currentUser.role !== 'admin') return;
+    if (!currentUser) return;
+    if (currentUser.role !== 'admin' && currentUser.role !== 'principal' && currentUser.role !== 'hod') return;
     if (document.querySelector('.acc-select-cb:checked')) return;
     var ae = document.activeElement;
     if (ae && ae.id && (ae.id.indexOf('acc') === 0 || ae.classList.contains('acc-select-cb'))) return;
@@ -745,14 +899,16 @@ function __initGptBridge() {
   // global installAccountActionBus() at the bottom of this file — do not reassign
   // window.bridge* handlers here or they will break those actions.
 
-  // Refresh live pending registrations every time the admin opens an approvals section
+  // Refresh live pending registrations every time an approver opens an approvals section
   (function hookShowSec() {
     var origShowSec = window.showSec;
     if (typeof origShowSec !== 'function') return;
     window.showSec = function (secId, linkEl) {
       origShowSec(secId, linkEl);
-      if ((secId === 'adUserApprovals' || secId === 'adUsers' || secId === 'adApprovals') &&
-          currentUser && currentUser.role === 'admin') {
+      if ((secId === 'adUserApprovals' || secId === 'adUsers' || secId === 'adApprovals' ||
+           secId === 'priUserApprovals' || secId === 'facUserApprovals') &&
+          currentUser &&
+          (currentUser.role === 'admin' || currentUser.role === 'principal' || currentUser.role === 'hod')) {
         renderAccountApprovals();
       }
       // Profile edit requests (admin / ACM Approvals + HOD Approvals)
@@ -907,6 +1063,10 @@ function __initGptBridge() {
     var role = user.role;
     if (user.reg_no) { window.STU_REG_NO = user.reg_no; } // keep student modules pointed at the real logged-in student
     clearAcmAdminScope();
+    // Create Account Approvals panels before role shell opens them
+    if (role === 'admin' || role === 'principal' || role === 'hod') {
+      try { ensureAccountApprovalPanels(); } catch (e) { /* ignore */ }
+    }
     bypass = true;
     try {
       if (role === 'acm') {
@@ -915,8 +1075,25 @@ function __initGptBridge() {
         setTimeout(function () { applyAcmAdminScope(user); }, 40);
       } else if (role === 'student' || role === 'admin' || role === 'principal') {
         origLogin(role);
+        if (role === 'principal') {
+          setTimeout(function () {
+            ensureAccountApprovalPanels();
+            var nav = document.getElementById('priUserApprovalsNav');
+            if (nav) nav.style.display = '';
+          }, 50);
+        }
       } else {
         origDemoLogin(role); // faculty-family roles configure the faculty sidebar
+        if (role === 'hod') {
+          setTimeout(function () {
+            ensureAccountApprovalPanels();
+            document.querySelectorAll('#dbFaculty [data-fac="accountapprovals"]').forEach(function (el) {
+              el.style.display = '';
+            });
+            var hodNav = document.getElementById('facUserApprovalsNav');
+            if (hodNav) hodNav.style.display = '';
+          }, 80);
+        }
       }
     } finally { bypass = false; }
     if (user.force_password_change) {
@@ -932,6 +1109,20 @@ function __initGptBridge() {
     if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm') &&
         typeof window.renderProfileRequestApprovals === 'function') {
       window.renderProfileRequestApprovals();
+    }
+    // Account approvals: Admin, Principal, HOD
+    if (user && (user.role === 'admin' || user.role === 'principal' || user.role === 'hod')) {
+      ensureAccountApprovalPanels();
+      // HOD: force Account Approvals menu visible
+      var hodNav = document.getElementById('facUserApprovalsNav');
+      if (hodNav) hodNav.style.display = user.role === 'hod' ? '' : 'none';
+      if (user.role === 'hod') {
+        // Ensure roleAccess-style hide doesn't cover accountapprovals
+        document.querySelectorAll('#dbFaculty [data-fac="accountapprovals"]').forEach(function (el) {
+          el.style.display = '';
+        });
+      }
+      try { renderAccountApprovals(); } catch (e) { console.warn('[bridge] account approvals', e); }
     }
     if (user && user.role === 'acm') {
       applyAcmAdminScope(user);

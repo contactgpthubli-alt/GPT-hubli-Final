@@ -12,6 +12,8 @@ export interface SessionUser {
   role: string
   display_name: string
   reg_no: string | null
+  /** Department / diploma branch (used for HOD scoping). */
+  branch: string | null
   staff_id: number | null
   status: string
   force_password_change: boolean
@@ -93,7 +95,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value
   if (!token) return null
   const { rows } = await query<SessionUser & { deleted_at?: unknown }>(
-    `SELECT u.id, u.email, u.role, u.display_name, u.reg_no, u.staff_id,
+    `SELECT u.id, u.email, u.role, u.display_name, u.reg_no, u.branch, u.staff_id,
             u.status, u.force_password_change, u.is_demo, u.deleted_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id

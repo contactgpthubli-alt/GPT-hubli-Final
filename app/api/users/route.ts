@@ -7,29 +7,51 @@ import {
   clearUserSessions,
 } from "@/lib/auth"
 import { normalizeBranch } from "@/lib/branches"
+import {
+  canApproveTarget,
+  hodBranchOf,
+  isAccountApproverRole,
+} from "@/lib/account-approvals"
 
 /**
- * Admin full account control with soft-delete trash.
+ * Account control / listings.
  * GET  ?status=all|pending|approved|rejected|deleted&role=&q=&branch=
+ * Access: admin (full), principal (full list for approvals), hod (own-branch students only)
  * PATCH actions:
- *   approve | reject | reset_password | set_status | soft_delete | restore | bulk_soft_delete
- * DELETE ?id=  → soft-delete (same as soft_delete). Hard purge only for trash: ?hard=1&id=
+ *   approve | reject — admin, principal, hod (scoped)
+ *   reset_password | set_status | soft_delete | restore | bulk_soft_delete — admin only
+ * DELETE ?id=  → soft-delete (admin). Hard purge only for trash: ?hard=1&id=
  */
 export async function GET(req: Request) {
-  const user = await requireRole("admin")
-  if (!user) return unauthorized()
+  const user = await requireRole("admin", "principal", "hod")
+  if (!user || !isAccountApproverRole(user.role)) return unauthorized()
 
   const { searchParams } = new URL(req.url)
-  const status = (searchParams.get("status") || "all").trim().toLowerCase()
-  const role = (searchParams.get("role") || "").trim().toLowerCase()
+  let status = (searchParams.get("status") || "all").trim().toLowerCase()
+  let role = (searchParams.get("role") || "").trim().toLowerCase()
   const q = (searchParams.get("q") || "").trim()
-  const branch = (searchParams.get("branch") || "").trim()
+  let branch = (searchParams.get("branch") || "").trim()
+
+  // HOD: only students of their branch (default pending for the queue)
+  const hodBranch = user.role === "hod" ? hodBranchOf(user) : null
+  if (user.role === "hod") {
+    role = "student"
+    if (hodBranch) branch = hodBranch
+    // HOD does not browse trash / full directory
+    if (status === "deleted" || status === "all") status = "pending"
+  }
+
+  // Principal uses the approval queue primarily; allow full list like admin
+  // but never manage trash from principal UI (still filterable if needed).
 
   const params: unknown[] = []
   const where: string[] = ["1=1"]
 
   // Default list excludes trash; status=deleted shows only trash; all excludes deleted too
   if (status === "deleted") {
+    if (user.role !== "admin") {
+      return unauthorized("Only Root Admin can view trash")
+    }
     where.push(`(u.status = 'deleted' OR u.deleted_at IS NOT NULL)`)
   } else if (status === "all") {
     where.push(`(u.status IS DISTINCT FROM 'deleted' AND u.deleted_at IS NULL)`)
@@ -44,8 +66,13 @@ export async function GET(req: Request) {
     where.push(`u.role = $${params.length}`)
   }
   if (branch) {
+    const nb = normalizeBranch(branch) || branch
+    params.push(nb)
     params.push(`%${branch}%`)
-    where.push(`COALESCE(u.branch, s.dept, '') ILIKE $${params.length}`)
+    where.push(`(
+      COALESCE(u.branch, s.dept, '') ILIKE $${params.length - 1}
+      OR COALESCE(u.branch, s.dept, '') ILIKE $${params.length}
+    )`)
   }
   if (q) {
     params.push(`%${q}%`)
@@ -78,24 +105,70 @@ export async function GET(req: Request) {
     params,
   )
 
-  const { rows: counts } = await query(
-    `SELECT
-        COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'deleted' AND deleted_at IS NULL)::int AS active_total,
-        COUNT(*) FILTER (WHERE status = 'pending' AND deleted_at IS NULL)::int AS pending,
-        COUNT(*) FILTER (WHERE status = 'approved' AND deleted_at IS NULL)::int AS approved,
-        COUNT(*) FILTER (WHERE status = 'rejected' AND deleted_at IS NULL)::int AS rejected,
-        COUNT(*) FILTER (WHERE status = 'deleted' OR deleted_at IS NOT NULL)::int AS deleted
-       FROM users`,
-  )
-  const c0 = counts[0] || {}
+  // Counts: global for admin/principal; branch-scoped for HOD
+  let c0: Record<string, number> = {}
+  if (user.role === "hod" && hodBranch) {
+    const { rows: counts } = await query(
+      `SELECT
+          COUNT(*) FILTER (
+            WHERE status IS DISTINCT FROM 'deleted' AND deleted_at IS NULL
+              AND role = 'student'
+              AND (
+                COALESCE(branch, '') ILIKE $1
+                OR COALESCE(branch, '') ILIKE $2
+              )
+          )::int AS active_total,
+          COUNT(*) FILTER (
+            WHERE status = 'pending' AND deleted_at IS NULL
+              AND role = 'student'
+              AND (
+                COALESCE(branch, '') ILIKE $1
+                OR COALESCE(branch, '') ILIKE $2
+              )
+          )::int AS pending,
+          COUNT(*) FILTER (
+            WHERE status = 'approved' AND deleted_at IS NULL
+              AND role = 'student'
+              AND (
+                COALESCE(branch, '') ILIKE $1
+                OR COALESCE(branch, '') ILIKE $2
+              )
+          )::int AS approved,
+          COUNT(*) FILTER (
+            WHERE status = 'rejected' AND deleted_at IS NULL
+              AND role = 'student'
+              AND (
+                COALESCE(branch, '') ILIKE $1
+                OR COALESCE(branch, '') ILIKE $2
+              )
+          )::int AS rejected,
+          0::int AS deleted
+         FROM users`,
+      [hodBranch, `%${hodBranch}%`],
+    )
+    c0 = counts[0] || {}
+  } else {
+    const { rows: counts } = await query(
+      `SELECT
+          COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'deleted' AND deleted_at IS NULL)::int AS active_total,
+          COUNT(*) FILTER (WHERE status = 'pending' AND deleted_at IS NULL)::int AS pending,
+          COUNT(*) FILTER (WHERE status = 'approved' AND deleted_at IS NULL)::int AS approved,
+          COUNT(*) FILTER (WHERE status = 'rejected' AND deleted_at IS NULL)::int AS rejected,
+          COUNT(*) FILTER (WHERE status = 'deleted' OR deleted_at IS NOT NULL)::int AS deleted
+         FROM users`,
+    )
+    c0 = counts[0] || {}
+  }
 
   // Profile pending count for Approvals sidebar badge
   let profile_pending = 0
   try {
-    const { rows: pr } = await query(
-      `SELECT COUNT(*)::int AS n FROM profile_requests WHERE status = 'pending'`,
-    )
-    profile_pending = pr[0]?.n || 0
+    if (user.role === "admin" || user.role === "principal" || user.role === "hod") {
+      const { rows: pr } = await query(
+        `SELECT COUNT(*)::int AS n FROM profile_requests WHERE status = 'pending'`,
+      )
+      profile_pending = pr[0]?.n || 0
+    }
   } catch {
     profile_pending = 0
   }
@@ -128,6 +201,16 @@ export async function GET(req: Request) {
         profile_pending,
       },
       filters: { status, role, q, branch },
+      scope: {
+        role: user.role,
+        branch: user.role === "hod" ? hodBranch : null,
+        capabilities:
+          user.role === "admin"
+            ? "full"
+            : user.role === "principal"
+              ? "approve_all"
+              : "approve_branch_students",
+      },
     },
     {
       headers: {
@@ -178,14 +261,18 @@ async function softDeleteUser(id: number, adminId: number) {
 
 /** Shared mutation handler (PATCH preferred; POST accepted as fallback). */
 async function mutateUsers(req: Request) {
-  const admin = await requireRole("admin")
-  if (!admin) return unauthorized()
+  const actor = await requireRole("admin", "principal", "hod")
+  if (!actor || !isAccountApproverRole(actor.role)) return unauthorized()
 
   const b = await req.json().catch(() => null)
   if (!b?.action) return badRequest("action is required")
 
-  // ── Bulk soft-delete ──
+  const isAdmin = actor.role === "admin"
+  const canApprove = isAdmin || actor.role === "principal" || actor.role === "hod"
+
+  // ── Bulk soft-delete (admin only) ──
   if (b.action === "bulk_soft_delete") {
+    if (!isAdmin) return unauthorized("Only Root Admin can bulk-delete accounts")
     const rawIds = Array.isArray(b.ids) ? b.ids : []
     const ids = rawIds
       .map((x: unknown) => Number(x))
@@ -196,7 +283,7 @@ async function mutateUsers(req: Request) {
     const results: { id: number; ok: boolean; error?: string }[] = []
     for (const id of ids) {
       try {
-        const r = await softDeleteUser(id, Number(admin.id))
+        const r = await softDeleteUser(id, Number(actor.id))
         if ("error" in r && r.error) results.push({ id, ok: false, error: r.error })
         else results.push({ id, ok: true })
       } catch (err) {
@@ -230,12 +317,14 @@ async function mutateUsers(req: Request) {
   const target = targetRows[0]
 
   if (b.action === "soft_delete") {
-    const r = await softDeleteUser(id, Number(admin.id))
+    if (!isAdmin) return unauthorized("Only Root Admin can delete accounts")
+    const r = await softDeleteUser(id, Number(actor.id))
     if ("error" in r && r.error) return badRequest(r.error)
     return Response.json({ ok: true, user: r.user })
   }
 
   if (b.action === "restore") {
+    if (!isAdmin) return unauthorized("Only Root Admin can restore accounts")
     if (target.status !== "deleted" && !target.deleted_at) {
       return badRequest("Account is not in trash")
     }
@@ -257,8 +346,9 @@ async function mutateUsers(req: Request) {
   }
 
   if (b.action === "hard_delete") {
+    if (!isAdmin) return unauthorized("Only Root Admin can permanently delete accounts")
     // Permanent delete — only from trash
-    if (Number(target.id) === Number(admin.id)) {
+    if (Number(target.id) === Number(actor.id)) {
       return badRequest("You cannot delete your own admin account")
     }
     if (target.status !== "deleted" && !target.deleted_at) {
@@ -278,6 +368,9 @@ async function mutateUsers(req: Request) {
   }
 
   if (b.action === "approve") {
+    if (!canApprove) return unauthorized()
+    const gate = canApproveTarget(actor, target)
+    if (!gate.ok) return unauthorized(gate.error)
     const { rows } = await query(
       `UPDATE users SET status = 'approved'
         WHERE id = $1 AND status = 'pending'
@@ -304,7 +397,10 @@ async function mutateUsers(req: Request) {
   }
 
   if (b.action === "reject") {
-    if (Number(target.id) === Number(admin.id)) {
+    if (!canApprove) return unauthorized()
+    const gate = canApproveTarget(actor, target)
+    if (!gate.ok) return unauthorized(gate.error)
+    if (Number(target.id) === Number(actor.id)) {
       return badRequest("You cannot reject your own account")
     }
     const { rows } = await query(
@@ -319,11 +415,16 @@ async function mutateUsers(req: Request) {
     return Response.json({ ok: true, user: rows[0] })
   }
 
+  // Remaining admin-only account management
+  if (!isAdmin) {
+    return unauthorized("Only Root Admin can perform this account action")
+  }
+
   if (b.action === "set_status") {
     if (!["approved", "rejected", "pending"].includes(b.status)) {
       return badRequest("status must be approved|rejected|pending")
     }
-    if (Number(target.id) === Number(admin.id) && b.status !== "approved") {
+    if (Number(target.id) === Number(actor.id) && b.status !== "approved") {
       return badRequest("You cannot disable your own admin account")
     }
     const { rows } = await query(
