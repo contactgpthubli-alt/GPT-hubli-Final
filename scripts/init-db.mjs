@@ -78,6 +78,7 @@ async function run() {
     const tcModuleSql = readFileSync(path.join(projectRoot, 'scripts/007_tc_module.sql'), 'utf8')
     const studyCertsSql = readFileSync(path.join(projectRoot, 'scripts/008_study_certs.sql'), 'utf8')
     const acmSendStudentSql = readFileSync(path.join(projectRoot, 'scripts/009_acm_cert_send_student.sql'), 'utf8')
+    const profilePreviousSql = readFileSync(path.join(projectRoot, 'scripts/010_profile_request_previous.sql'), 'utf8')
 
     await client.query(schemaSql)
     console.log('Applied database schema.')
@@ -105,6 +106,9 @@ async function run() {
 
     await client.query(acmSendStudentSql)
     console.log('Applied ACM cert send-to-student migration.')
+
+    await client.query(profilePreviousSql)
+    console.log('Applied profile_requests.previous migration.')
   } catch (error) {
     console.error('Database initialization failed:')
     console.error(error instanceof Error ? error.message : error)

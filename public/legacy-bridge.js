@@ -3338,96 +3338,164 @@ function isProfilePhotoValue(k, v) {
   return typeof v === 'string' && v.indexOf('data:image/') === 0;
 }
 
+function shortProfileText(text, maxLen) {
+  maxLen = maxLen || 48;
+  text = text == null || text === '' ? '—' : String(text);
+  if (text.length > maxLen) return text.slice(0, maxLen - 1) + '…';
+  return text;
+}
+
 /**
- * Normalize request changes into glance-friendly items.
- * Skips control flags; never exposes raw base64 in UI text.
+ * Normalize request changes into glance-friendly items with before → after.
+ * @param {object} changes  new values
+ * @param {object} [previous] old values snapshot (from API)
  */
-function normalizeProfileChanges(changes) {
+function normalizeProfileChanges(changes, previous) {
   if (!changes || typeof changes !== 'object') return [];
+  previous = previous && typeof previous === 'object' ? previous : {};
   return Object.keys(changes)
     .filter(function (k) { return k !== 'profile_edit_locked'; })
     .map(function (k) {
       var v = changes[k];
-      if (isProfilePhotoValue(k, v)) {
-        var src = (typeof v === 'string' && v.indexOf('data:image/') === 0) ? v : '';
-        return { key: k === 'profile_photo' || k === 'photo' ? 'Profile Photo' : k, kind: 'photo', value: src, short: 'New photo' };
+      var prev = previous[k];
+      if (prev == null && isProfilePhotoValue(k, v)) {
+        prev = previous['Profile Photo'] || previous.profile_photo || previous.photo || '';
+      }
+      if (isProfilePhotoValue(k, v) || isProfilePhotoValue(k, prev)) {
+        var newSrc = (typeof v === 'string' && v.indexOf('data:image/') === 0) ? v : '';
+        var oldSrc = (typeof prev === 'string' && prev.indexOf('data:image/') === 0) ? prev : '';
+        return {
+          key: k === 'profile_photo' || k === 'photo' ? 'Profile Photo' : k,
+          kind: 'photo',
+          value: newSrc,
+          previous: oldSrc,
+          short: 'Photo updated',
+          shortPrev: oldSrc ? 'Previous photo' : 'No photo',
+        };
       }
       var text = v == null || v === '' ? '—' : String(v);
+      var prevText = prev == null || prev === '' ? '—' : String(prev);
       // Guard: if something still looks like base64 image junk, hide it
       if (text.indexOf('data:image/') === 0 || (text.length > 200 && /^[A-Za-z0-9+/=]+$/.test(text.slice(0, 80)))) {
-        return { key: k, kind: 'photo', value: text.indexOf('data:image/') === 0 ? text : '', short: 'New photo' };
+        return {
+          key: k,
+          kind: 'photo',
+          value: text.indexOf('data:image/') === 0 ? text : '',
+          previous: (typeof prev === 'string' && prev.indexOf('data:image/') === 0) ? prev : '',
+          short: 'Photo updated',
+          shortPrev: 'Previous',
+        };
       }
-      var short = text.length > 48 ? text.slice(0, 45) + '…' : text;
-      return { key: k, kind: 'text', value: text, short: short };
+      return {
+        key: k,
+        kind: 'text',
+        value: text,
+        previous: prevText,
+        short: shortProfileText(text),
+        shortPrev: shortProfileText(prevText, 36),
+      };
     });
 }
 
-/** Compact at-a-glance chips — only updated fields, photo as thumbnail. */
+/** Compact at-a-glance chips — highlighted before → after. */
 function profileChangesGlance(changes, opts) {
   opts = opts || {};
   var max = opts.max != null ? opts.max : 6;
-  var items = normalizeProfileChanges(changes);
+  var previous = opts.previous || {};
+  var items = normalizeProfileChanges(changes, previous);
   if (!items.length) return '<span style="opacity:.6;font-size:0.8rem;">No field changes</span>';
 
   var shown = items.slice(0, max);
   var more = items.length - shown.length;
-  var html = '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">';
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
   shown.forEach(function (it) {
     if (it.kind === 'photo') {
-      if (it.value) {
-        html += '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;' +
-          'background:#ecfdf5;border:1px solid #a7f3d0;border-radius:999px;font-size:0.72rem;font-weight:600;color:#065f46;">' +
-          '<img src="' + it.value + '" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #6ee7b7;" />' +
-          'Profile Photo</span>';
-      } else {
-        html += '<span style="padding:4px 10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:999px;font-size:0.72rem;font-weight:600;color:#065f46;">📷 Profile Photo</span>';
-      }
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;' +
+        'background:linear-gradient(90deg,#fffbeb 0%,#ecfdf5 100%);border:1.5px solid #fbbf24;border-radius:10px;">' +
+        '<span style="font-size:0.7rem;font-weight:800;color:#92400e;min-width:88px;">📷 Photo</span>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        (it.previous
+          ? '<span style="text-align:center;"><img src="' + it.previous + '" alt="Before" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid #fca5a5;opacity:.85;" /><div style="font-size:0.58rem;color:#991b1b;font-weight:700;">Before</div></span>'
+          : '<span style="font-size:0.72rem;color:#991b1b;font-weight:600;">(none)</span>') +
+        '<span style="font-weight:800;color:#b45309;">→</span>' +
+        (it.value
+          ? '<span style="text-align:center;"><img src="' + it.value + '" alt="After" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:2px solid #34d399;box-shadow:0 0 0 2px #ecfdf5;" /><div style="font-size:0.58rem;color:#065f46;font-weight:700;">After</div></span>'
+          : '<span style="font-size:0.72rem;color:#065f46;font-weight:700;">New photo</span>') +
+        '</div></div>';
       return;
     }
-    html += '<span title="' + escAp(it.key + ': ' + it.value) + '" style="display:inline-flex;flex-direction:column;gap:1px;padding:5px 10px;' +
-      'background:var(--bg);border:1px solid var(--border);border-radius:8px;max-width:200px;">' +
-      '<span style="font-size:0.62rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.02em;opacity:.75;">' +
-      escAp(it.key) + '</span>' +
-      '<span style="font-size:0.78rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-      escAp(it.short) + '</span></span>';
+    html += '<div title="' + escAp(it.key + ': ' + it.previous + ' → ' + it.value) + '" style="' +
+      'display:grid;grid-template-columns:minmax(100px,28%) 1fr;gap:8px;align-items:start;' +
+      'padding:8px 10px;background:#fffbeb;border:1.5px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:10px;">' +
+      '<div style="font-size:0.68rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.03em;padding-top:2px;">' +
+      escAp(it.key) + '</div>' +
+      '<div style="font-size:0.8rem;line-height:1.35;min-width:0;">' +
+      '<span style="color:#991b1b;text-decoration:line-through;opacity:.85;word-break:break-word;">' + escAp(it.shortPrev) + '</span>' +
+      ' <span style="font-weight:800;color:#b45309;margin:0 4px;">→</span> ' +
+      '<span style="color:#065f46;font-weight:800;background:#d1fae5;padding:1px 6px;border-radius:4px;word-break:break-word;">' +
+      escAp(it.short) + '</span>' +
+      '</div></div>';
   });
   if (more > 0) {
-    html += '<span style="padding:5px 10px;font-size:0.72rem;font-weight:700;color:#1a4fa0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">+' +
-      more + ' more</span>';
+    html += '<div style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#1a4fa0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;">+' +
+      more + ' more field' + (more === 1 ? '' : 's') + ' — open Review</div>';
   }
   html += '</div>';
   return html;
 }
 
-/** Full clean list for review modal — still no base64 dump. */
-function profileChangesReviewList(changes) {
-  var items = normalizeProfileChanges(changes);
+/** Full review modal list — highlighted before → after, no base64 dump. */
+function profileChangesReviewList(changes, previous) {
+  var items = normalizeProfileChanges(changes, previous || {});
   if (!items.length) {
     return '<p style="opacity:.7;font-size:0.85rem;">No field changes in this request.</p>';
   }
-  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  var html =
+    '<div style="margin-bottom:10px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:0.78rem;color:#92400e;font-weight:600;">' +
+    '⚡ Highlighted fields below are what the student changed. Red/strike = previous · Green = new value.</div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px;">';
   items.forEach(function (it) {
     if (it.kind === 'photo') {
-      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;">' +
-        '<div style="min-width:120px;font-size:0.75rem;font-weight:700;color:var(--navy);">📷 Profile Photo</div>' +
+      html += '<div style="padding:12px;background:linear-gradient(90deg,#fff7ed,#ecfdf5);border:1.5px solid #fbbf24;border-left:5px solid #f59e0b;border-radius:12px;">' +
+        '<div style="font-size:0.78rem;font-weight:800;color:#92400e;margin-bottom:10px;">📷 Profile Photo</div>' +
+        '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">' +
+        '<div style="text-align:center;">' +
+        '<div style="font-size:0.68rem;font-weight:700;color:#991b1b;margin-bottom:4px;">BEFORE</div>' +
+        (it.previous
+          ? '<img src="' + it.previous + '" alt="Before" style="width:88px;height:88px;border-radius:10px;object-fit:cover;border:3px solid #fca5a5;" />'
+          : '<div style="width:88px;height:88px;border-radius:10px;border:2px dashed #fca5a5;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:#991b1b;background:#fef2f2;">None</div>') +
+        '</div>' +
+        '<div style="font-size:1.4rem;font-weight:900;color:#b45309;">→</div>' +
+        '<div style="text-align:center;">' +
+        '<div style="font-size:0.68rem;font-weight:700;color:#065f46;margin-bottom:4px;">AFTER (new)</div>' +
         (it.value
-          ? '<img src="' + it.value + '" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #a7f3d0;" />'
-          : '<span style="font-size:0.82rem;">New photo attached</span>') +
-        '</div>';
+          ? '<img src="' + it.value + '" alt="After" style="width:96px;height:96px;border-radius:10px;object-fit:cover;border:3px solid #34d399;box-shadow:0 0 0 3px #d1fae5;" />'
+          : '<div style="width:96px;height:96px;border-radius:10px;border:2px dashed #6ee7b7;display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:#065f46;">New</div>') +
+        '</div></div></div>';
       return;
     }
-    html += '<div style="display:grid;grid-template-columns:minmax(140px,34%) 1fr;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;align-items:start;">' +
-      '<div style="font-size:0.75rem;font-weight:700;color:var(--navy);">' + escAp(it.key) + '</div>' +
-      '<div style="font-size:0.85rem;font-weight:600;word-break:break-word;">' + escAp(it.value) + '</div>' +
-      '</div>';
+    html += '<div style="padding:12px 14px;background:#fffbeb;border:1.5px solid #fcd34d;border-left:5px solid #f59e0b;border-radius:12px;">' +
+      '<div style="font-size:0.72rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">' +
+      escAp(it.key) + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;">' +
+      '<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">' +
+      '<div style="font-size:0.65rem;font-weight:800;color:#991b1b;margin-bottom:4px;">BEFORE</div>' +
+      '<div style="font-size:0.88rem;color:#7f1d1d;text-decoration:line-through;word-break:break-word;">' +
+      escAp(it.previous === '' ? '—' : it.previous) + '</div></div>' +
+      '<div style="display:flex;align-items:center;font-weight:900;color:#b45309;font-size:1.1rem;">→</div>' +
+      '<div style="padding:10px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;">' +
+      '<div style="font-size:0.65rem;font-weight:800;color:#065f46;margin-bottom:4px;">AFTER</div>' +
+      '<div style="font-size:0.9rem;font-weight:800;color:#064e3b;word-break:break-word;">' +
+      escAp(it.value) + '</div></div>' +
+      '</div></div>';
   });
   html += '</div>';
   return html;
 }
 
 // Back-compat alias (never dumps base64)
-function profileChangesSummary(changes) {
-  return profileChangesGlance(changes, { max: 8 });
+function profileChangesSummary(changes, previous) {
+  return profileChangesGlance(changes, { max: 8, previous: previous || {} });
 }
 
 function readApprovalUrlFilter(key) {
@@ -3618,7 +3686,7 @@ async function renderProfileRequestApprovals() {
         '</div>';
     }
 
-    var items = normalizeProfileChanges(r.changes);
+    var items = normalizeProfileChanges(r.changes, r.previous);
     var fieldCount = items.length;
     var hasPhoto = items.some(function (it) { return it.kind === 'photo'; });
     var when = r.created_at
@@ -3638,7 +3706,8 @@ async function renderProfileRequestApprovals() {
     cards +=
       '<div class="ap-verify-card" data-ap-id="' + escAp(String(r.id)) + '" style="' +
       'border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 10px;' +
-      'background:var(--surface);box-shadow:0 1px 3px rgba(15,23,42,.04);">' +
+      'background:var(--surface);box-shadow:0 1px 3px rgba(15,23,42,.04);' +
+      'border-left:4px solid #f59e0b;">' +
       // Header row
       '<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">' +
       avatarHtml +
@@ -3646,6 +3715,8 @@ async function renderProfileRequestApprovals() {
       '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' +
       '<strong style="font-size:0.95rem;">' + escAp(r.requester_name || '—') + '</strong>' +
       '<span class="badge pending">Pending</span>' +
+      '<span style="padding:2px 8px;background:#fef3c7;color:#92400e;border-radius:999px;font-size:0.68rem;font-weight:800;">⚡ ' +
+      fieldCount + ' change' + (fieldCount === 1 ? '' : 's') + '</span>' +
       (hasPhoto ? '<span class="badge active" style="font-size:0.68rem;">📷 Photo</span>' : '') +
       '</div>' +
       '<div style="font-size:0.75rem;opacity:.75;margin-top:3px;font-family:JetBrains Mono,monospace;">' +
@@ -3654,7 +3725,7 @@ async function renderProfileRequestApprovals() {
       ' · ' + escAp(yr) +
       '</div>' +
       '<div style="font-size:0.72rem;opacity:.65;margin-top:2px;">Submitted ' + escAp(when) +
-      ' · <strong>' + fieldCount + '</strong> field' + (fieldCount === 1 ? '' : 's') + ' updated</div>' +
+      ' · review highlighted fields below</div>' +
       '</div>' +
       // Actions
       '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto;">' +
@@ -3664,10 +3735,11 @@ async function renderProfileRequestApprovals() {
       '<button class="btn re" type="button" onclick="reviewProfileRequest(' + r.id + ',\'rejected\')">✕ Reject</button>' +
       '</div>' +
       '</div>' +
-      // At-a-glance changes only
+      // Highlighted before → after
       '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
-      '<div style="font-size:0.68rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;opacity:.8;">Updated fields</div>' +
-      profileChangesGlance(r.changes, { max: 8 }) +
+      '<div style="font-size:0.68rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">' +
+      '⚡ What student updated (before → after)</div>' +
+      profileChangesGlance(r.changes, { max: 8, previous: r.previous || {} }) +
       '</div>' +
       '</div>';
   });
@@ -3675,7 +3747,7 @@ async function renderProfileRequestApprovals() {
   panel.innerHTML =
     '<div style="padding:12px 18px 0;">' +
     '<div style="font-size:0.78rem;opacity:.8;margin:0 0 8px;">Showing <strong>' + pending.length + '</strong> of <strong>' + total +
-    '</strong> pending · Only fields the student updated are listed</div>' +
+    '</strong> pending · <strong style="color:#92400e;">Highlighted = fields the student changed</strong> (old → new)</div>' +
     filterBar +
     '</div>' +
     '<div style="padding:4px 18px 16px;">' + cards + '</div>';
@@ -3689,7 +3761,7 @@ function openProfileApprovalReview(id) {
     alert('Request not found. Refresh Approvals and try again.');
     return;
   }
-  var items = normalizeProfileChanges(r.changes);
+  var items = normalizeProfileChanges(r.changes, r.previous);
   var modal = document.getElementById('apReviewModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -3698,7 +3770,7 @@ function openProfileApprovalReview(id) {
       'display:none;position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.5);' +
       'align-items:center;justify-content:center;padding:16px;';
     modal.innerHTML =
-      '<div style="background:var(--surface);border-radius:14px;max-width:560px;width:100%;max-height:90vh;' +
+      '<div style="background:var(--surface);border-radius:14px;max-width:640px;width:100%;max-height:90vh;' +
       'overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.28);border:1px solid var(--border);">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;' +
       'border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;">' +
@@ -3726,10 +3798,10 @@ function openProfileApprovalReview(id) {
       '<div><strong>' + escAp(r.requester_name || '—') + '</strong> · ' +
       '<span style="font-family:JetBrains Mono,monospace;">' + escAp(r.target_id || '—') + '</span></div>' +
       '<div style="opacity:.75;margin-top:4px;">' + escAp(r.branch || '—') + ' · ' + escAp(r.year || '—') +
-      ' · <strong>' + items.length + '</strong> updated field' + (items.length === 1 ? '' : 's') + '</div>' +
-      '<div style="opacity:.65;margin-top:2px;font-size:0.72rem;">Only fields the student changed are shown below.</div>' +
+      ' · <strong style="color:#92400e;">' + items.length + '</strong> highlighted change' + (items.length === 1 ? '' : 's') + '</div>' +
+      '<div style="opacity:.75;margin-top:4px;font-size:0.72rem;">Compare <span style="color:#991b1b;font-weight:700;">BEFORE</span> vs <span style="color:#065f46;font-weight:700;">AFTER</span> for each field the student updated.</div>' +
       '</div>' +
-      profileChangesReviewList(r.changes);
+      profileChangesReviewList(r.changes, r.previous || {});
   }
   if (actions) {
     actions.innerHTML =
