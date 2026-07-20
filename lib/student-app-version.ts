@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.4.0"
+export const STUDENT_APP_VERSION = "1.4.1"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.4.1",
+    date: "2026-07-20",
+    title: "Auto-update without reinstalling APK",
+    items: [
+      "App checks for new web updates when you open it (works on APK v1.3.0 — no uninstall).",
+      "More → Update / refresh app still works anytime.",
+      "PDF download and typing fixes from 1.4.0 included.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-07-20",

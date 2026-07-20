@@ -13,6 +13,7 @@ import {
   setSeenAppVersion,
   shouldShowWhatsNew,
 } from "@/lib/student-app-version"
+import { ensureLatestWebApp, forceWebAppReload } from "@/lib/student-web-update"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
@@ -553,6 +554,15 @@ export default function StudentApp() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      // Auto-pull latest web app for old APK shells (v1.3.0 etc.) — no reinstall
+      try {
+        const upd = await ensureLatestWebApp()
+        if (upd.reloading) return // page will navigate away
+      } catch {
+        /* continue offline / failed version check */
+      }
+      if (cancelled) return
+
       const me = await api<{ user: User | null; requires_setup?: boolean }>("/api/auth/me")
       if (cancelled) return
       if (me.ok && me.data?.user) {
@@ -976,17 +986,7 @@ export default function StudentApp() {
 
   /** Hard-reload production web app so students get updates without reinstalling APK. */
   function refreshAppUpdate() {
-    try {
-      if ("caches" in window) {
-        void caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      }
-    } catch {
-      /* ignore */
-    }
-    const url = new URL(window.location.href)
-    url.searchParams.set("_app_v", STUDENT_APP_VERSION)
-    url.searchParams.set("_ts", String(Date.now()))
-    window.location.replace(url.toString())
+    forceWebAppReload("manual")
   }
 
   function openFormFill(form: FormRow) {
