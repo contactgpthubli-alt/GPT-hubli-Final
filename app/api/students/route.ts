@@ -2,6 +2,7 @@ import { query } from "@/lib/db"
 import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/auth"
 import { STAFF_ROLES, STUDENT_WRITERS } from "@/lib/roles"
 import { normalizeBranch, OFFICIAL_BRANCHES } from "@/lib/branches"
+import { branchesMatch, hodBranchOf } from "@/lib/account-approvals"
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
@@ -71,8 +72,25 @@ export async function GET() {
 
   if (!STAFF_ROLES.includes(user.role)) return unauthorized()
 
-  // Admin / staff: ALL student accounts (complete + incomplete profiles)
+  // HOD: only students of their official branch
+  const hodBranch = user.role === "hod" ? hodBranchOf(user) : null
+
+  // Admin / principal / staff: ALL student accounts (complete + incomplete profiles)
   // LEFT JOIN students so accounts without a profile row still appear.
+  // HOD: filter in SQL when branch is known; fallback filter in map below.
+  const params: unknown[] = []
+  let branchSql = ""
+  if (hodBranch) {
+    params.push(hodBranch)
+    params.push(`%${hodBranch}%`)
+    branchSql = ` AND (
+      COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), '') ILIKE $1
+      OR COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), '') ILIKE $2
+      OR COALESCE(s.extra->>'Branch', '') ILIKE $1
+      OR COALESCE(s.extra->>'Branch', '') ILIKE $2
+    )`
+  }
+
   const { rows } = await query(
     `SELECT
         u.id              AS user_id,
@@ -102,11 +120,13 @@ export async function GET() {
       WHERE u.role = 'student'
         AND u.deleted_at IS NULL
         AND (u.status IS DISTINCT FROM 'deleted')
+        ${branchSql}
       ORDER BY
         COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), 'zzz'),
         COALESCE(NULLIF(s.name, ''), u.display_name),
         u.reg_no NULLS LAST,
         u.id`,
+    params,
   )
 
   const students = rows.map((r) => {
@@ -156,8 +176,25 @@ export async function GET() {
     }
   })
 
+  // Defense in depth: HOD must never receive other branches even if SQL aliases slip
+  const scoped =
+    user.role === "hod" && hodBranch
+      ? students.filter((s) => branchesMatch(hodBranch, s.dept))
+      : students
+
+  // If HOD has no branch assigned, return empty rather than all students
+  const finalList = user.role === "hod" && !hodBranch ? [] : scoped
+
   return Response.json(
-    { students, branches: OFFICIAL_BRANCHES },
+    {
+      students: finalList,
+      branches:
+        user.role === "hod" && hodBranch ? [hodBranch] : OFFICIAL_BRANCHES,
+      scope: {
+        role: user.role,
+        branch: user.role === "hod" ? hodBranch : null,
+      },
+    },
     {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -220,9 +257,35 @@ async function setProfileEditLock(regNo: string, lockFlag: boolean) {
   return { reg_no: regNo, profile_edit_locked: lockFlag }
 }
 
+async function assertCanManageStudentReg(
+  user: { role: string; branch?: string | null; reg_no?: string | null; display_name?: string | null },
+  regNo: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (user.role === "admin" || user.role === "principal" || user.role === "acm") {
+    return { ok: true }
+  }
+  if (user.role !== "hod") return { ok: false, error: "Not authorized" }
+  const myBranch = hodBranchOf(user)
+  if (!myBranch) return { ok: false, error: "HOD account has no branch assigned" }
+  const { rows } = await query(
+    `SELECT s.dept, u.branch AS user_branch
+       FROM users u
+       LEFT JOIN students s ON s.reg_no = u.reg_no
+      WHERE u.reg_no = $1 AND u.role = 'student' AND u.deleted_at IS NULL
+      LIMIT 1`,
+    [regNo],
+  )
+  if (!rows[0]) return { ok: false, error: "Student not found" }
+  const dept = normalizeBranch(rows[0].dept) || normalizeBranch(rows[0].user_branch)
+  if (!branchesMatch(myBranch, dept)) {
+    return { ok: false, error: "Student is not in your branch" }
+  }
+  return { ok: true }
+}
+
 export async function PATCH(req: Request) {
-  // ACM has full student-desk rights (lock/unlock) same as admin for this section
-  const user = await requireRole("admin", "hod", "acm")
+  // Principal / ACM / Admin / HOD (branch) lock-unlock student My Profile editing
+  const user = await requireRole("admin", "principal", "hod", "acm")
   if (!user) return unauthorized()
 
   const b = await req.json().catch(() => null)
@@ -241,12 +304,17 @@ export async function PATCH(req: Request) {
     if (!bulkList.length) return badRequest("reg_nos array is required for bulk lock")
     const results = []
     for (const regNo of bulkList) {
-      results.push(await setProfileEditLock(regNo, lockFlag))
+      const gate = await assertCanManageStudentReg(user, regNo)
+      if (!gate.ok) {
+        results.push({ reg_no: regNo, ok: false, error: gate.error })
+        continue
+      }
+      results.push({ ok: true, ...(await setProfileEditLock(regNo, lockFlag)) })
     }
     return Response.json(
       {
-        ok: true,
-        updated: results.length,
+        ok: results.some((r) => r.ok),
+        updated: results.filter((r) => r.ok).length,
         profile_edit_locked: lockFlag,
         results,
       },
@@ -257,6 +325,9 @@ export async function PATCH(req: Request) {
   if (!b.reg_no) return badRequest("reg_no is required")
   const regNo = String(b.reg_no).trim()
   if (!regNo) return badRequest("reg_no is required")
+
+  const gate = await assertCanManageStudentReg(user, regNo)
+  if (!gate.ok) return unauthorized(gate.error)
 
   const result = await setProfileEditLock(regNo, lockFlag)
   return Response.json(

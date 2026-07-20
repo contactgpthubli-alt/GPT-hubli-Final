@@ -1,5 +1,7 @@
 import { getPool, query } from "@/lib/db"
 import { requireRole, getCurrentUser, unauthorized, badRequest } from "@/lib/auth"
+import { branchesMatch, hodBranchOf } from "@/lib/account-approvals"
+import { normalizeBranch } from "@/lib/branches"
 
 /** Map profile field labels → core students table columns. */
 const STUDENT_LABEL_TO_COLUMN: Record<string, "name" | "dept" | "year" | "father"> = {
@@ -276,12 +278,17 @@ export async function GET(req: Request) {
     return Response.json({ pending: rows, mine_pending: rows.length })
   }
 
-  // Admin, HOD, and ACM (scoped admin for profile approvals + students)
-  if (user.role !== "admin" && user.role !== "hod" && user.role !== "acm") {
+  // Admin, Principal, HOD, ACM
+  if (
+    user.role !== "admin" &&
+    user.role !== "principal" &&
+    user.role !== "hod" &&
+    user.role !== "acm"
+  ) {
     return unauthorized()
   }
 
-  const branch = (searchParams.get("branch") || "").trim()
+  let branch = (searchParams.get("branch") || "").trim()
   const year = (searchParams.get("year") || "").trim()
   const admissionYear = (
     searchParams.get("admission_year") ||
@@ -289,8 +296,15 @@ export async function GET(req: Request) {
     ""
   ).trim()
   const q = (searchParams.get("q") || "").trim()
-  const targetType = (searchParams.get("target_type") || "").trim().toLowerCase()
+  let targetType = (searchParams.get("target_type") || "").trim().toLowerCase()
   const role = (searchParams.get("role") || "").trim().toLowerCase()
+
+  // HOD: only student profile requests for their branch
+  const hodBranch = user.role === "hod" ? hodBranchOf(user) : null
+  if (user.role === "hod") {
+    targetType = "student"
+    if (hodBranch) branch = hodBranch
+  }
 
   const params: unknown[] = []
   const where: string[] = [`pr.status = 'pending'`]
@@ -305,12 +319,20 @@ export async function GET(req: Request) {
   }
   // Branch: students.dept, users.branch, or changes->>'Branch'
   if (branch) {
+    const nb = normalizeBranch(branch) || branch
+    params.push(nb)
     params.push(`%${branch}%`)
     where.push(`(
-      COALESCE(s.dept, '') ILIKE $${params.length}
+      COALESCE(s.dept, '') ILIKE $${params.length - 1}
+      OR COALESCE(s.dept, '') ILIKE $${params.length}
+      OR COALESCE(u.branch, '') ILIKE $${params.length - 1}
       OR COALESCE(u.branch, '') ILIKE $${params.length}
+      OR COALESCE(pr.changes->>'Branch', '') ILIKE $${params.length - 1}
       OR COALESCE(pr.changes->>'Branch', '') ILIKE $${params.length}
     )`)
+  } else if (user.role === "hod" && !hodBranch) {
+    // No branch on HOD → empty result set
+    where.push(`FALSE`)
   }
   // Year: students.year or changes->>'Current Year'
   if (year) {
@@ -471,10 +493,10 @@ export async function GET(req: Request) {
   })
 }
 
-// Admin, HOD, or ACM approves/rejects a request.
+// Admin, Principal, HOD, or ACM approves/rejects a request.
 // Body: { id, action: 'approved'|'rejected', remarks?, lockEdit?: boolean }
 export async function PATCH(req: Request) {
-  const user = await requireRole("admin", "hod", "acm")
+  const user = await requireRole("admin", "principal", "hod", "acm")
   if (!user) return unauthorized()
 
   const b = await req.json().catch(() => null)
@@ -490,6 +512,37 @@ export async function PATCH(req: Request) {
   const client = await pool.connect()
   try {
     await client.query("BEGIN")
+
+    // Load pending request first for HOD branch gate
+    const { rows: pendingCheck } = await client.query(
+      `SELECT pr.id, pr.target_type, pr.target_id, pr.changes,
+              s.dept AS student_dept, u.branch AS user_branch
+         FROM profile_requests pr
+         LEFT JOIN students s ON pr.target_type = 'student' AND s.reg_no = pr.target_id
+         LEFT JOIN users u ON pr.target_type = 'student' AND u.reg_no = pr.target_id AND u.role = 'student'
+        WHERE pr.id = $1 AND pr.status = 'pending'`,
+      [b.id],
+    )
+    if (!pendingCheck[0]) {
+      await client.query("ROLLBACK")
+      return badRequest("Pending request not found")
+    }
+    const pre = pendingCheck[0]
+    if (user.role === "hod") {
+      if (String(pre.target_type) !== "student") {
+        await client.query("ROLLBACK")
+        return unauthorized("HOD can only approve student profile requests for their branch")
+      }
+      const myBranch = hodBranchOf(user)
+      const targetBranch =
+        normalizeBranch(pre.student_dept) ||
+        normalizeBranch(pre.user_branch) ||
+        normalizeBranch(asRecord(pre.changes).Branch as string)
+      if (!myBranch || !branchesMatch(myBranch, targetBranch)) {
+        await client.query("ROLLBACK")
+        return unauthorized("This student is not in your branch")
+      }
+    }
 
     const { rows: reqRows } = await client.query(
       `UPDATE profile_requests

@@ -462,8 +462,227 @@ function __initGptBridge() {
         '<div id="bridgeAccountApprovalsHod"><div class="card"><p style="opacity:.7;margin:16px;">Loading branch accounts…</p></div></div>';
       facContent.appendChild(fPanel);
     }
+
+    // Also inject Approvals / Students / Student Data desk for Principal + HOD
+    ensurePrincipalHodDesk();
   }
   window.ensureAccountApprovalPanels = ensureAccountApprovalPanels;
+
+  /**
+   * Principal + HOD desk: Approvals (profile), Students, Student Data
+   * matching ACM/Admin three-item shell. HOD data is branch-scoped by API.
+   */
+  function studentDbPanelHtml(pfx, titleNote) {
+    return '' +
+      '<div class="info-box">' + (titleNote || 'Student Database') + '</div>' +
+      '<div class="card">' +
+      '<div class="card-hd"><h3>Student Database</h3>' +
+      '<div class="card-acts"><button class="btn ol" type="button" onclick="window.renderAdminStudentDatabase&&window.renderAdminStudentDatabase()">↻ Refresh</button></div></div>' +
+      '<div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;">' +
+      '<div class="sbar" style="flex:1 1 220px;min-width:180px;"><span class="si">🔍</span>' +
+      '<input type="text" id="' + pfx + 'Search" placeholder="Search by name, reg number, branch, email…" ' +
+      'oninput="window.filterAdminStudentList&&window.filterAdminStudentList()" /></div>' +
+      '<select id="' + pfx + 'BranchFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
+      'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:160px;">' +
+      '<option value="">All Branches</option></select>' +
+      '<select id="' + pfx + 'YearFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
+      'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:140px;">' +
+      '<option value="">All Years</option>' +
+      '<option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option>' +
+      '<option value="3rd Year">3rd Year</option><option value="YEAR BACK">YEAR BACK</option>' +
+      '<option value="Completed">Completed</option></select>' +
+      '<select id="' + pfx + 'AdmYearFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
+      'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:130px;">' +
+      '<option value="">All Adm. Years</option></select>' +
+      '<select id="' + pfx + 'ProfileFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
+      'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:160px;">' +
+      '<option value="">All Profiles</option><option value="updated">Profile Updated</option>' +
+      '<option value="partial">Partial</option><option value="not_updated">Not Updated</option></select>' +
+      '</div>' +
+      '<div id="' + pfx + 'BulkBar" style="padding:10px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:rgba(26,79,160,0.04);">' +
+      '<span class="stu-selected-count" style="font-size:0.8rem;font-weight:600;min-width:90px;">0 selected</span>' +
+      '<button class="btn gr stu-bulk-unlock-btn" type="button">🔓 Unlock Selected</button>' +
+      '<button class="btn stu-bulk-lock-btn" type="button" style="background:#b45309;color:#fff;">🔒 Lock Selected</button>' +
+      '</div>' +
+      '<div id="' + pfx + 'ListMeta" style="padding:8px 18px;font-size:0.78rem;color:var(--text-muted);"></div>' +
+      '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+      '<thead><tr>' +
+      '<th style="width:36px;"></th><th>Reg No</th><th>Name / Email</th><th>Branch</th><th>Year</th><th>Account</th><th>Profile</th><th>Actions</th>' +
+      '</tr></thead>' +
+      '<tbody id="' + pfx + 'TableBody"><tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading…</td></tr></tbody>' +
+      '</table></div></div>' +
+      '<div id="' + pfx + 'ViewModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;align-items:center;justify-content:center;padding:16px;">' +
+      '<div style="background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;">' +
+      '<h3 style="margin:0;font-size:1rem;">Student Profile</h3>' +
+      '<button type="button" class="btn ol" onclick="(function(){var m=document.getElementById(\'' + pfx + 'ViewModal\');if(m)m.style.display=\'none\';})()">Close</button>' +
+      '</div><div id="' + pfx + 'ViewBody" style="padding:16px;"></div></div></div>';
+  }
+
+  function ensurePrincipalHodDesk() {
+    // ---- Principal: Approvals, Students, Student Data ----
+    var priMenu = document.querySelector('#dbPrincipal .sb-menu');
+    var priContent = document.querySelector('#dbPrincipal .db-content');
+    if (priMenu && priContent) {
+      function addPriNav(id, sec, icon, label, afterSec) {
+        if (document.getElementById(id)) return;
+        var after = null;
+        priMenu.querySelectorAll('.sl').forEach(function (sl) {
+          var oc = sl.getAttribute('onclick') || '';
+          if (afterSec && oc.indexOf(afterSec) !== -1) after = sl;
+        });
+        var nav = document.createElement('div');
+        nav.className = 'sl';
+        nav.id = id;
+        nav.setAttribute('onclick', "showSec('" + sec + "',this)");
+        nav.innerHTML = '<span class="sli">' + icon + '</span>' + label;
+        if (after && after.nextSibling) after.parentNode.insertBefore(nav, after.nextSibling);
+        else if (after) after.parentNode.appendChild(nav);
+        else priMenu.insertBefore(nav, priMenu.firstChild);
+      }
+      // Insert at top of menu for visibility (after Dashboard if present)
+      addPriNav('priProfileApprovalsNav', 'priProfileApprovals', '✅', 'Approvals', 'priHome');
+      addPriNav('priStudentsDeskNav', 'priStudentsDesk', '🎓', 'Students', 'priProfileApprovals');
+      addPriNav('priStudentDataNav', 'priStudentData', '📊', 'Student Data', 'priStudentsDesk');
+
+      if (!document.getElementById('priProfileApprovals')) {
+        var pa = document.createElement('div');
+        pa.id = 'priProfileApprovals';
+        pa.style.display = 'none';
+        pa.innerHTML =
+          '<div class="info-box">ℹ️ <strong>Profile Approvals</strong> — Pending My Profile update requests (all branches). Account registrations are under <strong>Account Approvals</strong>.</div>' +
+          '<div class="info-box" id="priPendingCountBox" style="display:none;">⚠️ <strong><span id="priPendingCountText">0 pending</span></strong></div>' +
+          '<div class="card" id="priPendingApprovalsCard">' +
+          '<div class="card-hd"><h3>All Pending Approvals</h3><span class="badge pending" id="priPendingBadge">0</span></div>' +
+          '<div id="bridgeProfileRequestsPri" style="padding:0 0 4px;"><p style="opacity:.7;margin:12px 18px;">Loading…</p></div></div>';
+        priContent.appendChild(pa);
+      }
+      if (!document.getElementById('priStudentsDesk')) {
+        var ps = document.createElement('div');
+        ps.id = 'priStudentsDesk';
+        ps.style.display = 'none';
+        ps.innerHTML = studentDbPanelHtml('priStu', '🎓 <strong>Students</strong> — Full institute student database (all branches), same as Admin.');
+        priContent.appendChild(ps);
+      }
+      if (!document.getElementById('priStudentData')) {
+        var pd = document.createElement('div');
+        pd.id = 'priStudentData';
+        pd.style.display = 'none';
+        pd.innerHTML = buildStudentDataPanelMarkup('priSd',
+          '📊 <strong>Student Data</strong> — All branches. Filter by Branch / Year. Same as Admin Student Data.');
+        priContent.appendChild(pd);
+      }
+    }
+
+    // ---- HOD: Students + Student Data (Approvals already as facApprovals) ----
+    var facMenu = document.querySelector('#dbFaculty .sb-menu');
+    var facContent = document.querySelector('#dbFaculty .db-content');
+    if (facMenu && facContent) {
+      function addFacNav(id, sec, dataFac, icon, label, afterDataFac) {
+        if (document.getElementById(id)) {
+          var el = document.getElementById(id);
+          if (el && currentUser) el.style.display = currentUser.role === 'hod' ? '' : 'none';
+          return;
+        }
+        var after = null;
+        facMenu.querySelectorAll('.sl').forEach(function (sl) {
+          var df = sl.getAttribute('data-fac') || '';
+          if (afterDataFac && df === afterDataFac) after = sl;
+        });
+        var nav = document.createElement('div');
+        nav.className = 'sl';
+        nav.id = id;
+        nav.setAttribute('data-fac', dataFac);
+        nav.setAttribute('onclick', "showSec('" + sec + "',this)");
+        nav.innerHTML = '<span class="sli">' + icon + '</span>' + label;
+        nav.style.display = (currentUser && currentUser.role === 'hod') ? '' : 'none';
+        if (after && after.nextSibling) after.parentNode.insertBefore(nav, after.nextSibling);
+        else if (after) after.parentNode.appendChild(nav);
+        else facMenu.appendChild(nav);
+      }
+      addFacNav('facBranchStudentsNav', 'facBranchStudents', 'students', '🎓', 'Students', 'approvals');
+      // Student Data nav may already exist as facStudentDataNav — ensure visible for HOD
+      if (document.getElementById('facStudentDataNav') && currentUser && currentUser.role === 'hod') {
+        document.getElementById('facStudentDataNav').style.display = '';
+      } else {
+        addFacNav('facStudentDataNavHod', 'facStudentData', 'studentdata', '📊', 'Student Data', 'students');
+      }
+
+      if (!document.getElementById('facBranchStudents')) {
+        var fs = document.createElement('div');
+        fs.id = 'facBranchStudents';
+        fs.style.display = 'none';
+        fs.innerHTML = studentDbPanelHtml('facStu',
+          '🎓 <strong>Students (your branch only)</strong> — Civil HOD sees Civil students only, etc.');
+        facContent.appendChild(fs);
+      }
+      // facStudentData panel already created by ensureStudentDataMenu — ensure exists
+      if (typeof ensureStudentDataMenu === 'function') {
+        try { ensureStudentDataMenu(); } catch (e) { /* may not be defined yet */ }
+      }
+    }
+  }
+  window.ensurePrincipalHodDesk = ensurePrincipalHodDesk;
+
+  function buildStudentDataPanelMarkup(p, infoHtml) {
+    var official = (window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
+      ? window.OFFICIAL_BRANCHES
+      : [
+        'Civil Engineering',
+        'Computer Science and Engineering',
+        'Electronics and Communication Engineering',
+        'Mechanical Engineering',
+      ];
+    var branchOpts = official.map(function (b) {
+      return '<option value="' + String(b).replace(/"/g, '&quot;') + '">' + b + '</option>';
+    }).join('');
+    return '' +
+      '<div class="info-box">' + (infoHtml || 'Student Data') + '</div>' +
+      '<div class="card">' +
+      '<div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
+      '<h3 style="margin:0;">Student Data — Branch / Year</h3>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      '<button type="button" class="btn ol" onclick="window.renderStudentDataBrowser&&window.renderStudentDataBrowser()">↻ Refresh</button>' +
+      '<button type="button" class="btn pr" onclick="window.exportStudentDataCsv&&window.exportStudentDataCsv()">⬇ Export CSV</button>' +
+      '</div></div>' +
+      '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr;gap:10px;align-items:end;">' +
+      '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Search</label>' +
+      '<div class="sbar" style="margin:0;"><span class="si">🔍</span>' +
+      '<input type="text" id="' + p + '_search" placeholder="Name, reg no, father, phone…" ' +
+      'oninput="window.filterStudentDataList&&window.filterStudentDataList()" /></div></div>' +
+      '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Branch</label>' +
+      '<select id="' + p + '_branch" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;" ' +
+      'onchange="window.filterStudentDataList&&window.filterStudentDataList()">' +
+      '<option value="">All Branches</option>' + branchOpts + '</select></div>' +
+      '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Current Year</label>' +
+      '<select id="' + p + '_year" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;" ' +
+      'onchange="window.filterStudentDataList&&window.filterStudentDataList()">' +
+      '<option value="">All Years</option><option value="1st">1st Year</option>' +
+      '<option value="2nd">2nd Year</option><option value="3rd">3rd Year</option></select></div>' +
+      '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Admission Year</label>' +
+      '<select id="' + p + '_adm" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;" ' +
+      'onchange="window.filterStudentDataList&&window.filterStudentDataList()"><option value="">All</option></select></div>' +
+      '</div>' +
+      '<div id="' + p + '_meta" style="padding:8px 16px;font-size:0.78rem;opacity:.8;border-bottom:1px solid var(--border);">Loading…</div>' +
+      '<div id="' + p + '_stats" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);"></div>' +
+      '<div style="overflow-x:auto;max-height:calc(100vh - 280px);">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">' +
+      '<thead style="position:sticky;top:0;background:var(--surface);z-index:1;"><tr>' +
+      '<th style="padding:8px;text-align:left;">Reg No</th><th style="padding:8px;text-align:left;">Name</th>' +
+      '<th style="padding:8px;text-align:left;">Father</th><th style="padding:8px;text-align:left;">Mother</th>' +
+      '<th style="padding:8px;text-align:left;">Branch</th><th style="padding:8px;text-align:left;">Year</th>' +
+      '<th style="padding:8px;text-align:left;">Adm. Year</th><th style="padding:8px;text-align:left;">Phone</th>' +
+      '<th style="padding:8px;text-align:left;">Email</th><th style="padding:8px;text-align:left;">Action</th>' +
+      '</tr></thead>' +
+      '<tbody id="' + p + '_tbody"><tr><td colspan="10" style="padding:24px;text-align:center;opacity:.7;">Open this menu to load students.</td></tr></tbody>' +
+      '</table></div></div>' +
+      '<div id="' + p + '_modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;align-items:center;justify-content:center;padding:16px;">' +
+      '<div style="background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;">' +
+      '<h3 style="margin:0;font-size:1rem;">Student Profile</h3>' +
+      '<button type="button" class="btn ol" onclick="window.closeStudentDataView&&window.closeStudentDataView()">Close</button>' +
+      '</div><div id="' + p + '_modalBody" style="padding:16px;"></div></div></div>';
+  }
 
   /**
    * Full Account Control Center — pending + all accounts + trash,
@@ -911,10 +1130,20 @@ function __initGptBridge() {
           (currentUser.role === 'admin' || currentUser.role === 'principal' || currentUser.role === 'hod')) {
         renderAccountApprovals();
       }
-      // Profile edit requests (admin / ACM Approvals + HOD Approvals)
-      if ((secId === 'adApprovals' || secId === 'facApprovals') &&
+      // Profile edit requests (admin / ACM / Principal / HOD Approvals)
+      if ((secId === 'adApprovals' || secId === 'facApprovals' || secId === 'priProfileApprovals') &&
           typeof window.renderProfileRequestApprovals === 'function') {
         window.renderProfileRequestApprovals();
+      }
+      // Students desk
+      if ((secId === 'adStudents' || secId === 'priStudentsDesk' || secId === 'facBranchStudents') &&
+          typeof window.renderAdminStudentDatabase === 'function') {
+        window.renderAdminStudentDatabase();
+      }
+      // Student Data desk
+      if ((secId === 'adStudentData' || secId === 'facStudentData' || secId === 'priStudentData') &&
+          typeof window.renderStudentDataBrowser === 'function') {
+        window.renderStudentDataBrowser(secId);
       }
       // Always re-fetch + re-paint student My Profile so approved data shows immediately
       if (secId === 'stuProfile' && currentUser && currentUser.role === 'student' &&
@@ -934,15 +1163,7 @@ function __initGptBridge() {
           window.applyLiveStudentProfile(mapped, row.reg_no || regOpen);
         });
       }
-      // Admin / ACM Student Database — live accounts list (only when logged in)
-      if (secId === 'adStudents' && typeof window.renderAdminStudentDatabase === 'function') {
-        if (window.currentUser) window.renderAdminStudentDatabase();
-      }
-      // Admin + ACM — full student data browser (branch / year filters)
-      if ((secId === 'adStudentData' || secId === 'facStudentData') &&
-          typeof window.renderStudentDataBrowser === 'function') {
-        if (window.currentUser) window.renderStudentDataBrowser(secId);
-      }
+
       // ACM certificate desk (admin + ACM staff)
       if ((secId === 'facACM' || secId === 'adACM') && typeof window.renderAcmModule === 'function') {
         window.renderAcmModule();
@@ -1078,8 +1299,11 @@ function __initGptBridge() {
         if (role === 'principal') {
           setTimeout(function () {
             ensureAccountApprovalPanels();
-            var nav = document.getElementById('priUserApprovalsNav');
-            if (nav) nav.style.display = '';
+            ensurePrincipalHodDesk();
+            ;['priUserApprovalsNav', 'priProfileApprovalsNav', 'priStudentsDeskNav', 'priStudentDataNav'].forEach(function (id) {
+              var nav = document.getElementById(id);
+              if (nav) nav.style.display = '';
+            });
           }, 50);
         }
       } else {
@@ -1087,7 +1311,10 @@ function __initGptBridge() {
         if (role === 'hod') {
           setTimeout(function () {
             ensureAccountApprovalPanels();
-            document.querySelectorAll('#dbFaculty [data-fac="accountapprovals"]').forEach(function (el) {
+            ensurePrincipalHodDesk();
+            document.querySelectorAll(
+              '#dbFaculty [data-fac="accountapprovals"], #dbFaculty [data-fac="students"], #dbFaculty [data-fac="studentdata"], #dbFaculty [data-fac="approvals"]'
+            ).forEach(function (el) {
               el.style.display = '';
             });
             var hodNav = document.getElementById('facUserApprovalsNav');
@@ -1105,20 +1332,22 @@ function __initGptBridge() {
     setCurrentUser(user);
     await hydratePrivate();
     await paintStudentDashboard(user);
-    // Profile edit requests: Admin, HOD, ACM
-    if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm') &&
+    // Profile edit requests: Admin, Principal, HOD, ACM
+    if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal') &&
         typeof window.renderProfileRequestApprovals === 'function') {
-      window.renderProfileRequestApprovals();
+      try { window.renderProfileRequestApprovals(); } catch (e) { /* ignore */ }
     }
-    // Account approvals: Admin, Principal, HOD
+    // Account approvals + Students / Student Data desk: Admin, Principal, HOD
     if (user && (user.role === 'admin' || user.role === 'principal' || user.role === 'hod')) {
       ensureAccountApprovalPanels();
-      // HOD: force Account Approvals menu visible
+      ensurePrincipalHodDesk();
+      // HOD: force desk menus visible
       var hodNav = document.getElementById('facUserApprovalsNav');
       if (hodNav) hodNav.style.display = user.role === 'hod' ? '' : 'none';
       if (user.role === 'hod') {
-        // Ensure roleAccess-style hide doesn't cover accountapprovals
-        document.querySelectorAll('#dbFaculty [data-fac="accountapprovals"]').forEach(function (el) {
+        document.querySelectorAll(
+          '#dbFaculty [data-fac="accountapprovals"], #dbFaculty [data-fac="students"], #dbFaculty [data-fac="studentdata"], #dbFaculty [data-fac="approvals"]'
+        ).forEach(function (el) {
           el.style.display = '';
         });
       }
@@ -4112,13 +4341,22 @@ function buildProfileApprovalsApiUrl() {
 async function renderProfileRequestApprovals() {
   if (!window.currentUser) return;
   var role = window.currentUser.role;
-  if (role !== 'admin' && role !== 'hod' && role !== 'acm') return;
-  // ACM uses admin Approvals UI (same as Root Admin)
-  var containerId = (role === 'admin' || role === 'acm') ? 'adApprovals' : 'facApprovals';
+  if (role !== 'admin' && role !== 'hod' && role !== 'acm' && role !== 'principal') return;
+  if (typeof ensurePrincipalHodDesk === 'function') {
+    try { ensurePrincipalHodDesk(); } catch (e) { /* ignore */ }
+  }
+  // ACM uses admin Approvals UI; Principal has own panel; HOD uses faculty Approvals
+  var containerId =
+    (role === 'admin' || role === 'acm') ? 'adApprovals' :
+    (role === 'principal') ? 'priProfileApprovals' : 'facApprovals';
   var host = document.getElementById(containerId);
   if (!host) return;
 
   var f = getProfileApprovalFiltersFromUiOrUrl();
+  // HOD: force branch filter to own branch
+  if (role === 'hod' && window.currentUser.branch) {
+    f.branch = window.currentUser.branch;
+  }
   writeApprovalUrlFilters({
     section: containerId,
     ap_branch: f.branch,
@@ -4134,13 +4372,26 @@ async function renderProfileRequestApprovals() {
   var total = data.total_pending != null ? data.total_pending : pending.length;
   var facets = data.facets || { branches: [], years: [], admission_years: [] };
 
-  // Prefer the live shell in Admin → Approvals (replaces old demo table)
-  var panel = document.getElementById('bridgeProfileRequests');
+  // Prefer host-specific panel id
+  var panelId =
+    role === 'principal' ? 'bridgeProfileRequestsPri' :
+    role === 'hod' ? 'bridgeProfileRequestsFac' :
+    'bridgeProfileRequests';
+  var panel = document.getElementById(panelId);
+  if (!panel && role === 'hod') {
+    // Fall back: inject into facApprovals
+    panel = document.createElement('div');
+    panel.id = 'bridgeProfileRequestsFac';
+    panel.style.padding = '0 0 4px';
+    host.insertBefore(panel, host.firstChild);
+  }
   if (!panel) {
     panel = document.createElement('div');
-    panel.id = 'bridgeProfileRequests';
+    panel.id = panelId;
     panel.style.padding = '0 0 4px';
-    var card = document.getElementById('adPendingApprovalsCard');
+    var card = document.getElementById(
+      role === 'principal' ? 'priPendingApprovalsCard' : 'adPendingApprovalsCard'
+    );
     if (card) card.appendChild(panel);
     else {
       panel.className = 'card';
@@ -4150,13 +4401,18 @@ async function renderProfileRequestApprovals() {
     }
   }
 
-  // Live counts on the static info boxes / badge
-  var countBox = document.getElementById('adPendingCountBox');
-  var countText = document.getElementById('adPendingCountText');
-  var badge = document.getElementById('adPendingBadge');
-  if (countText) countText.textContent = total + ' pending approval' + (total === 1 ? '' : 's');
-  if (countBox) countBox.style.display = total > 0 ? '' : 'none';
-  if (badge) badge.textContent = String(total);
+  // Live counts on the static info boxes / badge (admin + principal)
+  ;[
+    ['adPendingCountBox', 'adPendingCountText', 'adPendingBadge'],
+    ['priPendingCountBox', 'priPendingCountText', 'priPendingBadge'],
+  ].forEach(function (ids) {
+    var countBox = document.getElementById(ids[0]);
+    var countText = document.getElementById(ids[1]);
+    var badge = document.getElementById(ids[2]);
+    if (countText) countText.textContent = total + ' pending approval' + (total === 1 ? '' : 's');
+    if (countBox) countBox.style.display = total > 0 ? '' : 'none';
+    if (badge) badge.textContent = String(total);
+  });
   // Keep Approvals sidebar badge live (profile requests)
   window._lastProfilePending = total;
   if (typeof window.updateSidebarBadges === 'function') {
@@ -4199,19 +4455,30 @@ async function renderProfileRequestApprovals() {
     return '<option value="' + t + '"' + (f.target_type === t ? ' selected' : '') + '>' + label + '</option>';
   }).join('');
 
+  // HOD: branch locked — show badge instead of free branch select
+  var branchControl = (role === 'hod')
+    ? ('<span style="font-size:0.8rem;font-weight:700;padding:8px 10px;background:#e8f0fe;border-radius:8px;color:#1a4fa0;">Branch: ' +
+      escAp(f.branch || (window.currentUser && window.currentUser.branch) || '—') + '</span>' +
+      '<input type="hidden" id="apBranchFilter" value="' + escAp(f.branch || (window.currentUser && window.currentUser.branch) || '') + '" />')
+    : ('<select id="apBranchFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:180px;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
+      branchOpts + '</select>');
+
+  var typeControl = (role === 'hod')
+    ? '<input type="hidden" id="apTypeFilter" value="student" />'
+    : ('<select id="apTypeFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
+      typeOpts + '</select>');
+
   var filterBar =
     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border);">' +
     '<input id="apSearchFilter" type="text" value="' + escAp(f.q) + '" placeholder="Search name, reg no, email…" ' +
     'style="flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" ' +
     'onkeydown="if(event.key===\'Enter\'){window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters();}" />' +
-    '<select id="apBranchFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:180px;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
-    branchOpts + '</select>' +
+    branchControl +
     '<select id="apYearFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:120px;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
     yearOpts + '</select>' +
     '<select id="apAdmYearFilter" title="Year of Admission" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:130px;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
     admYearOpts + '</select>' +
-    '<select id="apTypeFilter" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;" onchange="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">' +
-    typeOpts + '</select>' +
+    typeControl +
     '<button class="btn ol" type="button" onclick="window.applyProfileApprovalFilters&&window.applyProfileApprovalFilters()">Apply</button>' +
     '<button class="btn ol" type="button" onclick="window.clearProfileApprovalFilters&&window.clearProfileApprovalFilters()">Clear</button>' +
     '</div>';
@@ -4485,31 +4752,64 @@ function studentListKey(s) {
   return String(s.user_id || s.reg_no || s.email || Math.random());
 }
 
+function activeStudentDbPrefix() {
+  function vis(id) {
+    var el = document.getElementById(id);
+    return !!(el && el.style.display !== 'none' && el.offsetParent !== null);
+  }
+  if (vis('priStudentsDesk')) return 'priStu';
+  if (vis('facBranchStudents')) return 'facStu';
+  if (vis('adStudents')) return 'adStu';
+  // Prefer by role if nothing visible yet
+  var r = window.currentUser && window.currentUser.role;
+  if (r === 'principal' && document.getElementById('priStuTableBody')) return 'priStu';
+  if (r === 'hod' && document.getElementById('facStuTableBody')) return 'facStu';
+  return 'adStu';
+}
+
 function updateStuBulkBarCount() {
-  var root = document.getElementById('adStudents') || document;
+  var pfx = activeStudentDbPrefix();
+  var root =
+    document.getElementById(pfx === 'adStu' ? 'adStudents' : pfx === 'priStu' ? 'priStudentsDesk' : 'facBranchStudents') ||
+    document;
   var n = root.querySelectorAll('.stu-select-cb:checked').length;
   root.querySelectorAll('.stu-selected-count').forEach(function (el) {
     el.textContent = n + ' selected';
   });
-  var bar = document.getElementById('adStuBulkBar');
+  var bar = document.getElementById(pfx + 'BulkBar') || document.getElementById('adStuBulkBar');
   if (bar) bar.style.opacity = n > 0 ? '1' : '0.85';
 }
 window.updateStuBulkBarCount = updateStuBulkBarCount;
 
 async function renderAdminStudentDatabase() {
-  var tbody = document.getElementById('adStuTableBody');
-  if (!tbody) return;
-  // Require authenticated staff/admin (avoids 401 noise on CMS login / stale ?section= URLs)
+  if (typeof ensurePrincipalHodDesk === 'function') {
+    try { ensurePrincipalHodDesk(); } catch (e) { /* ignore */ }
+  }
+  // Paint all existing student-db table bodies for this session
+  var prefixes = ['adStu', 'priStu', 'facStu'].filter(function (pfx) {
+    return !!document.getElementById(pfx + 'TableBody');
+  });
+  if (!prefixes.length) return;
+
   var cu = window.currentUser;
   if (!cu || (cu.role !== 'admin' && cu.role !== 'acm' && cu.role !== 'hod' && cu.role !== 'registrar' && cu.role !== 'principal')) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.75;">Sign in as Admin / ACM to view the student database.</td></tr>';
+    prefixes.forEach(function (pfx) {
+      var tb = document.getElementById(pfx + 'TableBody');
+      if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.75;">Sign in as Admin / Principal / HOD to view students.</td></tr>';
+    });
     return;
   }
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading students…</td></tr>';
+  prefixes.forEach(function (pfx) {
+    var tb = document.getElementById(pfx + 'TableBody');
+    if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading students…</td></tr>';
+  });
 
   var data = await profileApiGet('/api/students');
   if (!data || !Array.isArray(data.students)) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
+    prefixes.forEach(function (pfx) {
+      var tb = document.getElementById(pfx + 'TableBody');
+      if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#991b1b;">Failed to load students. Session may have expired — please log in again.</td></tr>';
+    });
     return;
   }
 
@@ -4518,62 +4818,79 @@ async function renderAdminStudentDatabase() {
   window._adminStudentList.forEach(function (s) {
     window._adminStudentByKey[studentListKey(s)] = s;
   });
+  window._studentListScope = data.scope || null;
 
-  // Fixed official 4 branches for filter
-  var branchSel = document.getElementById('adStuBranchFilter');
-  if (branchSel) {
-    var prev = branchSel.value || '';
-    var official = (window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
+  var official = (data.branches && data.branches.length)
+    ? data.branches
+    : ((window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
       ? window.OFFICIAL_BRANCHES
       : [
         'Civil Engineering',
         'Computer Science and Engineering',
         'Electronics and Communication Engineering',
         'Mechanical Engineering',
-      ];
-    var opts = '<option value="">All Branches</option>';
-    official.forEach(function (b) {
-      opts += '<option value="' + escHtml(b) + '"' + (b === prev ? ' selected' : '') + '>' + escHtml(b) + '</option>';
-    });
-    branchSel.innerHTML = opts;
-  }
+      ]);
 
-  // Admission Year options from student profiles
-  var admSel = document.getElementById('adStuAdmYearFilter');
-  if (admSel) {
-    var prevAdm = admSel.value || '';
-    var admYears = {};
-    (window._adminStudentList || []).forEach(function (s) {
-      var extra = s.extra || {};
-      if (typeof extra === 'string') {
-        try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
+  prefixes.forEach(function (pfx) {
+    var branchSel = document.getElementById(pfx + 'BranchFilter');
+    if (branchSel) {
+      var prev = branchSel.value || '';
+      // HOD: lock to single branch
+      if (cu.role === 'hod' && official.length === 1) {
+        branchSel.innerHTML = '<option value="' + escHtml(official[0]) + '" selected>' + escHtml(official[0]) + '</option>';
+        branchSel.disabled = true;
+      } else {
+        branchSel.disabled = false;
+        var opts = '<option value="">All Branches</option>';
+        official.forEach(function (b) {
+          opts += '<option value="' + escHtml(b) + '"' + (b === prev ? ' selected' : '') + '>' + escHtml(b) + '</option>';
+        });
+        branchSel.innerHTML = opts;
       }
-      var ay =
-        (extra['Year of Admission'] || extra['Year Of Admission'] || extra['Admission Year'] || '') + '';
-      ay = ay.trim();
-      if (ay) admYears[ay] = true;
-    });
-    var aopts = '<option value="">All Adm. Years</option>';
-    Object.keys(admYears).sort().reverse().forEach(function (y) {
-      aopts += '<option value="' + escHtml(y) + '"' + (y === prevAdm ? ' selected' : '') + '>' + escHtml(y) + '</option>';
-    });
-    admSel.innerHTML = aopts;
-  }
+    }
+    var admSel = document.getElementById(pfx + 'AdmYearFilter');
+    if (admSel) {
+      var prevAdm = admSel.value || '';
+      var admYears = {};
+      (window._adminStudentList || []).forEach(function (s) {
+        var extra = s.extra || {};
+        if (typeof extra === 'string') {
+          try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
+        }
+        var ay =
+          (extra['Year of Admission'] || extra['Year Of Admission'] || extra['Admission Year'] || '') + '';
+        ay = ay.trim();
+        if (ay) admYears[ay] = true;
+      });
+      var aopts = '<option value="">All Adm. Years</option>';
+      Object.keys(admYears).sort().reverse().forEach(function (y) {
+        aopts += '<option value="' + escHtml(y) + '"' + (y === prevAdm ? ' selected' : '') + '>' + escHtml(y) + '</option>';
+      });
+      admSel.innerHTML = aopts;
+    }
+  });
 
   filterAdminStudentList();
 }
 window.renderAdminStudentDatabase = renderAdminStudentDatabase;
 
 function filterAdminStudentList() {
-  var tbody = document.getElementById('adStuTableBody');
-  var meta = document.getElementById('adStuListMeta');
+  var pfx = activeStudentDbPrefix();
+  // If current prefix has no tbody, try any
+  if (!document.getElementById(pfx + 'TableBody')) {
+    if (document.getElementById('priStuTableBody')) pfx = 'priStu';
+    else if (document.getElementById('facStuTableBody')) pfx = 'facStu';
+    else pfx = 'adStu';
+  }
+  var tbody = document.getElementById(pfx + 'TableBody');
+  var meta = document.getElementById(pfx + 'ListMeta');
   if (!tbody) return;
 
-  var q = ((document.getElementById('adStuSearch') || {}).value || '').trim().toLowerCase();
-  var branch = ((document.getElementById('adStuBranchFilter') || {}).value || '').trim().toLowerCase();
-  var year = ((document.getElementById('adStuYearFilter') || {}).value || '').trim().toLowerCase();
-  var admYear = ((document.getElementById('adStuAdmYearFilter') || {}).value || '').trim();
-  var prof = ((document.getElementById('adStuProfileFilter') || {}).value || '').trim();
+  var q = ((document.getElementById(pfx + 'Search') || {}).value || '').trim().toLowerCase();
+  var branch = ((document.getElementById(pfx + 'BranchFilter') || {}).value || '').trim().toLowerCase();
+  var year = ((document.getElementById(pfx + 'YearFilter') || {}).value || '').trim().toLowerCase();
+  var admYear = ((document.getElementById(pfx + 'AdmYearFilter') || {}).value || '').trim();
+  var prof = ((document.getElementById(pfx + 'ProfileFilter') || {}).value || '').trim();
 
   function studentAdmissionYear(s) {
     var extra = s.extra || {};
@@ -4670,7 +4987,7 @@ function filterAdminStudentList() {
       ' student account(s) · Filter by branch, year, admission year, profile status, or search';
   }
   // Reset select-all after re-render
-  var sa = document.getElementById('adStuSelectAll');
+  var sa = document.getElementById(pfx + 'SelectAll') || document.getElementById('adStuSelectAll');
   if (sa) sa.checked = false;
   updateStuBulkBarCount();
 }
@@ -4685,8 +5002,9 @@ function viewAdminStudent(key) {
   if (!s) { alert('Student not found.'); return; }
 
   var extra = s.extra || {};
-  var body = document.getElementById('adStuViewBody');
-  var modal = document.getElementById('adStuViewModal');
+  var pfx = activeStudentDbPrefix();
+  var body = document.getElementById(pfx + 'ViewBody') || document.getElementById('adStuViewBody');
+  var modal = document.getElementById(pfx + 'ViewModal') || document.getElementById('adStuViewModal');
   if (!body || !modal) return;
 
   function row(label, val) {
@@ -5637,15 +5955,19 @@ setInterval(function () {
   function activePrefix() {
     var ad = document.getElementById('adStudentData');
     var fac = document.getElementById('facStudentData');
+    var pri = document.getElementById('priStudentData');
+    if (pri && pri.style.display !== 'none' && pri.offsetParent !== null) return 'priSd';
     if (ad && ad.style.display !== 'none' && ad.offsetParent !== null) return 'adSd';
     if (fac && fac.style.display !== 'none' && fac.offsetParent !== null) return 'facSd';
-    if (ad && document.getElementById('dbAdmin') && document.getElementById('dbAdmin').style.display !== 'none') return 'adSd';
+    if (pri && document.getElementById('dbPrincipal') && document.getElementById('dbPrincipal').classList.contains('show')) return 'priSd';
+    if (ad && document.getElementById('dbAdmin') && document.getElementById('dbAdmin').classList.contains('show')) return 'adSd';
     return 'facSd';
   }
 
   function prefixFromSec(secId) {
     if (secId === 'facStudentData') return 'facSd';
     if (secId === 'adStudentData') return 'adSd';
+    if (secId === 'priStudentData') return 'priSd';
     return activePrefix();
   }
 
@@ -5753,9 +6075,10 @@ setInterval(function () {
 
   window.filterStudentDataList = function () {
     paintTable(activePrefix());
-    // Keep both panels in sync if both exist
+    // Keep panels in sync if they exist
     if (document.getElementById('adSd_tbody')) paintTable('adSd');
     if (document.getElementById('facSd_tbody')) paintTable('facSd');
+    if (document.getElementById('priSd_tbody')) paintTable('priSd');
   };
 
   window.renderStudentDataBrowser = async function (secId) {
@@ -5800,7 +6123,7 @@ setInterval(function () {
     list.forEach(function (s) {
       if (s.admission_year) years[s.admission_year] = true;
     });
-    ;['adSd', 'facSd'].forEach(function (px) {
+    ;['adSd', 'facSd', 'priSd'].forEach(function (px) {
       var sel = document.getElementById(px + '_adm');
       if (!sel) return;
       var prev = sel.value || '';
@@ -5809,10 +6132,20 @@ setInterval(function () {
         opts += '<option value="' + sdEsc(y) + '"' + (y === prev ? ' selected' : '') + '>' + sdEsc(y) + '</option>';
       });
       sel.innerHTML = opts;
+      // HOD: lock branch select
+      var br = document.getElementById(px + '_branch');
+      if (br && cu.role === 'hod' && cu.branch) {
+        br.innerHTML = '<option value="' + sdEsc(cu.branch) + '" selected>' + sdEsc(cu.branch) + '</option>';
+        br.disabled = true;
+      } else if (br && data.scope && data.scope.branch) {
+        br.innerHTML = '<option value="' + sdEsc(data.scope.branch) + '" selected>' + sdEsc(data.scope.branch) + '</option>';
+        br.disabled = true;
+      }
     });
 
     paintTable('adSd');
     paintTable('facSd');
+    paintTable('priSd');
   };
 
   window.viewStudentDataRow = function (key) {

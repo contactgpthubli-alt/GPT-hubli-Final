@@ -73,6 +73,8 @@ function showSec(secId, linkEl) {
     adLibrary:'Library — E-Book Repository', adRolesPerms:'Roles & Permissions',
     adUserApprovals:'Account Approval Queue', adSettings:'Settings',
     priUserApprovals:'Account Approvals', facUserApprovals:'Account Approvals',
+    priProfileApprovals:'Approvals', priStudentsDesk:'Students', priStudentData:'Student Data',
+    facBranchStudents:'Students',
     adStudentProfile:'Student Profile Manager', adStaffProfile:'Staff Profile Manager',
     facHome:'Faculty Dashboard', facApprovals:'Department Approvals', facStuProfile:'Student Profile',
     facAttendance:'Attendance Management', facStuInfo:'Student Info Collection',
@@ -2096,7 +2098,7 @@ function demoLogin(role) {
   // Define what each role can SEE in the faculty sidebar (data-fac values)
   const roleAccess = {
     faculty:      { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','timetable','results','acm','exam','office','est','cash','search','staff','activities'], sec: 'facHome', allBranches: false },
-    hod:          { show: ['home','myprofile','submitforms','approvals','accountapprovals','stuprofile','attendance','timetable','results','staff','activities'], sec: 'facUserApprovals', allBranches: false },
+    hod:          { show: ['home','myprofile','submitforms','approvals','accountapprovals','students','studentdata','stuprofile','attendance','timetable','results','staff','activities'], sec: 'facBranchStudents', allBranches: false },
     teaching:     { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','results','staff','activities'], sec: 'facHome', allBranches: false },
     registrar:    { show: ['home','myprofile','submitforms','approvals','stuprofile','acm','exam','office','est','cash','search','staff','activities'], sec: 'facOffice', allBranches: false },
     // ACM uses scoped admin shell (Approvals + Students + Student Data + ACM) — see applyAcmAdminScope
