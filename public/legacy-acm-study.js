@@ -824,6 +824,11 @@
   /** Used by ACM and student portal print */
   window.buildStudyPrintHtml = buildPrintHtml;
   window.studyDoPrintHtml = function (html) {
+    // Mobile WebView cannot print zero-size iframes — use shared full-screen preview
+    if (typeof window.gpthPrintHtml === 'function') {
+      window.gpthPrintHtml(html, { title: 'Certificate', filename: 'study-certificate.html' });
+      return;
+    }
     var iframe = document.getElementById('studyPrintFrame');
     if (!iframe) {
       iframe = document.createElement('iframe');

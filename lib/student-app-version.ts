@@ -4,7 +4,7 @@
  * user-visible app changes. The app only shows "What's new" once per version.
  */
 
-export const STUDENT_APP_VERSION = "1.3.0"
+export const STUDENT_APP_VERSION = "1.3.1"
 
 export type StudentAppUpdate = {
   version: string
@@ -15,6 +15,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.3.1",
+    date: "2026-07-20",
+    title: "Mobile print fixed",
+    items: [
+      "Print opens a full-screen preview on the phone (profile + certificates).",
+      "Use Print for the system dialog, or Share / Save if print is blocked.",
+      "Works in the Android app WebView where print was previously silent.",
+    ],
+  },
   {
     version: "1.3.0",
     date: "2026-07-20",

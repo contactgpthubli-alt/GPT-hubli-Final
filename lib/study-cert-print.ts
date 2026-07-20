@@ -3,6 +3,8 @@
  * (mirrors public/legacy-acm-study.js buildStudyPrintHtml for student self-print).
  */
 
+import { printHtmlDocument } from "./print-html"
+
 export type StudyCertForm = {
   cert_no?: string
   reg_no?: string
@@ -124,49 +126,12 @@ ${photoBlock}
 </body></html>`
 }
 
-/** Open system print dialog with certificate HTML (works in browser + Capacitor WebView). */
+/** Open print preview + system dialog (works in browser + Capacitor Android WebView). */
 export function printStudyCertHtml(html: string): void {
-  if (typeof window === "undefined" || typeof document === "undefined") return
-
-  let iframe = document.getElementById("stuStudyPrintFrame") as HTMLIFrameElement | null
-  if (!iframe) {
-    iframe = document.createElement("iframe")
-    iframe.id = "stuStudyPrintFrame"
-    iframe.setAttribute("aria-hidden", "true")
-    iframe.style.cssText =
-      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;"
-    document.body.appendChild(iframe)
-  }
-
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!doc) {
-    const w = window.open("", "_blank")
-    if (w) {
-      w.document.write(html)
-      w.document.close()
-      w.focus()
-      setTimeout(() => w.print(), 250)
-    }
-    return
-  }
-
-  doc.open()
-  doc.write(html)
-  doc.close()
-  setTimeout(() => {
-    try {
-      iframe!.contentWindow?.focus()
-      iframe!.contentWindow?.print()
-    } catch {
-      const w = window.open("", "_blank")
-      if (w) {
-        w.document.write(html)
-        w.document.close()
-        w.focus()
-        w.print()
-      }
-    }
-  }, 300)
+  printHtmlDocument(html, {
+    title: "Certificate",
+    filename: "study-certificate.html",
+  })
 }
 
 export function formFromAcmCert(c: {

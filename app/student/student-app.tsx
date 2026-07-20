@@ -928,7 +928,7 @@ export default function StudentApp() {
       }
       const html = buildStudyCertPrintHtml(kind, form)
       printStudyCertHtml(html)
-      flash("Opening print…")
+      flash("Print preview open — use Print, Share, or Save")
     } catch {
       flash("Could not open print. Try again.")
     } finally {
@@ -964,7 +964,7 @@ export default function StudentApp() {
       },
     })
     printStudentProfileHtml(html)
-    flash("Opening full profile print (A4)…")
+    flash("Print preview open — use Print, Share, or Save")
   }
 
   function openFormFill(form: FormRow) {

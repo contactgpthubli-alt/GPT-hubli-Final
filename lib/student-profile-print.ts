@@ -2,6 +2,8 @@
  * Full student profile printout — single A4 sheet (app + web).
  */
 
+import { printHtmlDocument } from "./print-html"
+
 export type StudentProfilePrintInput = {
   name?: string | null
   reg_no?: string | null
@@ -270,47 +272,10 @@ table.fields td.v{font-size:8.5pt;font-weight:600;color:#0f172a;word-wrap:break-
 </body></html>`
 }
 
-/** Print via hidden iframe (browser + Capacitor WebView). */
+/** Print via full-screen preview (browser + Capacitor Android WebView). */
 export function printStudentProfileHtml(html: string): void {
-  if (typeof window === "undefined" || typeof document === "undefined") return
-
-  let iframe = document.getElementById("stuProfilePrintFrame") as HTMLIFrameElement | null
-  if (!iframe) {
-    iframe = document.createElement("iframe")
-    iframe.id = "stuProfilePrintFrame"
-    iframe.setAttribute("aria-hidden", "true")
-    iframe.style.cssText =
-      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;"
-    document.body.appendChild(iframe)
-  }
-
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!doc) {
-    const w = window.open("", "_blank")
-    if (w) {
-      w.document.write(html)
-      w.document.close()
-      w.focus()
-      setTimeout(() => w.print(), 300)
-    }
-    return
-  }
-
-  doc.open()
-  doc.write(html)
-  doc.close()
-  setTimeout(() => {
-    try {
-      iframe!.contentWindow?.focus()
-      iframe!.contentWindow?.print()
-    } catch {
-      const w = window.open("", "_blank")
-      if (w) {
-        w.document.write(html)
-        w.document.close()
-        w.focus()
-        w.print()
-      }
-    }
-  }, 350)
+  printHtmlDocument(html, {
+    title: "Student Profile",
+    filename: "student-profile.html",
+  })
 }

@@ -24,6 +24,8 @@ export default function Page() {
       <Script id="bridge-config" strategy="afterInteractive">
         {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
+      {/* Shared print preview (mobile WebView + desktop) — load before cert/TC printers */}
+      <Script src="/gpth-print.js" strategy="afterInteractive" />
       <Script src="/legacy-app.js" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order).

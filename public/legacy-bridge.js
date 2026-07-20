@@ -1330,6 +1330,8 @@ function __initGptBridge() {
       var html = window.buildStudyPrintHtml(kind, form);
       if (typeof window.studyDoPrintHtml === 'function') {
         window.studyDoPrintHtml(html);
+      } else if (typeof window.gpthPrintHtml === 'function') {
+        window.gpthPrintHtml(html, { title: 'Certificate', filename: 'study-certificate.html' });
       } else {
         var w = window.open('', '_blank');
         if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
@@ -3338,6 +3340,11 @@ function buildStudentFullProfilePrintHtml(input) {
 }
 
 function doStudentProfilePrintHtml(html) {
+  // Mobile WebView cannot print zero-size iframes — use shared full-screen preview
+  if (typeof window.gpthPrintHtml === 'function') {
+    window.gpthPrintHtml(html, { title: 'Student Profile', filename: 'student-profile.html' });
+    return;
+  }
   var iframe = document.getElementById('stuFullProfilePrintFrame');
   if (!iframe) {
     iframe = document.createElement('iframe');
