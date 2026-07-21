@@ -11,6 +11,11 @@ import {
   hodBranchOf,
   isAccountApproverRole,
 } from "@/lib/account-approvals"
+import {
+  approveAccountWithAudit,
+  ensureAccountApprovalSchema,
+  rejectAccountWithAudit,
+} from "@/lib/user-notifications"
 
 /**
  * Pending account registrations.
@@ -113,6 +118,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await requireRole("admin", "principal", "hod")
   if (!user || !isAccountApproverRole(user.role)) return unauthorized()
+  await ensureAccountApprovalSchema()
 
   const b = await req.json().catch(() => null)
   if (!b?.id || !["approved", "rejected"].includes(b.action)) {
@@ -130,18 +136,27 @@ export async function POST(req: Request) {
   const gate = canApproveTarget(user, targetRows[0])
   if (!gate.ok) return unauthorized(gate.error)
 
-  const { rows } = await query(
-    `UPDATE users SET status = $2
-      WHERE id = $1 AND status = 'pending' AND deleted_at IS NULL
-      RETURNING id, email, role, display_name, reg_no, branch, status`,
-    [b.id, b.action],
-  )
-  if (rows.length === 0) return badRequest("Pending user not found")
+  const actorInfo = {
+    id: Number(user.id),
+    display_name: user.display_name,
+    role: user.role,
+  }
 
-  const approved = rows[0]
+  let result =
+    b.action === "approved"
+      ? await approveAccountWithAudit(Number(b.id), actorInfo)
+      : await rejectAccountWithAudit(Number(b.id), actorInfo)
+
+  if (!result) return badRequest("Pending user not found")
+
   // Ensure every approved student has a students academic row with branch (dept).
-  if (approved.status === "approved" && approved.role === "student" && approved.reg_no) {
-    const dept = normalizeBranch(approved.branch) || "Not set"
+  const target = targetRows[0]
+  if (
+    result.status === "approved" &&
+    String(target.role) === "student" &&
+    target.reg_no
+  ) {
+    const dept = normalizeBranch(target.branch ? String(target.branch) : null) || "Not set"
     await query(
       `INSERT INTO students (reg_no, name, dept, year, extra)
        VALUES ($1, $2, $3, NULL, '{}'::jsonb)
@@ -151,18 +166,29 @@ export async function POST(req: Request) {
            WHEN EXCLUDED.dept IS NOT NULL AND EXCLUDED.dept <> 'Not set' THEN EXCLUDED.dept
            ELSE students.dept
          END`,
-      [String(approved.reg_no), approved.display_name || String(approved.reg_no), dept],
+      [
+        String(target.reg_no),
+        String(target.display_name || target.reg_no),
+        dept,
+      ],
     )
   }
 
   // Rejected accounts must never keep a live session
-  if (approved.status === "rejected") {
-    await clearUserSessions(Number(approved.id))
+  if (result.status === "rejected") {
+    await clearUserSessions(Number(result.id))
   }
 
   return Response.json({
     ok: true,
-    user: approved,
-    approved_by: { role: user.role, id: user.id, name: user.display_name },
+    user: result,
+    approved_by:
+      b.action === "approved"
+        ? { role: user.role, id: user.id, name: user.display_name }
+        : undefined,
+    rejected_by:
+      b.action === "rejected"
+        ? { role: user.role, id: user.id, name: user.display_name }
+        : undefined,
   })
 }

@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
+  "version": "1.4.2",
   "minShell": "1.0.0",
-  "message": "Auto-update without reinstalling. Open the app to get PDF download and latest features. More → Update / refresh if needed."
+  "message": "Account approval notification: when your account is approved you will see who approved it in the app. Open the app to refresh."
 }

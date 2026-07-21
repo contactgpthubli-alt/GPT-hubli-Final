@@ -880,6 +880,34 @@ function __initGptBridge() {
       return html;
     }
 
+    function approvalRecordHtml(a) {
+      if (a.status === 'approved' && (a.approved_by_name || a.approved_at)) {
+        var who = a.approved_by_name
+          ? esc(a.approved_by_name) + (a.approved_by_role ? ' <span style="opacity:.75;">(' + esc(a.approved_by_role) + ')</span>' : '')
+          : '—';
+        var when = a.approved_at
+          ? new Date(a.approved_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '';
+        return '<div style="font-size:0.68rem;margin-top:4px;line-height:1.35;color:#166534;">' +
+          '✓ Approved by <strong>' + who + '</strong>' +
+          (when ? '<br><span style="opacity:.8;">' + when + '</span>' : '') +
+          '</div>';
+      }
+      if (a.status === 'rejected' && (a.rejected_by_name || a.rejected_at)) {
+        var rwho = a.rejected_by_name
+          ? esc(a.rejected_by_name) + (a.rejected_by_role ? ' <span style="opacity:.75;">(' + esc(a.rejected_by_role) + ')</span>' : '')
+          : '—';
+        var rwhen = a.rejected_at
+          ? new Date(a.rejected_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '';
+        return '<div style="font-size:0.68rem;margin-top:4px;line-height:1.35;color:#991b1b;">' +
+          '✕ Rejected by <strong>' + rwho + '</strong>' +
+          (rwhen ? '<br><span style="opacity:.8;">' + rwhen + '</span>' : '') +
+          '</div>';
+      }
+      return '';
+    }
+
     function accountRow(a, mode) {
       var idNum = Number(a.id);
       // Skip checkbox for trash rows in bulk-delete of actives (still selectable for bulk purge later)
@@ -889,7 +917,9 @@ function __initGptBridge() {
           : '') +
         '<td><strong>' + esc(a.display_name) + '</strong>' +
         (a.is_demo ? ' <span class="badge" style="font-size:0.65rem;">demo</span>' : '') +
-        '<div style="font-size:0.68rem;opacity:.7;">' + esc(a.email) + '</div></td>' +
+        '<div style="font-size:0.68rem;opacity:.7;">' + esc(a.email) + '</div>' +
+        approvalRecordHtml(a) +
+        '</td>' +
         '<td>' + esc(a.role) + '</td>' +
         '<td>' + esc(a.branch || '—') + '</td>' +
         '<td style="font-family:JetBrains Mono,monospace;font-size:0.72rem;">' + esc(a.reg_no || '—') + '</td>' +

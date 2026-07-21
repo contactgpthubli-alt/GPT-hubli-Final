@@ -1,5 +1,6 @@
 import { query } from "@/lib/db"
 import { getCurrentUser, unauthorized } from "@/lib/auth"
+import { listUserNotifications, markUserNotificationsRead } from "@/lib/user-notifications"
 
 export type AppNotification = {
   id: string
@@ -156,6 +157,52 @@ export async function GET() {
       }
     }
   } else if (user.role === "student") {
+    // Persistent in-app notifications (e.g. account approved)
+    try {
+      const mineNotifs = await listUserNotifications(Number(user.id), 15)
+      for (const n of mineNotifs) {
+        items.unshift({
+          id: `un-${n.id}`,
+          title: n.title,
+          desc: n.body || "",
+          time: fmtTime(n.created_at),
+          unread: !n.read_at,
+          kind: n.kind || "user",
+        })
+      }
+    } catch {
+      /* table may not exist yet */
+    }
+
+    // Fallback if audit exists but notification row was never written (older approvals)
+    try {
+      const { rows: audit } = await query(
+        `SELECT approved_at, approved_by_name, approved_by_role, status
+           FROM users WHERE id = $1`,
+        [user.id],
+      )
+      const a = audit[0]
+      if (a && a.status === "approved" && a.approved_at) {
+        const already = items.some((i) => i.kind === "account_approved")
+        if (!already) {
+          const who = a.approved_by_name
+            ? String(a.approved_by_name) +
+              (a.approved_by_role ? ` (${a.approved_by_role})` : "")
+            : "the office"
+          items.unshift({
+            id: "account-approved-audit",
+            title: "✅ Account Approved",
+            desc: `Your student account was approved by ${who}. You can use the app and portal.`,
+            time: fmtTime(a.approved_at),
+            unread: true,
+            kind: "account_approved",
+          })
+        }
+      }
+    } catch {
+      /* columns may not exist yet */
+    }
+
     // Own profile requests
     const { rows: mine } = await query(
       `SELECT id, status, created_at, reviewed_at, remarks
@@ -299,4 +346,16 @@ export async function GET() {
     unread,
     total: unique.length,
   })
+}
+
+/** Mark own user_notifications as read. Body: { ids?: number[] } or all unread. */
+export async function PATCH(req: Request) {
+  const user = await getCurrentUser()
+  if (!user) return unauthorized()
+  const b = await req.json().catch(() => ({}))
+  const ids = Array.isArray(b?.ids)
+    ? b.ids.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n) && n > 0)
+    : undefined
+  const n = await markUserNotificationsRead(Number(user.id), ids)
+  return Response.json({ ok: true, marked: n })
 }

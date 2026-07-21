@@ -99,6 +99,15 @@ type CertRow = {
   routed_to?: string
 }
 
+type AppNotif = {
+  id: string
+  title: string
+  desc: string
+  time?: string
+  unread?: boolean
+  kind?: string
+}
+
 type NoticeRow = {
   id: number
   title: string
@@ -400,6 +409,7 @@ export default function StudentApp() {
   const [dataErr, setDataErr] = useState("")
   const [dataLoading, setDataLoading] = useState(false)
   const [toast, setToast] = useState("")
+  const [appNotifs, setAppNotifs] = useState<AppNotif[]>([])
 
   // Profile edit
   const [profileEditing, setProfileEditing] = useState(false)
@@ -448,6 +458,20 @@ export default function StudentApp() {
     return extractProfilePhoto(student?.extra || null)
   }, [student, profilePhotoDraft])
   const readyCerts = useMemo(() => certs.filter((c) => isCertReady(c.status)), [certs])
+  const accountApprovedNotif = useMemo(
+    () =>
+      appNotifs.find(
+        (n) =>
+          n.unread !== false &&
+          (n.kind === "account_approved" ||
+            (n.title || "").toLowerCase().includes("account approved")),
+      ) || null,
+    [appNotifs],
+  )
+  const unreadAppNotifs = useMemo(
+    () => appNotifs.filter((n) => n.unread).slice(0, 5),
+    [appNotifs],
+  )
   const profileLocked = useMemo(() => {
     const extra = student?.extra || {}
     return extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
@@ -501,7 +525,7 @@ export default function StudentApp() {
   const loadDashboard = useCallback(async () => {
     setDataLoading(true)
     setDataErr("")
-    const [s, r, f, c, a, n, pr, sch, g] = await Promise.all([
+    const [s, r, f, c, a, n, pr, sch, g, notif] = await Promise.all([
       api<{ students: Student[] }>("/api/students"),
       api<{ results: ResultRow[] }>("/api/results"),
       api<{ forms: FormRow[] }>("/api/forms"),
@@ -511,6 +535,7 @@ export default function StudentApp() {
       api<{ pending?: unknown[]; mine_pending?: number }>("/api/profile-requests?mine=1"),
       api<{ schema?: SchemaSection[] | null }>("/api/profile-schema?key=student"),
       api<{ grievances: Grievance[] }>("/api/grievances"),
+      api<{ notifications?: AppNotif[] }>("/api/notifications"),
     ])
 
     let nextStudent: Student | null = null
@@ -529,6 +554,11 @@ export default function StudentApp() {
     else setNotices([])
     if (g.ok && Array.isArray(g.data?.grievances)) setGrievances(g.data.grievances)
     else setGrievances([])
+    if (notif.ok && Array.isArray(notif.data?.notifications)) {
+      setAppNotifs(notif.data.notifications)
+    } else {
+      setAppNotifs([])
+    }
 
     const pending =
       (pr.ok && typeof pr.data?.mine_pending === "number" && pr.data.mine_pending > 0) ||
@@ -1371,6 +1401,50 @@ export default function StudentApp() {
         {/* ---------- HOME ---------- */}
         {tab === "home" && (
           <>
+            {accountApprovedNotif ? (
+              <div className="stu-alert-ready" role="status" style={{ borderColor: "#16a34a" }}>
+                <h3>{accountApprovedNotif.title || "✅ Account Approved"}</h3>
+                <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>
+                  {accountApprovedNotif.desc}
+                </p>
+                {accountApprovedNotif.time ? (
+                  <p style={{ margin: "6px 0 0", fontSize: "0.75rem", opacity: 0.75 }}>
+                    {accountApprovedNotif.time}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className="stu-btn stu-btn-ghost stu-btn-sm"
+                  style={{ marginTop: 10 }}
+                  onClick={async () => {
+                    // Mark all unread app notifications as read
+                    await api("/api/notifications", {
+                      method: "PATCH",
+                      body: JSON.stringify({}),
+                    })
+                    setAppNotifs((prev) => prev.map((n) => ({ ...n, unread: false })))
+                    flash("Notification dismissed")
+                  }}
+                >
+                  Got it
+                </button>
+              </div>
+            ) : null}
+
+            {!accountApprovedNotif && unreadAppNotifs.length > 0 ? (
+              <div className="stu-msg stu-msg-info">
+                <strong>🔔 {unreadAppNotifs.length} notification{unreadAppNotifs.length === 1 ? "" : "s"}</strong>
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                  {unreadAppNotifs.map((n) => (
+                    <li key={n.id} style={{ marginBottom: 4 }}>
+                      <strong>{n.title}</strong>
+                      {n.desc ? ` — ${n.desc}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             {readyCerts.length > 0 ? (
               <div className="stu-alert-ready" role="status">
                 <h3>🔔 Certificate ready for collection</h3>

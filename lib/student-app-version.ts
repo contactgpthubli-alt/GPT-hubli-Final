@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.4.1"
+export const STUDENT_APP_VERSION = "1.4.2"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,15 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.4.2",
+    date: "2026-07-21",
+    title: "Account approval notification",
+    items: [
+      "When Admin, Principal, or HOD approves your student account, you get an in-app notification.",
+      "The notice shows who approved your account and when.",
+    ],
+  },
   {
     version: "1.4.1",
     date: "2026-07-20",

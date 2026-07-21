@@ -79,6 +79,7 @@ async function run() {
     const studyCertsSql = readFileSync(path.join(projectRoot, 'scripts/008_study_certs.sql'), 'utf8')
     const acmSendStudentSql = readFileSync(path.join(projectRoot, 'scripts/009_acm_cert_send_student.sql'), 'utf8')
     const profilePreviousSql = readFileSync(path.join(projectRoot, 'scripts/010_profile_request_previous.sql'), 'utf8')
+    const accountApprovalAuditSql = readFileSync(path.join(projectRoot, 'scripts/011_account_approval_audit.sql'), 'utf8')
 
     await client.query(schemaSql)
     console.log('Applied database schema.')
@@ -109,6 +110,9 @@ async function run() {
 
     await client.query(profilePreviousSql)
     console.log('Applied profile_requests.previous migration.')
+
+    await client.query(accountApprovalAuditSql)
+    console.log('Applied account approval audit + user_notifications migration.')
   } catch (error) {
     console.error('Database initialization failed:')
     console.error(error instanceof Error ? error.message : error)

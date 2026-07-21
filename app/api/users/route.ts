@@ -12,6 +12,11 @@ import {
   hodBranchOf,
   isAccountApproverRole,
 } from "@/lib/account-approvals"
+import {
+  approveAccountWithAudit,
+  ensureAccountApprovalSchema,
+  rejectAccountWithAudit,
+} from "@/lib/user-notifications"
 
 /**
  * Account control / listings.
@@ -25,6 +30,7 @@ import {
 export async function GET(req: Request) {
   const user = await requireRole("admin", "principal", "hod")
   if (!user || !isAccountApproverRole(user.role)) return unauthorized()
+  await ensureAccountApprovalSchema()
 
   const { searchParams } = new URL(req.url)
   let status = (searchParams.get("status") || "all").trim().toLowerCase()
@@ -89,6 +95,8 @@ export async function GET(req: Request) {
         u.id, u.email, u.role, u.display_name, u.reg_no, u.branch,
         u.status, u.force_password_change, u.is_demo, u.created_at,
         u.deleted_at, u.prev_status,
+        u.approved_by, u.approved_by_name, u.approved_by_role, u.approved_at,
+        u.rejected_by, u.rejected_by_name, u.rejected_by_role, u.rejected_at,
         s.dept AS student_dept, s.year AS student_year, s.name AS student_name
        FROM users u
        LEFT JOIN students s ON s.reg_no = u.reg_no
@@ -187,6 +195,14 @@ export async function GET(req: Request) {
     created_at: r.created_at,
     deleted_at: r.deleted_at,
     prev_status: r.prev_status,
+    approved_by: r.approved_by != null ? Number(r.approved_by) : null,
+    approved_by_name: r.approved_by_name || null,
+    approved_by_role: r.approved_by_role || null,
+    approved_at: r.approved_at || null,
+    rejected_by: r.rejected_by != null ? Number(r.rejected_by) : null,
+    rejected_by_name: r.rejected_by_name || null,
+    rejected_by_role: r.rejected_by_role || null,
+    rejected_at: r.rejected_at || null,
   }))
 
   return Response.json(
@@ -371,14 +387,12 @@ async function mutateUsers(req: Request) {
     if (!canApprove) return unauthorized()
     const gate = canApproveTarget(actor, target)
     if (!gate.ok) return unauthorized(gate.error)
-    const { rows } = await query(
-      `UPDATE users SET status = 'approved'
-        WHERE id = $1 AND status = 'pending'
-        RETURNING id, email, role, display_name, reg_no, branch, status`,
-      [id],
-    )
-    if (!rows[0]) return badRequest("Pending user not found (already processed?)")
-    const approved = rows[0]
+    const approved = await approveAccountWithAudit(id, {
+      id: Number(actor.id),
+      display_name: actor.display_name,
+      role: actor.role,
+    })
+    if (!approved) return badRequest("Pending user not found (already processed?)")
     if (approved.role === "student" && approved.reg_no) {
       const dept = normalizeBranch(approved.branch) || "Not set"
       await query(
@@ -393,7 +407,15 @@ async function mutateUsers(req: Request) {
         [String(approved.reg_no), approved.display_name || String(approved.reg_no), dept],
       )
     }
-    return Response.json({ ok: true, user: approved })
+    return Response.json({
+      ok: true,
+      user: approved,
+      approved_by: {
+        id: actor.id,
+        name: actor.display_name,
+        role: actor.role,
+      },
+    })
   }
 
   if (b.action === "reject") {
@@ -403,16 +425,23 @@ async function mutateUsers(req: Request) {
     if (Number(target.id) === Number(actor.id)) {
       return badRequest("You cannot reject your own account")
     }
-    const { rows } = await query(
-      `UPDATE users SET status = 'rejected'
-        WHERE id = $1 AND status = 'pending'
-        RETURNING id, email, role, status`,
-      [id],
-    )
-    if (!rows[0]) return badRequest("Pending user not found (already processed?)")
+    const rejected = await rejectAccountWithAudit(id, {
+      id: Number(actor.id),
+      display_name: actor.display_name,
+      role: actor.role,
+    })
+    if (!rejected) return badRequest("Pending user not found (already processed?)")
     // Ensure they cannot remain signed in if a session somehow exists
     await clearUserSessions(id)
-    return Response.json({ ok: true, user: rows[0] })
+    return Response.json({
+      ok: true,
+      user: rejected,
+      rejected_by: {
+        id: actor.id,
+        name: actor.display_name,
+        role: actor.role,
+      },
+    })
   }
 
   // Remaining admin-only account management
