@@ -25,6 +25,7 @@ import {
  * PATCH actions:
  *   approve | reject — admin, principal, hod (scoped)
  *   reset_password | set_status | soft_delete | restore | bulk_soft_delete — admin only
+ *   bulk_restore | bulk_hard_delete — admin only (trash)
  * DELETE ?id=  → soft-delete (admin). Hard purge only for trash: ?hard=1&id=
  */
 export async function GET(req: Request) {
@@ -317,6 +318,114 @@ async function mutateUsers(req: Request) {
       deleted: okCount,
       results,
       error: okCount === 0 ? results.map((r) => r.error).filter(Boolean).join("; ") || "No accounts deleted" : undefined,
+    })
+  }
+
+  // ── Bulk restore from trash (admin only) ──
+  if (b.action === "bulk_restore") {
+    if (!isAdmin) return unauthorized("Only Root Admin can bulk-restore accounts")
+    const rawIds = Array.isArray(b.ids) ? b.ids : []
+    const ids = rawIds
+      .map((x: unknown) => Number(x))
+      .filter((n: number) => Number.isFinite(n) && n > 0)
+    if (!ids.length) return badRequest("ids array is required")
+    const results: { id: number; ok: boolean; error?: string; restored_to?: string }[] = []
+    for (const id of ids) {
+      try {
+        const { rows: tRows } = await query(
+          `SELECT id, status, deleted_at, prev_status FROM users WHERE id = $1`,
+          [id],
+        )
+        const t = tRows[0]
+        if (!t) {
+          results.push({ id, ok: false, error: "Not found" })
+          continue
+        }
+        if (t.status !== "deleted" && !t.deleted_at) {
+          results.push({ id, ok: false, error: "Not in trash" })
+          continue
+        }
+        const restoreTo = ["pending", "approved", "rejected"].includes(String(t.prev_status))
+          ? String(t.prev_status)
+          : "approved"
+        await query(
+          `UPDATE users
+              SET status = $2, deleted_at = NULL, prev_status = NULL
+            WHERE id = $1`,
+          [id, restoreTo],
+        )
+        if (restoreTo !== "approved") {
+          await clearUserSessions(id)
+        }
+        results.push({ id, ok: true, restored_to: restoreTo })
+      } catch (err) {
+        results.push({
+          id,
+          ok: false,
+          error: err instanceof Error ? err.message : "server error",
+        })
+      }
+    }
+    const okCount = results.filter((r) => r.ok).length
+    return Response.json({
+      ok: okCount > 0,
+      restored: okCount,
+      results,
+      error:
+        okCount === 0
+          ? results.map((r) => r.error).filter(Boolean).join("; ") || "No accounts restored"
+          : undefined,
+    })
+  }
+
+  // ── Bulk permanent purge from trash (admin only) ──
+  if (b.action === "bulk_hard_delete") {
+    if (!isAdmin) return unauthorized("Only Root Admin can permanently delete accounts")
+    const rawIds = Array.isArray(b.ids) ? b.ids : []
+    const ids = rawIds
+      .map((x: unknown) => Number(x))
+      .filter((n: number) => Number.isFinite(n) && n > 0)
+    if (!ids.length) return badRequest("ids array is required")
+    const results: { id: number; ok: boolean; error?: string }[] = []
+    for (const id of ids) {
+      try {
+        if (Number(id) === Number(actor.id)) {
+          results.push({ id, ok: false, error: "Cannot delete your own account" })
+          continue
+        }
+        const { rows: tRows } = await query(
+          `SELECT id, status, deleted_at FROM users WHERE id = $1`,
+          [id],
+        )
+        const t = tRows[0]
+        if (!t) {
+          results.push({ id, ok: false, error: "Not found" })
+          continue
+        }
+        if (t.status !== "deleted" && !t.deleted_at) {
+          results.push({ id, ok: false, error: "Move to trash first" })
+          continue
+        }
+        await query(`DELETE FROM sessions WHERE user_id = $1`, [id])
+        const { rowCount } = await query(`DELETE FROM users WHERE id = $1`, [id])
+        results.push({ id, ok: (rowCount || 0) > 0 })
+      } catch (err) {
+        results.push({
+          id,
+          ok: false,
+          error: err instanceof Error ? err.message : "server error",
+        })
+      }
+    }
+    const okCount = results.filter((r) => r.ok).length
+    return Response.json({
+      ok: okCount > 0,
+      purged: okCount,
+      results,
+      error:
+        okCount === 0
+          ? results.map((r) => r.error).filter(Boolean).join("; ") || "No accounts purged"
+          : undefined,
     })
   }
 

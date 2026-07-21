@@ -981,13 +981,25 @@ function __initGptBridge() {
 
     // Bulk bar lives with ALL ACCOUNTS (where the checkboxes users select are)
     var bulkBar = isFullAdmin
-      ? ('<div class="acc-bulk-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#fef2f2;border-radius:8px;border:1.5px solid #fecaca;">' +
+      ? ('<div class="acc-bulk-bar" data-bulk-scope="active" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#fef2f2;border-radius:8px;border:1.5px solid #fecaca;">' +
         '<label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">' +
-        '<input type="checkbox" class="acc-select-all-cb" style="width:16px;height:16px;" /> Select all</label>' +
+        '<input type="checkbox" class="acc-select-all-cb" data-bulk-scope="active" style="width:16px;height:16px;" /> Select all</label>' +
         '<button type="button" class="btn re acc-bulk-delete-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete selected</button>' +
         '<button type="button" class="btn re acc-bulk-demo-btn" style="padding:8px 14px;font-weight:700;">🗑 Delete all DEMO</button>' +
-        '<span class="acc-selected-count" style="font-size:0.8rem;font-weight:700;color:#991b1b;">0 selected</span>' +
+        '<span class="acc-selected-count" data-bulk-scope="active" style="font-size:0.8rem;font-weight:700;color:#991b1b;">0 selected</span>' +
         '<span style="font-size:0.72rem;opacity:.75;">Checked rows → Trash (can Restore later)</span>' +
+        '</div>')
+      : '';
+
+    // Bulk bar for Deleted Accounts (Trash)
+    var trashBulkBar = isFullAdmin
+      ? ('<div class="acc-bulk-bar acc-trash-bulk-bar" data-bulk-scope="trash" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#fff7ed;border-radius:8px;border:1.5px solid #fdba74;">' +
+        '<label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:#9a3412;">' +
+        '<input type="checkbox" class="acc-select-all-cb" data-bulk-scope="trash" style="width:16px;height:16px;" /> Select all trash</label>' +
+        '<button type="button" class="btn gr acc-bulk-restore-btn" style="padding:8px 14px;font-weight:700;">↩ Restore selected</button>' +
+        '<button type="button" class="btn re acc-bulk-purge-btn" style="padding:8px 14px;font-weight:700;">☠ Purge selected</button>' +
+        '<span class="acc-selected-count" data-bulk-scope="trash" style="font-size:0.8rem;font-weight:700;color:#9a3412;">0 selected</span>' +
+        '<span style="font-size:0.72rem;opacity:.8;">Purge permanently removes accounts (cannot undo)</span>' +
         '</div>')
       : '';
 
@@ -1047,8 +1059,9 @@ function __initGptBridge() {
         '<div class="card-hd"><h3>🗑 Deleted Accounts (Trash)</h3>' +
         '<span class="badge" style="background:#fef3c7;color:#92400e;">' + (counts.deleted || trash.length) + ' in trash</span></div>' +
         '<div style="padding:12px 16px;">' +
-        '<p style="font-size:0.78rem;opacity:.8;margin:0 0 10px;">Accidentally deleted? Click <strong>Restore</strong>. ' +
+        '<p style="font-size:0.78rem;opacity:.8;margin:0 0 10px;">Accidentally deleted? Use <strong>Restore</strong> or bulk <strong>Restore selected</strong>. ' +
         '<strong>Purge</strong> permanently removes the account.</p>' +
+        trashBulkBar +
         tableFor(trash, 'trash', 'Trash is empty.') +
         '</div></div>';
     }
@@ -1117,6 +1130,22 @@ function __initGptBridge() {
     var seen = {};
     root.querySelectorAll('.acc-select-cb:checked').forEach(function (cb) {
       if (cb.getAttribute('data-mode') === 'trash') return;
+      var n = Number(cb.getAttribute('data-acc-id'));
+      if (Number.isFinite(n) && n > 0 && !seen[n]) {
+        seen[n] = true;
+        ids.push(n);
+      }
+    });
+    return ids;
+  };
+
+  window.getSelectedTrashIds = function () {
+    var root = document.getElementById('bridgeAccountApprovals') ||
+      document.getElementById('bridgeUserManagement') || document;
+    var ids = [];
+    var seen = {};
+    root.querySelectorAll('.acc-select-cb:checked').forEach(function (cb) {
+      if (cb.getAttribute('data-mode') !== 'trash') return;
       var n = Number(cb.getAttribute('data-acc-id'));
       if (Number.isFinite(n) && n > 0 && !seen[n]) {
         seen[n] = true;
@@ -5716,7 +5745,7 @@ setInterval(function () {
     }
   }
 
-  function selectedIds() {
+  function accountsRoot() {
     var root = document.getElementById("bridgeAccountApprovals") ||
       document.getElementById("bridgeUserManagement") ||
       document;
@@ -5729,10 +5758,22 @@ setInterval(function () {
     if (umHost && umHost.offsetParent !== null && document.getElementById("bridgeUserManagement")) {
       root = document.getElementById("bridgeUserManagement");
     }
+    return root;
+  }
+
+  /** selectedIds(scope): "active" (default) or "trash" */
+  function selectedIds(scope) {
+    scope = scope || "active";
+    var root = accountsRoot();
     var ids = [];
     var seen = {};
     root.querySelectorAll(".acc-select-cb:checked").forEach(function (cb) {
-      if (cb.getAttribute("data-mode") === "trash") return;
+      var mode = cb.getAttribute("data-mode") || "active";
+      if (scope === "trash") {
+        if (mode !== "trash") return;
+      } else {
+        if (mode === "trash") return;
+      }
       var n = Number(cb.getAttribute("data-acc-id"));
       if (Number.isFinite(n) && n > 0 && !seen[n]) {
         seen[n] = true;
@@ -5742,7 +5783,33 @@ setInterval(function () {
     return ids;
   }
 
-  window.getSelectedAccountIds = selectedIds;
+  function updateScopeCounts(root) {
+    root = root || accountsRoot();
+    var activeN = 0, trashN = 0;
+    var seenA = {}, seenT = {};
+    root.querySelectorAll(".acc-select-cb:checked").forEach(function (cb) {
+      var id = cb.getAttribute("data-acc-id");
+      if (!id) return;
+      if (cb.getAttribute("data-mode") === "trash") {
+        if (!seenT[id]) { seenT[id] = true; trashN++; }
+      } else {
+        if (!seenA[id]) { seenA[id] = true; activeN++; }
+      }
+    });
+    root.querySelectorAll('.acc-selected-count[data-bulk-scope="active"]').forEach(function (el) {
+      el.textContent = activeN + " selected";
+    });
+    root.querySelectorAll('.acc-selected-count[data-bulk-scope="trash"]').forEach(function (el) {
+      el.textContent = trashN + " selected";
+    });
+    // Fallback for any count without scope attribute
+    root.querySelectorAll(".acc-selected-count:not([data-bulk-scope])").forEach(function (el) {
+      el.textContent = activeN + " selected";
+    });
+  }
+
+  window.getSelectedAccountIds = function () { return selectedIds("active"); };
+  window.getSelectedTrashIds = function () { return selectedIds("trash"); };
 
   async function runAction(action, id, label) {
     id = Number(id);
@@ -5883,11 +5950,48 @@ setInterval(function () {
       }
       return;
     }
+    if (action === "bulk_restore") {
+      var rIds = selectedIds("trash");
+      if (!rIds.length) {
+        showAccToast("Select one or more trash accounts first (left checkboxes).", true);
+        return;
+      }
+      var r11 = await usersMutate({ action: "bulk_restore", ids: rIds });
+      console.log("[acc-action] bulk_restore result", r11);
+      if (r11.ok) {
+        showAccToast("↩ Restored " + (r11.restored != null ? r11.restored : rIds.length) + " account(s).");
+        refreshAccounts();
+      } else {
+        showAccToast("Bulk restore failed: " + (r11.error || JSON.stringify(r11)), true);
+      }
+      return;
+    }
+    if (action === "bulk_purge") {
+      var pIds = selectedIds("trash");
+      if (!pIds.length) {
+        showAccToast("Select one or more trash accounts first (left checkboxes).", true);
+        return;
+      }
+      if (!window.confirm(
+        "PERMANENTLY delete " + pIds.length + " account(s) from trash?\n\nThis cannot be undone."
+      )) return;
+      var r12 = await usersMutate({ action: "bulk_hard_delete", ids: pIds });
+      console.log("[acc-action] bulk_purge result", r12);
+      if (r12.ok) {
+        showAccToast("☠ Permanently deleted " + (r12.purged != null ? r12.purged : pIds.length) + " account(s).");
+        refreshAccounts();
+      } else {
+        showAccToast("Bulk purge failed: " + (r12.error || JSON.stringify(r12)), true);
+      }
+      return;
+    }
   }
 
   // Global handlers used by bulk bar / legacy names
   window.bridgeBulkDeleteAccounts = function () { return runAction("bulk_trash"); };
   window.bridgeBulkDeleteDemoAccounts = function () { return runAction("bulk_demo"); };
+  window.bridgeBulkRestoreAccounts = function () { return runAction("bulk_restore"); };
+  window.bridgeBulkPurgeAccounts = function () { return runAction("bulk_purge"); };
   window.bridgeDeleteAccount = function (id, label) { return runAction("trash", id, label); };
   window.bridgeDecideAccount = function (id, action) {
     return runAction(action === "approved" || action === "approve" ? "approve" : "reject", id);
@@ -5930,6 +6034,18 @@ setInterval(function () {
         runAction("bulk_demo");
         return;
       }
+      if (t.closest(".acc-bulk-restore-btn")) {
+        e.preventDefault();
+        e.stopPropagation();
+        runAction("bulk_restore");
+        return;
+      }
+      if (t.closest(".acc-bulk-purge-btn")) {
+        e.preventDefault();
+        e.stopPropagation();
+        runAction("bulk_purge");
+        return;
+      }
     },
     true
   );
@@ -5941,21 +6057,20 @@ setInterval(function () {
       if (!t) return;
       if (t.classList && t.classList.contains("acc-select-all-cb")) {
         var on = !!t.checked;
+        var scope = t.getAttribute("data-bulk-scope") || "active";
         var root = t.closest("#bridgeAccountApprovals, #bridgeUserManagement") || document;
         root.querySelectorAll(".acc-select-cb").forEach(function (cb) {
-          if (cb.getAttribute("data-mode") === "trash") return;
-          cb.checked = on;
+          var mode = cb.getAttribute("data-mode") || "active";
+          if (scope === "trash") {
+            if (mode === "trash") cb.checked = on;
+          } else {
+            if (mode !== "trash") cb.checked = on;
+          }
         });
-        var n = root.querySelectorAll(".acc-select-cb:checked").length;
-        root.querySelectorAll(".acc-selected-count").forEach(function (el) {
-          el.textContent = n + " selected";
-        });
+        updateScopeCounts(root);
       } else if (t.classList && t.classList.contains("acc-select-cb")) {
         var root2 = t.closest("#bridgeAccountApprovals, #bridgeUserManagement") || document;
-        var n2 = root2.querySelectorAll(".acc-select-cb:checked").length;
-        root2.querySelectorAll(".acc-selected-count").forEach(function (el) {
-          el.textContent = n2 + " selected";
-        });
+        updateScopeCounts(root2);
       }
     },
     true
