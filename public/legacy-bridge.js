@@ -624,6 +624,44 @@ function __initGptBridge() {
   }
   window.ensurePrincipalHodDesk = ensurePrincipalHodDesk;
 
+  /**
+   * Hide Teaching Staff Profile (facMyProfile) from HOD.
+   * That multi-tab staff form is for faculty EST submission, not HOD desk work.
+   */
+  function hideHodTeachingStaffProfile() {
+    document.querySelectorAll('#dbFaculty [data-fac="myprofile"]').forEach(function (el) {
+      el.style.display = 'none';
+    });
+    var sec = document.getElementById('facMyProfile');
+    if (sec) {
+      sec.style.display = 'none';
+      // If user is currently on that panel, leave them on a safe default
+      var stillVisible = sec.offsetParent !== null;
+      if (stillVisible || (sec.style && sec.style.display === 'none' &&
+          document.querySelector('#dbFaculty .sl.act[data-fac="myprofile"]'))) {
+        /* no-op: display already none */
+      }
+    }
+    // Clear active state on My Profile nav if selected
+    document.querySelectorAll('#dbFaculty .sl[data-fac="myprofile"]').forEach(function (sl) {
+      sl.classList.remove('act');
+    });
+    // If no other section is active/visible, open Students or home
+    var active = document.querySelector('#dbFaculty .db-content > div[id]:not([style*="display: none"]):not([style*="display:none"])');
+    if (!active || active.id === 'facMyProfile') {
+      var prefer = document.querySelector('#dbFaculty .sl[data-fac="students"], #dbFaculty .sl[data-fac="home"]');
+      if (prefer && typeof window.showSec === 'function') {
+        try {
+          var oc = prefer.getAttribute('onclick') || '';
+          var m = oc.match(/showSec\('([^']+)'/);
+          if (m) window.showSec(m[1], prefer);
+          else prefer.click();
+        } catch (e) { /* ignore */ }
+      }
+    }
+  }
+  window.hideHodTeachingStaffProfile = hideHodTeachingStaffProfile;
+
   function buildStudentDataPanelMarkup(p, infoHtml) {
     var official = (window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
       ? window.OFFICIAL_BRANCHES
@@ -1326,6 +1364,8 @@ function __initGptBridge() {
             });
             var hodNav = document.getElementById('facUserApprovalsNav');
             if (hodNav) hodNav.style.display = '';
+            // HOD must not see Teaching Staff Profile (My Profile form)
+            hideHodTeachingStaffProfile();
           }, 80);
         }
       }
@@ -1528,6 +1568,7 @@ function __initGptBridge() {
 
       if (role === 'hod') {
         paintHodLiveKpis(user);
+        try { hideHodTeachingStaffProfile(); } catch (e) { /* ignore */ }
       }
     }
   }
@@ -1589,6 +1630,7 @@ function __initGptBridge() {
         ).forEach(function (el) {
           el.style.display = '';
         });
+        hideHodTeachingStaffProfile();
       }
       try { renderAccountApprovals(); } catch (e) { console.warn('[bridge] account approvals', e); }
     }
