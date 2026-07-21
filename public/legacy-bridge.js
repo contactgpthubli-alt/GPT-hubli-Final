@@ -625,31 +625,39 @@ function __initGptBridge() {
   window.ensurePrincipalHodDesk = ensurePrincipalHodDesk;
 
   /**
-   * Hide Teaching Staff Profile (facMyProfile) from HOD.
-   * That multi-tab staff form is for faculty EST submission, not HOD desk work.
+   * Hide Teaching Staff Profile (facMyProfile) and OTHER clutter from HOD.
+   * Staff / Activities are faculty modules — Student Data is already on the main desk.
    */
   function hideHodTeachingStaffProfile() {
-    document.querySelectorAll('#dbFaculty [data-fac="myprofile"]').forEach(function (el) {
-      el.style.display = 'none';
+    ;['myprofile', 'staff', 'activities'].forEach(function (key) {
+      document.querySelectorAll('#dbFaculty [data-fac="' + key + '"]').forEach(function (el) {
+        el.style.display = 'none';
+      });
     });
-    var sec = document.getElementById('facMyProfile');
-    if (sec) {
-      sec.style.display = 'none';
-      // If user is currently on that panel, leave them on a safe default
-      var stillVisible = sec.offsetParent !== null;
-      if (stillVisible || (sec.style && sec.style.display === 'none' &&
-          document.querySelector('#dbFaculty .sl.act[data-fac="myprofile"]'))) {
-        /* no-op: display already none */
-      }
-    }
-    // Clear active state on My Profile nav if selected
-    document.querySelectorAll('#dbFaculty .sl[data-fac="myprofile"]').forEach(function (sl) {
+    ;['facMyProfile', 'facStaff', 'facActivities'].forEach(function (id) {
+      var sec = document.getElementById(id);
+      if (sec) sec.style.display = 'none';
+    });
+    document.querySelectorAll(
+      '#dbFaculty .sl[data-fac="myprofile"], #dbFaculty .sl[data-fac="staff"], #dbFaculty .sl[data-fac="activities"]'
+    ).forEach(function (sl) {
       sl.classList.remove('act');
     });
-    // If no other section is active/visible, open Students or home
+    // Hide "Other" section header if no other items remain visible under it
+    document.querySelectorAll('#dbFaculty [data-fac-sec="other"]').forEach(function (hdr) {
+      var keys = ['staff', 'activities', 'placement', 'nss', 'yrc', 'alumni', 'sports', 'welfare', 'studentassoc', 'gallery'];
+      var any = keys.some(function (k) {
+        var el = document.querySelector('#dbFaculty [data-fac="' + k + '"]');
+        return el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+      });
+      hdr.style.display = any ? '' : 'none';
+    });
+    // If currently stuck on a hidden panel, open Students or home
     var active = document.querySelector('#dbFaculty .db-content > div[id]:not([style*="display: none"]):not([style*="display:none"])');
-    if (!active || active.id === 'facMyProfile') {
-      var prefer = document.querySelector('#dbFaculty .sl[data-fac="students"], #dbFaculty .sl[data-fac="home"]');
+    if (!active || active.id === 'facMyProfile' || active.id === 'facStaff' || active.id === 'facActivities') {
+      var prefer = document.querySelector(
+        '#dbFaculty .sl[data-fac="students"], #dbFaculty .sl[data-fac="studentdata"], #dbFaculty .sl[data-fac="home"]'
+      );
       if (prefer && typeof window.showSec === 'function') {
         try {
           var oc = prefer.getAttribute('onclick') || '';
