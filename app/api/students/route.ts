@@ -261,7 +261,7 @@ async function assertCanManageStudentReg(
   user: { role: string; branch?: string | null; reg_no?: string | null; display_name?: string | null },
   regNo: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (user.role === "admin" || user.role === "principal" || user.role === "acm") {
+  if (user.role === "admin" || user.role === "principal" || user.role === "acm" || user.role === "exam") {
     return { ok: true }
   }
   if (user.role !== "hod") return { ok: false, error: "Not authorized" }
@@ -284,8 +284,8 @@ async function assertCanManageStudentReg(
 }
 
 export async function PATCH(req: Request) {
-  // Principal / ACM / Admin / HOD (branch) lock-unlock student My Profile editing
-  const user = await requireRole("admin", "principal", "hod", "acm")
+  // Principal / ACM / Exam / Admin / HOD (branch) lock-unlock student My Profile editing
+  const user = await requireRole("admin", "principal", "hod", "acm", "exam")
   if (!user) return unauthorized()
 
   const b = await req.json().catch(() => null)

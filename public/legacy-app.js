@@ -68,7 +68,7 @@ function showSec(secId, linkEl) {
   const titles = {
     adHome:'Dashboard', adApprovals:'Pending Approvals', adStudents:'Student Database',
     adStudentData:'Student Data (Branch / Year)',
-    adForms:'Form Manager', adACM:'ACM — Certificate Module', adExams:'Exams Module',
+    adForms:'Form Manager', adACM:'ACM — Certificate Module', adExam:'Exam Module', adExams:'Exams Module',
     adActivities:'Institute Activities', adStaff:'Staff Management', adUsers:'User Management',
     adLibrary:'Library — E-Book Repository', adRolesPerms:'Roles & Permissions',
     adUserApprovals:'Account Approval Queue', adSettings:'Settings',
@@ -79,6 +79,7 @@ function showSec(secId, linkEl) {
     facHome:'Faculty Dashboard', facApprovals:'Department Approvals', facStuProfile:'Student Profile',
     facAttendance:'Attendance Management', facStuInfo:'Student Info Collection',
     facACM:'ACM Module', facStudentData:'Student Data (Branch / Year)',
+    adExam:'Exam Module',
     facExamModule:'Exam Module', facOffice:'Office Modules', facEST:'EST Module', facCash:'Cash / Fees Search',
     facSearch:'Student Search', facStaff:'Staff & Invigilation', facActivities:'Institute Activities',
     facTimetable:'Timetable Upload', facResModule:'Result Management',
@@ -549,8 +550,8 @@ const facRoleData = {
   },
   exam: {
     color: '#7a3a00', bg: '#fff7ed',
-    desc: '📚 Exam Cell Staff — Manage results, PDC, attendance shortage, exam fees, keylist, and not-eligible list.',
-    modules: ['Results','PDC','Attendance Shortage','Exam Fees','Keylist','Not Eligible List']
+    desc: '📚 Exam Cell — Same Approvals + Students + Student Data tools as ACM, plus Exam Module (PDC, lookup, print/export). No ACM certificate module.',
+    modules: ['Approvals','Students','Student Data','Exam Module (PDC)','Student Lookup','Print / Export','Keylist','Not Eligible','Attendance Shortage']
   },
   cash: {
     color: 'var(--green)', bg: 'var(--green-light)',
@@ -2104,8 +2105,8 @@ function demoLogin(role) {
     registrar:    { show: ['home','myprofile','submitforms','approvals','stuprofile','acm','exam','office','est','cash','search','staff','activities'], sec: 'facOffice', allBranches: false },
     // ACM uses scoped admin shell (Approvals + Students + Student Data + ACM) — see applyAcmAdminScope
     acm:          { show: ['acm', 'studentdata'], sec: 'facACM', allBranches: true },
-    // Exam: Student Profile all-branches view only, remove Staff
-    exam:         { show: ['home','myprofile','submitforms','approvals','stuprofile','exam','cash'], sec: 'facExamModule', allBranches: true },
+    // Exam: scoped admin shell (Approvals + Students + Student Data + Exam) — see applyExamAdminScope
+    exam:         { show: ['exam', 'studentdata'], sec: 'facExamModule', allBranches: true },
     // EST: remove Office, Activities, Student Profile entirely
     est:          { show: ['home','myprofile','submitforms','approvals','est','search'], sec: 'facEST', allBranches: false },
     // Library: Student Profile all-branches view only, Cash, Search, E-Book Upload

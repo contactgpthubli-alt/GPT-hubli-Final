@@ -1280,6 +1280,11 @@ function __initGptBridge() {
       if ((secId === 'facACM' || secId === 'adACM') && typeof window.renderAcmModule === 'function') {
         window.renderAcmModule();
       }
+      // Exam Cell desk
+      if ((secId === 'adExam' || secId === 'facExamModule') && typeof window.renderExamModule === 'function') {
+        try { ensureExamAdminDesk(); } catch (e) { /* ignore */ }
+        window.renderExamModule();
+      }
       // Student Certificates — prefill reg + load live My Requests status
       if (secId === 'stuCerts' && currentUser && currentUser.role === 'student') {
         if (typeof window.prefillStudentCertForms === 'function') window.prefillStudentCertForms();
@@ -1303,10 +1308,11 @@ function __initGptBridge() {
   // Maps demo-bar UI roles to seeded server roles.
   function serverRole(uiRole) { return uiRole === 'teaching' ? 'faculty' : uiRole; }
 
-  /** Restore full Root Admin sidebar after ACM scoped session. */
+  /** Restore full Root Admin sidebar after ACM / Exam scoped session. */
   function clearAcmAdminScope() {
-    if (!window._acmScopedAdmin) return;
+    if (!window._acmScopedAdmin && !window._examScopedAdmin) return;
     window._acmScopedAdmin = false;
+    window._examScopedAdmin = false;
     var root = document.getElementById('dbAdmin');
     if (!root) return;
     root.querySelectorAll('.sb .sl, .sb .sb-sec').forEach(function (el) {
@@ -1329,6 +1335,7 @@ function __initGptBridge() {
     var root = document.getElementById('dbAdmin');
     if (!root) return;
     window._acmScopedAdmin = true;
+    window._examScopedAdmin = false;
     var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adACM: 1 };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
@@ -1392,10 +1399,315 @@ function __initGptBridge() {
   window.applyAcmAdminScope = applyAcmAdminScope;
   window.clearAcmAdminScope = clearAcmAdminScope;
 
+  /** Official branches for Exam print / filters */
+  function examOfficialBranches() {
+    return (window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
+      ? window.OFFICIAL_BRANCHES
+      : [
+        'Civil Engineering',
+        'Computer Science and Engineering',
+        'Electronics and Communication Engineering',
+        'Mechanical Engineering',
+      ];
+  }
+
+  function examPrintPanelHtml(panelId) {
+    var opts = examOfficialBranches().map(function (b) {
+      return '<option value="' + String(b).replace(/"/g, '&quot;') + '">' + b + '</option>';
+    }).join('');
+    return '' +
+      '<div id="' + panelId + '" style="display:none;">' +
+      '<div class="card">' +
+      '<div class="card-hd"><h3>🖨️ Print / Export Student Data</h3></div>' +
+      '<div style="padding:18px;">' +
+      '<div class="info-box" style="margin-bottom:14px;">Select <strong>Branch</strong> + <strong>Year</strong>, load students, tick columns, then Print or Export CSV.</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;margin-bottom:12px;">' +
+      '<div class="fg" style="margin:0;"><label>Branch</label>' +
+      '<select data-acm-print-branch="1" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;">' +
+      '<option value="">— Select —</option>' + opts + '</select></div>' +
+      '<div class="fg" style="margin:0;"><label>Year</label>' +
+      '<select data-acm-print-year="1" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;">' +
+      '<option value="">— Select —</option>' +
+      '<option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option>' +
+      '<option value="I">I</option><option value="II">II</option><option value="III">III</option>' +
+      '</select></div>' +
+      '<div class="fg" style="margin:0;"><label>Admission Year (optional)</label>' +
+      '<select data-acm-print-adm-year="1" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;">' +
+      '<option value="">All Adm. Years</option></select></div>' +
+      '<div><button type="button" class="btn pr" onclick="window.acmPrintLoadClass&&window.acmPrintLoadClass()">Load Students</button></div>' +
+      '</div>' +
+      '<div data-acm-print-class-meta="1" style="font-size:0.82rem;opacity:.85;margin-bottom:10px;">Choose Branch + Year, then Load Students.</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
+      '<button type="button" class="btn ol" onclick="window.acmPrintSelectAll&&window.acmPrintSelectAll(true)">Select all fields</button>' +
+      '<button type="button" class="btn ol" onclick="window.acmPrintSelectAll&&window.acmPrintSelectAll(false)">Clear fields</button>' +
+      '<button type="button" class="btn ol" onclick="window.acmPrintSelectCommon&&window.acmPrintSelectCommon()">Common fields</button>' +
+      '<button type="button" class="btn pr" onclick="window.acmPrintDirect&&window.acmPrintDirect()">🖨️ Print</button>' +
+      '<button type="button" class="btn go" onclick="window.acmExportExcel&&window.acmExportExcel()">⬇ Export CSV</button>' +
+      '</div>' +
+      '<div data-acm-print-fields="1" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 12px;max-height:180px;overflow:auto;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;background:var(--bg);"></div>' +
+      '<div data-acm-print-preview="1" style="overflow:auto;max-height:360px;border:1px solid var(--border);border-radius:8px;padding:10px;background:#fff;">' +
+      '<span style="opacity:.65;">Preview appears after Load Students.</span></div>' +
+      '</div></div></div>';
+  }
+
+  function examModuleMarkup(prefix) {
+    // prefix: 'ad' → admin shell panel ids; 'fac' reuses existing facExamModule tabs + adds lookup/print
+    var pdcId = prefix === 'ad' ? 'adExPDC' : 'facExPDC';
+    var lookupId = prefix === 'ad' ? 'adExLookup' : 'facExLookup';
+    var printId = prefix === 'ad' ? 'adExamPrint' : 'facExamPrint';
+    var tabFn = prefix === 'ad' ? 'showAdExamTab' : 'showFacExamTab';
+    var html = '';
+    if (prefix === 'ad') {
+      html +=
+        '<div class="info-box" style="margin-bottom:14px;">📚 <strong>Exam Cell</strong> — Same desk tools as ACM (Approvals, Students, Student Data) plus Exam Module. ' +
+        'PDC requests, student lookup, and class print/export. <em>No ACM certificate module.</em></div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;">' +
+        '<div class="card" style="padding:12px 14px;"><div style="font-size:0.68rem;opacity:.7;font-weight:700;">PDC PENDING</div>' +
+        '<div data-exam-kpi="pending" style="font-size:1.4rem;font-weight:800;color:#be185d;">0</div></div>' +
+        '<div class="card" style="padding:12px 14px;"><div style="font-size:0.68rem;opacity:.7;font-weight:700;">READY</div>' +
+        '<div data-exam-kpi="ready" style="font-size:1.4rem;font-weight:800;color:#065f46;">0</div></div>' +
+        '<div class="card" style="padding:12px 14px;"><div style="font-size:0.68rem;opacity:.7;font-weight:700;">TOTAL EXAM REQS</div>' +
+        '<div data-exam-kpi="total" style="font-size:1.4rem;font-weight:800;color:#1a4fa0;">0</div></div>' +
+        '</div>' +
+        '<div class="tabs" style="margin-bottom:14px;">' +
+        '<button class="tab act" type="button" onclick="' + tabFn + '(\'' + pdcId + '\',this)">🎓 PDC Requests</button>' +
+        '<button class="tab" type="button" onclick="' + tabFn + '(\'' + lookupId + '\',this)">🔍 Student Lookup</button>' +
+        '<button class="tab" type="button" onclick="' + tabFn + '(\'' + printId + '\',this)">🖨️ Print / Export</button>' +
+        '<button class="tab" type="button" onclick="' + tabFn + '(\'adExKeylist\',this)">🗝️ Keylist</button>' +
+        '<button class="tab" type="button" onclick="' + tabFn + '(\'adExNotEligible\',this)">🚫 Not Eligible</button>' +
+        '<button class="tab" type="button" onclick="' + tabFn + '(\'adExAttShort\',this)">⚠️ Att. Shortage</button>' +
+        '</div>' +
+        '<div id="' + pdcId + '">' +
+        '<div class="card" style="border-left:4px solid #be185d;">' +
+        '<div class="card-hd"><h3>📥 Student PDC / Exam Certificate Requests</h3>' +
+        '<div class="card-acts"><span class="badge pending" data-exam-badge="1">0 Pending</span>' +
+        '<button class="btn ol" type="button" onclick="window.renderExamModule&&window.renderExamModule()">↻ Refresh</button></div></div>' +
+        '<div style="overflow-x:auto;"><table><thead><tr>' +
+        '<th>Req. ID</th><th>Student</th><th>Reg. No.</th><th>Branch</th><th>Type</th><th>Submitted</th><th>Status</th><th>Action</th>' +
+        '</tr></thead><tbody data-exam-tbody="1">' +
+        '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading…</td></tr>' +
+        '</tbody></table></div></div></div>';
+    }
+    html +=
+      '<div id="' + lookupId + '" style="display:none;">' +
+      '<div class="card"><div class="card-hd"><h3>🔍 Student Lookup</h3></div>' +
+      '<div style="padding:18px;">' +
+      '<div class="fg"><label>Register Number / Name / Branch</label>' +
+      '<input type="text" data-exam-lookup-q="1" placeholder="Search student…" ' +
+      'oninput="window.examStudentLookup&&window.examStudentLookup()" ' +
+      'style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;" /></div>' +
+      '<div data-exam-lookup-result="1" style="margin-top:12px;"></div>' +
+      '</div></div></div>';
+    html += examPrintPanelHtml(printId);
+    if (prefix === 'ad') {
+      html +=
+        '<div id="adExKeylist" style="display:none;">' +
+        '<div class="info-box">🗝️ <strong>Keylist</strong> — Upload or manage answer key lists for exam subjects.</div>' +
+        '<div class="card" style="padding:22px;"><p style="opacity:.75;margin:0;">Upload keylists here (PDF/image). Live storage can be connected later.</p>' +
+        '<div class="fg" style="margin-top:12px;"><label>Upload Keylist</label>' +
+        '<input type="file" accept=".pdf,.jpg,.png" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;" /></div>' +
+        '<button class="btn pr" type="button" onclick="alert(\'Keylist upload recorded for Exam Cell.\')">📤 Upload Keylist</button></div></div>' +
+        '<div id="adExNotEligible" style="display:none;">' +
+        '<div class="info-box">🚫 <strong>Not Eligible</strong> — Students below attendance criteria. Use Student Lookup / Print to extract lists.</div>' +
+        '<div class="card" style="padding:18px;"><p style="opacity:.75;margin:0 0 10px;">Use <strong>Print / Export</strong> with Branch + Year, then filter in Excel; or Student Lookup for individual checks.</p>' +
+        '<button class="btn pr" type="button" onclick="window.showAdExamTab&&window.showAdExamTab(\'adExamPrint\',null)">Open Print / Export →</button></div></div>' +
+        '<div id="adExAttShort" style="display:none;">' +
+        '<div class="info-box">⚠️ <strong>Attendance Shortage</strong> — Generate shortage lists via Print / Export or upload official format.</div>' +
+        '<div class="card" style="padding:18px;"><div class="fg"><label>Upload Shortage Format (PDF/DOCX)</label>' +
+        '<input type="file" accept=".pdf,.docx" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;width:100%;" /></div>' +
+        '<button class="btn go" type="button" onclick="alert(\'Attendance shortage format saved for Exam Cell.\')">📤 Upload Format</button></div></div>';
+    }
+    return html;
+  }
+
+  function ensureExamAdminDesk() {
+    var menu = document.querySelector('#dbAdmin .sb-menu');
+    var content = document.querySelector('#dbAdmin .db-content');
+    if (!menu || !content) return;
+
+    if (!document.getElementById('adExamNav')) {
+      var after = null;
+      menu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        if (oc.indexOf('adStudentData') !== -1 || oc.indexOf('adStudents') !== -1) after = sl;
+        if (oc.indexOf('adACM') !== -1) after = sl;
+      });
+      var nav = document.createElement('div');
+      nav.className = 'sl';
+      nav.id = 'adExamNav';
+      nav.setAttribute('onclick', "showSec('adExam',this)");
+      nav.innerHTML = '<span class="sli">📚</span>Exam Module';
+      if (after && after.nextSibling) after.parentNode.insertBefore(nav, after.nextSibling);
+      else if (after) after.parentNode.appendChild(nav);
+      else menu.appendChild(nav);
+    }
+
+    if (!document.getElementById('adExam')) {
+      var panel = document.createElement('div');
+      panel.id = 'adExam';
+      panel.style.display = 'none';
+      panel.setAttribute('data-exam-root', '1');
+      panel.innerHTML = examModuleMarkup('ad');
+      content.appendChild(panel);
+    }
+
+    // Enhance faculty Exam Module with Lookup + Print if missing
+    var fac = document.getElementById('facExamModule');
+    if (fac && !document.getElementById('facExLookup')) {
+      var tabs = fac.querySelector('.tabs');
+      if (tabs) {
+        var b1 = document.createElement('button');
+        b1.className = 'tab';
+        b1.type = 'button';
+        b1.setAttribute('onclick', "showFacExamTab('facExLookup',this)");
+        b1.textContent = '🔍 Student Lookup';
+        tabs.appendChild(b1);
+        var b2 = document.createElement('button');
+        b2.className = 'tab';
+        b2.type = 'button';
+        b2.setAttribute('onclick', "showFacExamTab('facExamPrint',this)");
+        b2.textContent = '🖨️ Print / Export';
+        tabs.appendChild(b2);
+      }
+      var wrap = document.createElement('div');
+      wrap.innerHTML = examModuleMarkup('fac');
+      while (wrap.firstChild) fac.appendChild(wrap.firstChild);
+    }
+
+    if (typeof ensureStudentDataMenu === 'function') {
+      try { ensureStudentDataMenu(); } catch (e) { /* ignore */ }
+    }
+  }
+  window.ensureExamAdminDesk = ensureExamAdminDesk;
+
+  window.showAdExamTab = function (tabId, btn) {
+    var root = document.getElementById('adExam');
+    if (!root) return;
+    ;['adExPDC', 'adExLookup', 'adExamPrint', 'adExKeylist', 'adExNotEligible', 'adExAttShort'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = id === tabId ? '' : 'none';
+    });
+    root.querySelectorAll('.tabs .tab').forEach(function (t) { t.classList.remove('act'); });
+    if (btn) btn.classList.add('act');
+    else {
+      root.querySelectorAll('.tabs .tab').forEach(function (t) {
+        var oc = t.getAttribute('onclick') || '';
+        if (oc.indexOf("'" + tabId + "'") !== -1) t.classList.add('act');
+      });
+    }
+    if (tabId === 'adExamPrint' && typeof window.acmPrintInitFields === 'function') {
+      try { window.acmPrintInitFields(); } catch (e) { /* ignore */ }
+    }
+    if (tabId === 'adExPDC' && typeof window.renderExamModule === 'function') {
+      window.renderExamModule();
+    }
+  };
+
+  // Patch showFacExamTab if missing or extend existing
+  var _origShowFacExamTab = typeof window.showFacExamTab === 'function' ? window.showFacExamTab : null;
+  window.showFacExamTab = function (tabId, btn) {
+    var root = document.getElementById('facExamModule');
+    if (!root) return;
+    var known = ['facExKeylist', 'facExNotEligible', 'facExPDC', 'facExAttShort', 'facExLookup', 'facExamPrint'];
+    known.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = id === tabId ? (id === 'facExKeylist' || id === tabId ? 'block' : '') : 'none';
+    });
+    // Prefer block for visible tab
+    var show = document.getElementById(tabId);
+    if (show) show.style.display = 'block';
+    root.querySelectorAll('.tabs .tab').forEach(function (t) { t.classList.remove('act'); });
+    if (btn) btn.classList.add('act');
+    if (tabId === 'facExamPrint' && typeof window.acmPrintInitFields === 'function') {
+      try { window.acmPrintInitFields(); } catch (e) { /* ignore */ }
+    }
+    if (tabId === 'facExPDC' && typeof window.renderExamCertRequests === 'function') {
+      try { window.renderExamCertRequests(); } catch (e) { /* ignore */ }
+    }
+    if (tabId === 'facExPDC' && typeof window.renderExamModule === 'function') {
+      try { window.renderExamModule(); } catch (e) { /* ignore */ }
+    }
+  };
+
+  function clearExamAdminScope() {
+    if (!window._examScopedAdmin) return;
+    window._examScopedAdmin = false;
+    var root = document.getElementById('dbAdmin');
+    if (!root) return;
+    root.querySelectorAll('.sb .sl, .sb .sb-sec').forEach(function (el) {
+      el.style.display = '';
+    });
+    var roleEl = root.querySelector('.sb-role');
+    if (roleEl) roleEl.textContent = 'Root Admin';
+    var uname = root.querySelector('.db-uname');
+    if (uname && uname.getAttribute('data-prev-name')) {
+      uname.textContent = uname.getAttribute('data-prev-name');
+      uname.removeAttribute('data-prev-name');
+    }
+  }
+
+  /**
+   * Exam Cell = same Approvals + Students + Student Data as ACM,
+   * plus Exam Module (PDC, lookup, print/export). No ACM Module.
+   */
+  function applyExamAdminScope(user) {
+    ensureExamAdminDesk();
+    var root = document.getElementById('dbAdmin');
+    if (!root) return;
+    window._examScopedAdmin = true;
+    window._acmScopedAdmin = false;
+    var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adExam: 1 };
+    root.querySelectorAll('.sb .sl').forEach(function (sl) {
+      var oc = sl.getAttribute('onclick') || '';
+      var keep = false;
+      if (oc.indexOf('logout') !== -1) keep = true;
+      Object.keys(allowedSecs).forEach(function (sec) {
+        if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
+      });
+      // Hide ACM for exam scoped shell
+      if (oc.indexOf('adACM') !== -1) keep = false;
+      sl.style.display = keep ? '' : 'none';
+    });
+    root.querySelectorAll('.sb .sb-sec').forEach(function (sec) {
+      sec.style.display = 'none';
+    });
+    var roleEl = root.querySelector('.sb-role');
+    if (roleEl) roleEl.textContent = 'Exam Cell';
+    var uname = root.querySelector('.db-uname');
+    if (uname) {
+      if (!uname.getAttribute('data-prev-name')) {
+        uname.setAttribute('data-prev-name', uname.textContent || 'Root Admin');
+      }
+      uname.textContent = (user && user.display_name) ? user.display_name : 'Exam Cell';
+    }
+    var ava = root.querySelector('#adAva');
+    if (ava && user && user.display_name && !ava.querySelector('img')) {
+      ava.textContent = initialsOf(user.display_name);
+    }
+    var examLink = document.getElementById('adExamNav');
+    if (typeof window.showSec === 'function') {
+      window.showSec('adExam', examLink);
+    }
+    if (typeof window.renderExamModule === 'function') window.renderExamModule();
+    if (typeof window.renderProfileRequestApprovals === 'function') {
+      window.renderProfileRequestApprovals();
+    }
+    if (typeof window.renderAdminStudentDatabase === 'function') {
+      window.renderAdminStudentDatabase();
+    }
+    if (typeof window.renderStudentDataBrowser === 'function') {
+      try { window.renderStudentDataBrowser('adStudentData'); } catch (e) { /* ignore */ }
+    }
+    console.log('[bridge] Exam scoped admin shell active (Approvals + Students + Student Data + Exam)');
+  }
+  window.applyExamAdminScope = applyExamAdminScope;
+  window.clearExamAdminScope = clearExamAdminScope;
+
   function openDashboardFor(user) {
     var role = user.role;
     if (user.reg_no) { window.STU_REG_NO = user.reg_no; } // keep student modules pointed at the real logged-in student
     clearAcmAdminScope();
+    try { clearExamAdminScope(); } catch (e) { /* ignore */ }
     // Create Account Approvals panels before role shell opens them
     if (role === 'admin' || role === 'principal' || role === 'hod') {
       try { ensureAccountApprovalPanels(); } catch (e) { /* ignore */ }
@@ -1406,6 +1718,10 @@ function __initGptBridge() {
         // ACM uses Root Admin shell UI, then menus are limited to Approvals / Students / ACM
         origLogin('admin');
         setTimeout(function () { applyAcmAdminScope(user); }, 40);
+      } else if (role === 'exam') {
+        // Exam Cell: same desk as ACM (Approvals + Students + Student Data) + Exam Module (no ACM)
+        origLogin('admin');
+        setTimeout(function () { applyExamAdminScope(user); }, 40);
       } else if (role === 'student' || role === 'admin' || role === 'principal') {
         origLogin(role);
         if (role === 'principal') {
@@ -1680,7 +1996,7 @@ function __initGptBridge() {
     // Strip static demo content from Principal / HOD shells first
     try { stripDummyDashboards(user); } catch (e) { console.warn('[bridge] stripDummy', e); }
     // Profile edit requests: Admin, Principal, HOD, ACM
-    if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal') &&
+    if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal' || user.role === 'exam') &&
         typeof window.renderProfileRequestApprovals === 'function') {
       try { window.renderProfileRequestApprovals(); } catch (e) { /* ignore */ }
     }
@@ -1704,6 +2020,10 @@ function __initGptBridge() {
     if (user && user.role === 'acm') {
       applyAcmAdminScope(user);
       if (typeof window.renderAcmModule === 'function') window.renderAcmModule();
+    }
+    if (user && user.role === 'exam') {
+      applyExamAdminScope(user);
+      if (typeof window.renderExamModule === 'function') window.renderExamModule();
     }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
@@ -2368,36 +2688,124 @@ function __initGptBridge() {
     return null;
   }
 
-  // Exam Cell "Student PDC Requests" table
+  // Exam Cell "Student PDC Requests" table (faculty shell + admin exam desk)
   async function renderExamCertRequests() {
-    var sec = document.getElementById('facExPDC');
-    if (!sec) return;
-    var tbody = sec.querySelector('tbody');
-    if (!tbody) return;
-    var data = await apiReqQuiet('/api/cert-requests');
+    var data = await apiReqQuiet('/api/cert-requests?routed_to=' + encodeURIComponent('Exam Cell') + '&_ts=' + Date.now());
+    if (!data || !Array.isArray(data.requests)) {
+      data = await apiReqQuiet('/api/cert-requests?_ts=' + Date.now());
+      if (data && Array.isArray(data.requests)) {
+        data.requests = data.requests.filter(function (r) {
+          return r.routed_to === 'Exam Cell' || /pdc|provisional/i.test(String(r.cert_type || ''));
+        });
+      }
+    }
     if (!data || !Array.isArray(data.requests)) return;
-    var reqs = data.requests.filter(function (r) { return r.routed_to === 'Exam Cell'; });
-    tbody.innerHTML = reqs.map(function (r) {
-      var action = r.status === 'pending'
+    var reqs = data.requests;
+
+    function rowHtml(r) {
+      var action = (r.status === 'pending' || r.status === 'processing')
         ? '<button class="btn btn-sm" style="background:#065f46;color:#fff;margin-right:6px" onclick="bridgeUpdateCertReq(' + r.id + ',\'ready\')">Mark Ready</button>' +
           '<button class="btn btn-sm" style="background:#991b1b;color:#fff" onclick="bridgeUpdateCertReq(' + r.id + ',\'rejected\')">Reject</button>'
-        : certStatusBadge(r.status);
+        : (r.status === 'ready'
+          ? '<button class="btn btn-sm" style="background:#1a4fa0;color:#fff" onclick="bridgeUpdateCertReq(' + r.id + ',\'collected\')">Collected</button>'
+          : certStatusBadge(r.status));
       return '<tr><td style="font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;">' + esc(r.req_code) +
-        '</td><td>' + esc(r.student_name) + '</td><td>' + esc(r.reg_no) + '</td><td>' + esc(r.branch || '—') +
-        '</td><td>—</td><td>' + esc(r.cert_type) + '</td><td>' + esc(fmtDate(r.created_at)) +
+        '</td><td><strong>' + esc(r.student_name) + '</strong></td><td style="font-family:JetBrains Mono,monospace;font-size:0.72rem;">' + esc(r.reg_no) +
+        '</td><td>' + esc(r.branch || '—') + '</td><td>' + esc(r.cert_type) + '</td><td style="font-size:0.75rem;">' + esc(fmtDate(r.created_at)) +
         '</td><td>' + certStatusBadge(r.status) + '</td><td>' + action + '</td></tr>';
-    }).join('') || '<tr><td colspan="9" style="opacity:.7">No incoming requests.</td></tr>';
-    // Update the "N Pending" badge in the section header
-    var badge = sec.querySelector('.card-acts .badge');
-    if (badge) badge.textContent = reqs.filter(function (r) { return r.status === 'pending'; }).length + ' Pending';
+    }
+
+    var rowsHtml = reqs.map(rowHtml).join('') ||
+      '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">No Exam Cell certificate requests.</td></tr>';
+    var pendingN = reqs.filter(function (r) { return r.status === 'pending' || r.status === 'processing'; }).length;
+    var readyN = reqs.filter(function (r) { return r.status === 'ready'; }).length;
+
+    // Faculty shell legacy table (may have 9 cols)
+    var facSec = document.getElementById('facExPDC');
+    if (facSec) {
+      var facTb = facSec.querySelector('tbody');
+      if (facTb) {
+        facTb.innerHTML = reqs.map(function (r) {
+          var action = r.status === 'pending'
+            ? '<button class="btn btn-sm" style="background:#065f46;color:#fff;margin-right:6px" onclick="bridgeUpdateCertReq(' + r.id + ',\'ready\')">Mark Ready</button>' +
+              '<button class="btn btn-sm" style="background:#991b1b;color:#fff" onclick="bridgeUpdateCertReq(' + r.id + ',\'rejected\')">Reject</button>'
+            : certStatusBadge(r.status);
+          return '<tr><td style="font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;">' + esc(r.req_code) +
+            '</td><td>' + esc(r.student_name) + '</td><td>' + esc(r.reg_no) + '</td><td>' + esc(r.branch || '—') +
+            '</td><td>—</td><td>' + esc(r.cert_type) + '</td><td>' + esc(fmtDate(r.created_at)) +
+            '</td><td>' + certStatusBadge(r.status) + '</td><td>' + action + '</td></tr>';
+        }).join('') || '<tr><td colspan="9" style="opacity:.7">No incoming requests.</td></tr>';
+      }
+      var badge = facSec.querySelector('.card-acts .badge');
+      if (badge) badge.textContent = pendingN + ' Pending';
+    }
+
+    // Exam desk panels
+    document.querySelectorAll('[data-exam-tbody="1"]').forEach(function (tb) {
+      tb.innerHTML = rowsHtml;
+    });
+    document.querySelectorAll('[data-exam-badge="1"]').forEach(function (el) {
+      el.textContent = pendingN + ' Pending';
+    });
+    document.querySelectorAll('[data-exam-kpi="pending"]').forEach(function (el) {
+      el.textContent = String(pendingN);
+    });
+    document.querySelectorAll('[data-exam-kpi="ready"]').forEach(function (el) {
+      el.textContent = String(readyN);
+    });
+    document.querySelectorAll('[data-exam-kpi="total"]').forEach(function (el) {
+      el.textContent = String(reqs.length);
+    });
   }
+  window.renderExamModule = renderExamCertRequests;
+  window.renderExamCertRequests = renderExamCertRequests;
+
+  window.examStudentLookup = async function () {
+    if (typeof acmEnsureStudents === 'function') {
+      await acmEnsureStudents();
+    } else if (typeof window.acmEnsureStudents === 'function') {
+      await window.acmEnsureStudents();
+    } else {
+      var data = await apiReqQuiet('/api/students?_ts=' + Date.now());
+      window._acmStudentsCache = (data && data.students) ? data.students : [];
+    }
+    var roots = [
+      document.getElementById('adExam'),
+      document.getElementById('facExamModule'),
+    ].filter(Boolean);
+    var root = roots.find(function (r) { return r.offsetParent !== null; }) || roots[0];
+    if (!root) return;
+    var qEl = root.querySelector('[data-exam-lookup-q="1"]');
+    var box = root.querySelector('[data-exam-lookup-result="1"]');
+    if (!qEl || !box) return;
+    var q = qEl.value.trim();
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    var list = (window._acmStudentsCache || []).filter(function (s) {
+      var hay = [s.reg_no, s.name, s.display_name, s.email, s.dept, s.year].join(' ').toLowerCase();
+      return hay.indexOf(q.toLowerCase()) !== -1;
+    }).slice(0, 15);
+    if (!list.length) {
+      box.innerHTML = '<div style="opacity:.7;padding:12px;">No students match “' + esc(q) + '”.</div>';
+      return;
+    }
+    function card(s) {
+      if (typeof acmStudentCard === 'function') return acmStudentCard(s);
+      return '<div style="padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">' +
+        '<strong>' + esc(s.name || s.display_name || '—') + '</strong><br>' +
+        '<span style="font-family:JetBrains Mono,monospace;font-size:0.78rem;">' + esc(s.reg_no || '—') + '</span> · ' +
+        esc(s.dept || '—') + (s.year ? ' · ' + esc(s.year) : '') + '</div>';
+    }
+    box.innerHTML = list.map(card).join('');
+  };
 
   window.bridgeUpdateCertReq = async function (id, status) {
     var remarks = status === 'ready' ? 'Certificate ready. Collect from Exam Cell.' :
-      status === 'rejected' ? 'Request rejected. Contact Exam Cell for details.' : null;
+      status === 'rejected' ? 'Request rejected. Contact Exam Cell for details.' :
+      status === 'collected' ? 'Certificate collected by student.' : null;
     var res = await api.patch('/api/cert-requests', { id: id, status: status, remarks: remarks });
     if (res && res.ok) {
       renderExamCertRequests();
+      if (typeof window.renderExamModule === 'function') window.renderExamModule();
       if (typeof window.renderAcmModule === 'function') window.renderAcmModule();
     }
   };
@@ -2860,15 +3268,18 @@ function __initGptBridge() {
   }
 
   function acmPrintActiveRoot() {
-    // Prefer the print panel that is currently visible (tab open)
+    // Prefer the print panel that is currently visible (tab open) — ACM or Exam
     var panels = Array.prototype.slice.call(document.querySelectorAll('[data-acm-print-fields="1"]'));
     var host = panels.find(function (el) {
-      var tab = el.closest('#facAcmPrint, #adAcmPrint');
+      var tab = el.closest('#facAcmPrint, #adAcmPrint, #adExamPrint, #facExamPrint');
       if (!tab) return false;
       return tab.offsetParent !== null || (tab.style && tab.style.display !== 'none' && tab.offsetHeight > 0);
     }) || panels[0] || null;
     if (!host) return null;
-    return host.closest('[data-acm-root="1"]') || host.closest('#facACM, #adACM') || host.parentElement;
+    return host.closest('[data-acm-root="1"]') ||
+      host.closest('[data-exam-root="1"]') ||
+      host.closest('#facACM, #adACM, #adExam, #facExamModule') ||
+      host.parentElement;
   }
 
   function acmPrintBuildFieldMap(s) {
@@ -3169,10 +3580,10 @@ function __initGptBridge() {
       }
     }
 
-    // Paint every ACM print surface (admin + faculty shells)
-    document.querySelectorAll('#facACM, #adACM, [data-acm-root="1"]').forEach(paintRoot);
+    // Paint every ACM / Exam print surface
+    document.querySelectorAll('#facACM, #adACM, #adExam, #facExamModule, [data-acm-root="1"], [data-exam-root="1"]').forEach(paintRoot);
     // Also paint by panel id if nested oddly
-    ;['facAcmPrint', 'adAcmPrint'].forEach(function (id) {
+    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) paintRoot(el);
     });
@@ -3183,7 +3594,7 @@ function __initGptBridge() {
   /** Show full field checklist as soon as Print tab is opened. */
   window.acmPrintInitFields = function () {
     window._acmPrintFieldUnion = acmPrintAllProfileLabels();
-    ;['facAcmPrint', 'adAcmPrint'].forEach(function (id) {
+    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       if (el.querySelector('[data-acm-print-fields="1"]')) {
@@ -3220,7 +3631,10 @@ function __initGptBridge() {
     var root = acmPrintActiveRoot();
     // Fallback: read checkboxes from any visible print panel
     if (!root || !root.querySelector('[data-acm-print-field]')) {
-      var panel = document.getElementById('adAcmPrint') || document.getElementById('facAcmPrint');
+      var panel = document.getElementById('adAcmPrint') ||
+        document.getElementById('facAcmPrint') ||
+        document.getElementById('adExamPrint') ||
+        document.getElementById('facExamPrint');
       if (panel) root = panel;
     }
     var list = window._acmPrintClass || [];
@@ -3231,7 +3645,10 @@ function __initGptBridge() {
     var labels = root ? acmPrintGetSelectedLabels(root) : [];
     // Fallback: checkboxes anywhere in print panels
     if (!labels.length) {
-      document.querySelectorAll('#adAcmPrint [data-acm-print-field]:checked, #facAcmPrint [data-acm-print-field]:checked').forEach(function (cb) {
+      document.querySelectorAll(
+        '#adAcmPrint [data-acm-print-field]:checked, #facAcmPrint [data-acm-print-field]:checked, ' +
+        '#adExamPrint [data-acm-print-field]:checked, #facExamPrint [data-acm-print-field]:checked'
+      ).forEach(function (cb) {
         labels.push(cb.getAttribute('data-acm-print-field'));
       });
     }
@@ -4689,13 +5106,13 @@ function buildProfileApprovalsApiUrl() {
 async function renderProfileRequestApprovals() {
   if (!window.currentUser) return;
   var role = window.currentUser.role;
-  if (role !== 'admin' && role !== 'hod' && role !== 'acm' && role !== 'principal') return;
+  if (role !== 'admin' && role !== 'hod' && role !== 'acm' && role !== 'principal' && role !== 'exam') return;
   if (typeof ensurePrincipalHodDesk === 'function') {
     try { ensurePrincipalHodDesk(); } catch (e) { /* ignore */ }
   }
-  // ACM uses admin Approvals UI; Principal has own panel; HOD uses faculty Approvals
+  // ACM/Exam use admin Approvals UI; Principal has own panel; HOD uses faculty Approvals
   var containerId =
-    (role === 'admin' || role === 'acm') ? 'adApprovals' :
+    (role === 'admin' || role === 'acm' || role === 'exam') ? 'adApprovals' :
     (role === 'principal') ? 'priProfileApprovals' : 'facApprovals';
   var host = document.getElementById(containerId);
   if (!host) return;
@@ -5050,7 +5467,7 @@ window.reviewProfileRequest = reviewProfileRequest;
 setInterval(function () {
   if (!window.currentUser) return;
   var r = window.currentUser.role;
-  if (r !== 'admin' && r !== 'hod' && r !== 'acm') return;
+  if (r !== 'admin' && r !== 'hod' && r !== 'acm' && r !== 'exam' && r !== 'principal') return;
   var ae = document.activeElement;
   if (ae && ae.id && (ae.id.indexOf('ap') === 0 || ae.id.indexOf('accAp') === 0)) return;
   renderProfileRequestApprovals();
@@ -5140,10 +5557,10 @@ async function renderAdminStudentDatabase() {
   if (!prefixes.length) return;
 
   var cu = window.currentUser;
-  if (!cu || (cu.role !== 'admin' && cu.role !== 'acm' && cu.role !== 'hod' && cu.role !== 'registrar' && cu.role !== 'principal')) {
+  if (!cu || (cu.role !== 'admin' && cu.role !== 'acm' && cu.role !== 'exam' && cu.role !== 'hod' && cu.role !== 'registrar' && cu.role !== 'principal')) {
     prefixes.forEach(function (pfx) {
       var tb = document.getElementById(pfx + 'TableBody');
-      if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.75;">Sign in as Admin / Principal / HOD to view students.</td></tr>';
+      if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.75;">Sign in as Admin / Principal / HOD / Exam to view students.</td></tr>';
     });
     return;
   }

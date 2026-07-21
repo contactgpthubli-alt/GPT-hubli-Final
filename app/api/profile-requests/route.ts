@@ -278,12 +278,13 @@ export async function GET(req: Request) {
     return Response.json({ pending: rows, mine_pending: rows.length })
   }
 
-  // Admin, Principal, HOD, ACM
+  // Admin, Principal, HOD, ACM, Exam Cell
   if (
     user.role !== "admin" &&
     user.role !== "principal" &&
     user.role !== "hod" &&
-    user.role !== "acm"
+    user.role !== "acm" &&
+    user.role !== "exam"
   ) {
     return unauthorized()
   }
@@ -496,7 +497,7 @@ export async function GET(req: Request) {
 // Admin, Principal, HOD, or ACM approves/rejects a request.
 // Body: { id, action: 'approved'|'rejected', remarks?, lockEdit?: boolean }
 export async function PATCH(req: Request) {
-  const user = await requireRole("admin", "principal", "hod", "acm")
+  const user = await requireRole("admin", "principal", "hod", "acm", "exam")
   if (!user) return unauthorized()
 
   const b = await req.json().catch(() => null)
