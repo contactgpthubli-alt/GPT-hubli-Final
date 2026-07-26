@@ -1742,6 +1742,10 @@ function __initGptBridge() {
       if (secId === 'stuTimetable' && typeof window.setupStudentTimetablePanel === 'function') {
         window.setupStudentTimetablePanel();
       }
+      // Ensure student sidebar has Time Table entry (was missing from shell menu)
+      if (currentUser && currentUser.role === 'student') {
+        try { ensureStudentTimetableMenu(); } catch (e) { /* ignore */ }
+      }
       // Academic year control (admin / principal)
       if ((secId === 'adAcademicYear' || secId === 'priAcademicYear') &&
           typeof window.loadAcademicYearPanel === 'function') {
@@ -2574,11 +2578,47 @@ function __initGptBridge() {
         typeof window.setupTimetableUploadPanel === 'function') {
       try { window.setupTimetableUploadPanel(); } catch (e) { console.warn('[bridge] timetable setup', e); }
     }
+    // Student: inject Time Table menu (missing from slim sidebar)
+    if (user && user.role === 'student') {
+      try { ensureStudentTimetableMenu(); } catch (e) { console.warn('[bridge] student TT menu', e); }
+    }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
       window.renderLiveNotifications();
     }
   }
+
+  /** Add Time Table to student sidebar if the slim menu omitted it. */
+  function ensureStudentTimetableMenu() {
+    var menu = document.querySelector('#dbStudent .sb-menu');
+    if (!menu) return;
+    if (menu.querySelector('[data-stu-nav="timetable"]')) return;
+    var att = null;
+    menu.querySelectorAll('.sl').forEach(function (sl) {
+      var oc = sl.getAttribute('onclick') || '';
+      if (oc.indexOf('stuAtt') >= 0) att = sl;
+    });
+    var item = document.createElement('div');
+    item.className = 'sl';
+    item.setAttribute('data-stu-nav', 'timetable');
+    item.setAttribute('onclick', "showSec('stuTimetable',this)");
+    item.innerHTML = '<span class="sli">📅</span>Time Table';
+    if (att && att.nextSibling) {
+      att.parentNode.insertBefore(item, att.nextSibling);
+    } else if (att) {
+      att.parentNode.appendChild(item);
+    } else {
+      // Before forms / library if possible
+      var forms = null;
+      menu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        if (oc.indexOf('stuForms') >= 0) forms = sl;
+      });
+      if (forms) forms.parentNode.insertBefore(item, forms);
+      else menu.appendChild(item);
+    }
+  }
+  window.ensureStudentTimetableMenu = ensureStudentTimetableMenu;
 
   window.demoLogin = async function (role) {
     if ((window.__GPT_CONFIG || {}).demoLoginEnabled === false) { alert('Demo login is disabled.'); return; }
@@ -4965,7 +5005,7 @@ function ensureStuProfilePrintButton() {
   printBtn.type = 'button';
   printBtn.className = 'btn ol';
   printBtn.style.cssText = 'margin-top:0;';
-  printBtn.textContent = '🖨️ Print full profile (A4)';
+  printBtn.textContent = '⬇ Download profile PDF (A4)';
   printBtn.onclick = function () {
     if (typeof window.stuPrintFullProfile === 'function') window.stuPrintFullProfile();
   };
@@ -5039,7 +5079,7 @@ window.stuPrintFullProfile = function () {
     var mother = fields['Mother Name'] || fields["Mother's Name"] || '';
     var email = (window.currentUser && window.currentUser.email) || fields.Email || fields['Valid E-mail ID'] || '';
 
-    var html = buildStudentFullProfilePrintHtml({
+    var profileInput = {
       name: name,
       reg_no: reg || fields['Register Number'] || '',
       branch: branch,
@@ -5051,8 +5091,10 @@ window.stuPrintFullProfile = function () {
       attendance: (stu && stu.att) || '',
       photo: photo,
       fields: fields,
-    });
-    doStudentProfilePrintHtml(html);
+    };
+    var html = buildStudentFullProfilePrintHtml(profileInput);
+    // Real A4 PDF download on web (jsPDF) — avoids blank browser print page
+    doStudentProfilePrintHtml(html, profileInput);
   } catch (err) {
     console.error('[stuPrintFullProfile]', err);
     alert('Could not open profile print. Please refresh and try again.');
@@ -5210,38 +5252,369 @@ function buildStudentFullProfilePrintHtml(input) {
     '</div></body></html>';
 }
 
-function doStudentProfilePrintHtml(html) {
-  // Mobile WebView cannot print zero-size iframes — use shared full-screen preview
-  if (typeof window.gpthPrintHtml === 'function') {
-    window.gpthPrintHtml(html, { title: 'Student Profile', filename: 'student-profile.html' });
-    return;
-  }
-  var iframe = document.getElementById('stuFullProfilePrintFrame');
-  if (!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id = 'stuFullProfilePrintFrame';
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
-    document.body.appendChild(iframe);
-  }
-  var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
-  if (!doc) {
-    var w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 300); }
-    return;
-  }
-  doc.open();
-  doc.write(html);
-  doc.close();
-  setTimeout(function () {
+function loadJsPdfUmd() {
+  return new Promise(function (resolve, reject) {
     try {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } catch (e) {
-      var w2 = window.open('', '_blank');
-      if (w2) { w2.document.write(html); w2.document.close(); w2.focus(); w2.print(); }
+      if (window.jspdf && window.jspdf.jsPDF) {
+        resolve(window.jspdf.jsPDF);
+        return;
+      }
+    } catch (e) { /* ignore */ }
+    var existing = document.querySelector('script[data-gpth-jspdf="1"]');
+    if (existing) {
+      existing.addEventListener('load', function () {
+        if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+        else reject(new Error('jsPDF load failed'));
+      });
+      existing.addEventListener('error', function () { reject(new Error('jsPDF script error')); });
+      return;
     }
-  }, 350);
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+    s.async = true;
+    s.setAttribute('data-gpth-jspdf', '1');
+    s.onload = function () {
+      if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+      else reject(new Error('jsPDF missing after load'));
+    };
+    s.onerror = function () { reject(new Error('Could not load jsPDF')); };
+    document.head.appendChild(s);
+  });
+}
+
+/** Build A4 profile PDF client-side (works on web Firefox/Chrome — not blank print). */
+function buildStudentProfilePdfBlobSync(jsPDF, input) {
+  input = input || {};
+  var fields = (input.fields && typeof input.fields === 'object') ? input.fields : {};
+  var skip = {
+    profile_edit_locked: 1, imported_from_excel: 1, imported_at: 1, imported_missing_ece: 1,
+    email_source: 1, 'Profile Photo': 1, profile_photo: 1, ProfilePhoto: 1, photo: 1, Photo: 1,
+  };
+  var coreOrder = [
+    ['Register Number', input.reg_no || fields['Register Number']],
+    ['Student Name', input.name || fields['Student (As per SSLC)'] || fields['Student (As per Aadhar)']],
+    ['Student (As per SSLC)', fields['Student (As per SSLC)']],
+    ['Student (As per Aadhar)', fields['Student (As per Aadhar)']],
+    ['Father Name', input.father || fields['Father Name']],
+    ['Mother Name', input.mother || fields['Mother Name']],
+    ['Branch', input.branch || fields.Branch],
+    ['Current Year', input.year || fields['Current Year']],
+    ['Date of Birth', fields['Date of Birth']],
+    ['Gender', fields.Gender],
+    ['Category', fields.Category],
+    ['Religion', fields.Religion],
+    ['Caste', fields.Caste],
+    ['Aadhar Number', fields['Aadhar Number']],
+    ['APAAR ID', fields['APAAR ID']],
+    ['SSP ID', fields['SSP ID']],
+    ['NSP ID', fields['NSP ID']],
+    ['Email', input.email || fields.Email || fields['Valid E-mail ID']],
+    ['Valid E-mail ID', fields['Valid E-mail ID']],
+    ['WhatsApp Number', fields['WhatsApp Number'] || fields['Student Mobile'] || fields['Aadhar Registered Mobile']],
+    ['Parents Mobile Number', fields['Parents Mobile Number'] || fields['Parent Mobile']],
+    ['Home Address', fields['Home Address']],
+    ['Date of Admission', fields['Date of Admission'] || fields['Date and Year Of Admission']],
+    ['Year of Admission', fields['Year of Admission'] || fields['Year Of Admission']],
+    ['Staying in Hostel?', fields['Staying in Hostel?'] || fields['Are you staying in Hostel ?']],
+    ['Hostel Name', fields['Hostel Name']],
+    ['CGPA', input.cgpa],
+    ['Attendance', input.attendance],
+  ];
+  var seen = {};
+  var rows = [];
+  coreOrder.forEach(function (pair) {
+    var label = pair[0];
+    var val = profilePrintDisplay(pair[1]);
+    var key = label.toLowerCase();
+    if (seen[key]) return;
+    var always = label === 'Register Number' || label === 'Student Name' || label === 'Branch' ||
+      label === 'Current Year' || label === 'Email';
+    if (val === '—' && !always) return;
+    if (label === 'Student (As per SSLC)' && val === profilePrintDisplay(input.name)) return;
+    if (label === 'Valid E-mail ID' && val === profilePrintDisplay(input.email)) return;
+    seen[key] = 1;
+    rows.push({ label: label, value: val });
+  });
+  Object.keys(fields).sort().forEach(function (k) {
+    if (skip[k]) return;
+    if (seen[k.toLowerCase()]) return;
+    if (typeof fields[k] === 'string' && fields[k].indexOf('data:image/') === 0) return;
+    var val = profilePrintDisplay(fields[k]);
+    if (val === '—') return;
+    seen[k.toLowerCase()] = 1;
+    rows.push({ label: k, value: val });
+  });
+
+  var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+  var pageW = 210, pageH = 297, mL = 14, mR = 14, mT = 12, mB = 14;
+  var contentW = pageW - mL - mR;
+  var navy = [11, 61, 110];
+  var ink = [15, 23, 42];
+  var muted = [71, 85, 105];
+  var y = mT;
+  var name = profilePrintDisplay(input.name);
+  var reg = profilePrintDisplay(input.reg_no);
+  var branch = profilePrintDisplay(input.branch);
+  var year = profilePrintDisplay(input.year);
+  var photo = (input.photo && String(input.photo).indexOf('data:image/') === 0) ? String(input.photo) : '';
+  var now = new Date();
+  var printDate = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  var printTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+  function ensureSpace(need) {
+    if (y + need > pageH - mB) {
+      pdf.setDrawColor(148, 163, 184);
+      pdf.line(mL, pageH - 12, pageW - mR, pageH - 12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(muted[0], muted[1], muted[2]);
+      pdf.text('GPT Hubli Student Portal · Government Polytechnic Hubballi', mL, pageH - 8);
+      pdf.text('Page ' + pdf.getNumberOfPages(), pageW - mR, pageH - 8, { align: 'right' });
+      pdf.addPage();
+      y = mT;
+      pdf.setFillColor(navy[0], navy[1], navy[2]);
+      pdf.rect(0, 0, pageW, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.text('Student Profile (continued) — ' + reg, mL, 5.5);
+      y = 14;
+    }
+  }
+
+  pdf.setFillColor(navy[0], navy[1], navy[2]);
+  pdf.rect(0, 0, pageW, 6, 'F');
+  y = 12;
+  pdf.setTextColor(navy[0], navy[1], navy[2]);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8.5);
+  pdf.text('GOVERNMENT OF KARNATAKA  ·  DEPARTMENT OF TECHNICAL EDUCATION', pageW / 2, y, { align: 'center' });
+  y += 6;
+  pdf.setFontSize(14);
+  pdf.text('GOVERNMENT POLYTECHNIC, HUBBALLI', pageW / 2, y, { align: 'center' });
+  y += 5;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(muted[0], muted[1], muted[2]);
+  pdf.text('Student Master Record — Official Profile Printout', pageW / 2, y, { align: 'center' });
+  y += 7;
+  pdf.setDrawColor(navy[0], navy[1], navy[2]);
+  pdf.setLineWidth(0.8);
+  pdf.line(mL, y, pageW - mR, y);
+  y += 8;
+
+  pdf.setFillColor(navy[0], navy[1], navy[2]);
+  pdf.rect(mL, y - 4, contentW, 8, 'F');
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11);
+  pdf.text('STUDENT PROFILE', pageW / 2, y + 1.5, { align: 'center' });
+  y += 12;
+
+  var photoW = 28, photoH = 34;
+  var textMaxW = contentW - photoW - 6;
+  pdf.setTextColor(navy[0], navy[1], navy[2]);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(13);
+  var nameLines = pdf.splitTextToSize(name === '—' ? 'Student' : name, textMaxW);
+  pdf.text(nameLines, mL, y);
+  var idY = y + nameLines.length * 5.5;
+  pdf.setFont('courier', 'bold');
+  pdf.setFontSize(10);
+  pdf.setTextColor(ink[0], ink[1], ink[2]);
+  pdf.text(reg, mL, idY);
+  idY += 6;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8);
+  pdf.setDrawColor(navy[0], navy[1], navy[2]);
+  pdf.setFillColor(240, 246, 252);
+  var c1w = pdf.getTextWidth(branch) + 6;
+  pdf.roundedRect(mL, idY - 3.5, c1w, 6, 1, 1, 'FD');
+  pdf.setTextColor(navy[0], navy[1], navy[2]);
+  pdf.text(branch, mL + 3, idY);
+  var c2w = pdf.getTextWidth(year) + 6;
+  pdf.roundedRect(mL + c1w + 3, idY - 3.5, c2w, 6, 1, 1, 'FD');
+  pdf.text(year, mL + c1w + 6, idY);
+  idY += 8;
+
+  var photoX = pageW - mR - photoW;
+  var photoY = y - 2;
+  pdf.setDrawColor(navy[0], navy[1], navy[2]);
+  pdf.setFillColor(248, 250, 252);
+  pdf.rect(photoX, photoY, photoW, photoH, 'FD');
+  if (photo) {
+    try {
+      var fmt = photo.indexOf('image/png') >= 0 ? 'PNG' : 'JPEG';
+      pdf.addImage(photo, fmt, photoX + 0.6, photoY + 0.6, photoW - 1.2, photoH - 1.2);
+    } catch (e) { /* ignore photo */ }
+  } else {
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text('No photo', photoX + photoW / 2, photoY + photoH / 2, { align: 'center' });
+  }
+  y = Math.max(idY, photoY + photoH + 4);
+
+  ensureSpace(12);
+  pdf.setFillColor(navy[0], navy[1], navy[2]);
+  pdf.rect(mL, y, contentW, 7, 'F');
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9);
+  pdf.text('PROFILE DETAILS  ·  ' + rows.length + ' fields', mL + 3, y + 4.8);
+  y += 10;
+
+  var colGap = 4;
+  var colW = (contentW - colGap) / 2;
+  var labelW = colW * 0.42;
+  var valueW = colW * 0.58;
+  var rowH = 6.2;
+  var shortRows = [];
+  var longRows = [];
+  rows.forEach(function (r) {
+    if (r.value.length > 55 || /address|remark|note/i.test(r.label)) longRows.push(r);
+    else shortRows.push(r);
+  });
+  var mid = Math.ceil(shortRows.length / 2);
+  var left = shortRows.slice(0, mid);
+  var right = shortRows.slice(mid);
+  var maxPairs = Math.max(left.length, right.length);
+  for (var i = 0; i < maxPairs; i++) {
+    ensureSpace(rowH + 1);
+    function drawField(x, label, value) {
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(x, y - 3.8, colW, rowH, 'F');
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.15);
+      pdf.line(x, y + 2.2, x + colW, y + 2.2);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(navy[0], navy[1], navy[2]);
+      var lab = pdf.splitTextToSize(label, labelW - 2);
+      pdf.text(lab[0] || label, x + 1, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(ink[0], ink[1], ink[2]);
+      var valLines = pdf.splitTextToSize(value || '—', valueW - 2);
+      pdf.text(valLines[0] || '—', x + labelW, y);
+    }
+    if (left[i]) drawField(mL, left[i].label, left[i].value);
+    if (right[i]) drawField(mL + colW + colGap, right[i].label, right[i].value);
+    y += rowH;
+  }
+
+  if (longRows.length) {
+    y += 3;
+    ensureSpace(10);
+    pdf.setFillColor(11, 61, 110);
+    pdf.rect(mL, y, contentW, 6.5, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.text('ADDITIONAL DETAILS', mL + 3, y + 4.4);
+    y += 9;
+    longRows.forEach(function (r) {
+      var lines = pdf.splitTextToSize(r.value || '—', contentW - 4);
+      ensureSpace(5 + lines.length * 4.2 + 2);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(navy[0], navy[1], navy[2]);
+      pdf.text(String(r.label).toUpperCase(), mL + 1, y);
+      y += 4;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(ink[0], ink[1], ink[2]);
+      pdf.text(lines, mL + 1, y);
+      y += lines.length * 4.2 + 3;
+    });
+  }
+
+  y += 6;
+  ensureSpace(28);
+  pdf.setDrawColor(navy[0], navy[1], navy[2]);
+  pdf.setLineWidth(0.4);
+  pdf.line(mL, y, pageW - mR, y);
+  y += 6;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(muted[0], muted[1], muted[2]);
+  pdf.text('Printed: ' + printDate + '  ' + printTime, mL, y);
+  pdf.text('System-generated profile — verify with college office if required.', mL, y + 4.5);
+  pdf.setDrawColor(ink[0], ink[1], ink[2]);
+  pdf.line(pageW - mR - 55, y + 16, pageW - mR, y + 16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(8);
+  pdf.setTextColor(ink[0], ink[1], ink[2]);
+  pdf.text('Student / Office use', pageW - mR - 27.5, y + 20, { align: 'center' });
+
+  pdf.setDrawColor(148, 163, 184);
+  pdf.line(mL, pageH - 12, pageW - mR, pageH - 12);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7);
+  pdf.setTextColor(muted[0], muted[1], muted[2]);
+  pdf.text('GPT Hubli Student Portal · Government Polytechnic Hubballi', mL, pageH - 8);
+  pdf.text('Page ' + pdf.getNumberOfPages(), pageW - mR, pageH - 8, { align: 'right' });
+
+  return pdf.output('blob');
+}
+
+function downloadBlobFile(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () {
+    try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+  }, 60000);
+  // Also open in new tab so user can print from PDF viewer if download is blocked
+  try {
+    window.open(url, '_blank');
+  } catch (e2) { /* ignore */ }
+}
+
+function doStudentProfilePrintHtml(html, profileInput) {
+  // Prefer real A4 PDF download (fixes blank Firefox print dialog)
+  if (profileInput) {
+    loadJsPdfUmd()
+      .then(function (jsPDF) {
+        var blob = buildStudentProfilePdfBlobSync(jsPDF, profileInput);
+        var reg = String(profileInput.reg_no || 'student').replace(/[^\w\-]+/g, '_');
+        downloadBlobFile(blob, 'profile-' + reg + '.pdf');
+      })
+      .catch(function (err) {
+        console.warn('[profile pdf] jsPDF failed, falling back to HTML print', err);
+        doStudentProfilePrintHtmlFallback(html);
+      });
+    return;
+  }
+  doStudentProfilePrintHtmlFallback(html);
+}
+
+function doStudentProfilePrintHtmlFallback(html) {
+  // Open dedicated window (more reliable than main-window print CSS on Firefox)
+  try {
+    var w = window.open('', '_blank');
+    if (w) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(function () {
+        try { w.print(); } catch (e) { /* user can print from window */ }
+      }, 400);
+      return;
+    }
+  } catch (e) { /* continue */ }
+
+  if (typeof window.gpthPrintHtml === 'function') {
+    window.gpthPrintHtml(html, { title: 'Student Profile', filename: 'student-profile.html', autoPrint: false });
+    return;
+  }
+  alert('Could not open profile PDF. Allow pop-ups and try again.');
 }
 
 /** Show/hide lock / pending state on Student → My Profile controls. */

@@ -215,10 +215,16 @@
       "#" + SHELL_ID + " .gpth-print-doc{background:#fff;color:#0f172a;min-height:100%;max-width:210mm;margin:0 auto;}" +
       scopeStyles(parts.styles, "#" + SHELL_ID + " .gpth-print-doc") +
       "@media print{" +
+      /* Firefox-friendly: hide page chrome, show only print doc (visibility, not only display) */
       "html." + PRINT_MODE_CLASS + ",body." + PRINT_MODE_CLASS + "{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;}" +
+      "body." + PRINT_MODE_CLASS + " *{visibility:hidden!important;}" +
+      "body." + PRINT_MODE_CLASS + " #" + SHELL_ID + "," +
+      "body." + PRINT_MODE_CLASS + " #" + SHELL_ID + " .gpth-print-surface," +
+      "body." + PRINT_MODE_CLASS + " #" + SHELL_ID + " .gpth-print-doc," +
+      "body." + PRINT_MODE_CLASS + " #" + SHELL_ID + " .gpth-print-doc *{visibility:visible!important;}" +
       "body." + PRINT_MODE_CLASS + " > *:not(#" + SHELL_ID + "){display:none!important;}" +
-      "#" + SHELL_ID + "{position:static!important;inset:auto!important;display:block!important;background:#fff!important;height:auto!important;overflow:visible!important;z-index:auto!important;}" +
-      "#" + SHELL_ID + ' [data-no-print="1"]{display:none!important;}' +
+      "#" + SHELL_ID + "{position:absolute!important;left:0!important;top:0!important;width:100%!important;inset:auto!important;display:block!important;background:#fff!important;height:auto!important;overflow:visible!important;z-index:auto!important;}" +
+      "#" + SHELL_ID + ' [data-no-print="1"]{display:none!important;visibility:hidden!important;}' +
       "#" + SHELL_ID + " .gpth-print-surface{overflow:visible!important;padding:0!important;margin:0!important;max-width:none!important;}" +
       "#" + SHELL_ID + " .gpth-print-doc{max-width:none!important;margin:0!important;}" +
       "}";
@@ -256,9 +262,14 @@
       }
     });
 
-    // Always try system print shortly after open (preview remains if dialog missing)
-    setTimeout(function () {
-      try { doMainWindowPrint(); } catch (e) { /* keep preview */ }
-    }, 450);
+    // Auto-print only when explicitly requested (blank Firefox print was firing too early)
+    var autoPrint = options.autoPrint === true || (options.autoPrint !== false && !isMobileShell() && options.autoPrint !== undefined);
+    if (options.autoPrint === true) {
+      setTimeout(function () {
+        try { doMainWindowPrint(); } catch (e) { /* keep preview */ }
+      }, 500);
+    }
+    // Default on desktop: leave preview open so user taps Print after content paints
+    void autoPrint;
   };
 })();

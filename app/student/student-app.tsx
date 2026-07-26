@@ -34,6 +34,7 @@ type MoreView =
   | "formFill"
   | "whatsNew"
   | "notifications"
+  | "timetable"
 
 type PortalMode = "student" | "parent"
 
@@ -519,6 +520,23 @@ export default function StudentApp() {
   const [gBusy, setGBusy] = useState(false)
   const [gErr, setGErr] = useState("")
   const [gOk, setGOk] = useState("")
+
+  // Time table (own branch + study year only)
+  type TimetableRow = {
+    id: number
+    branch?: string
+    study_year?: number
+    file_name?: string
+    mime_type?: string
+    updated_at?: string
+    uploaded_by_name?: string
+    file_data?: string
+  }
+  const [ttLoading, setTtLoading] = useState(false)
+  const [ttErr, setTtErr] = useState("")
+  const [ttRow, setTtRow] = useState<TimetableRow | null>(null)
+  const [ttMeta, setTtMeta] = useState<{ branch?: string | null; study_year?: number | null }>({})
+  const [ttOpenBusy, setTtOpenBusy] = useState(false)
 
   const requiresSetup = !!(user?.force_password_change || user?.requires_setup)
   const profilePhoto = useMemo(() => {
@@ -1366,6 +1384,113 @@ export default function StudentApp() {
     forceWebAppReload("manual")
   }
 
+  function parseStudyYearLoose(v: unknown): number | null {
+    if (v === 1 || v === 2 || v === 3) return Number(v)
+    const n = Number(v)
+    if (n === 1 || n === 2 || n === 3) return n
+    const s = String(v ?? "").toLowerCase()
+    if (!s) return null
+    if (/alumni|pass/.test(s)) return null
+    if (/\b3\b|iii|third|3rd/.test(s)) return 3
+    if (/\b2\b|ii|second|2nd/.test(s)) return 2
+    if (/\b1\b|\bi\b|first|1st/.test(s)) return 1
+    return null
+  }
+
+  function studyYearLabel(y: number | null | undefined): string {
+    if (y === 1) return "1st Year"
+    if (y === 2) return "2nd Year"
+    if (y === 3) return "3rd Year"
+    return "Your year"
+  }
+
+  async function loadStudentTimetable() {
+    setTtLoading(true)
+    setTtErr("")
+    try {
+      const myYear =
+        parseStudyYearLoose(student?.current_study_year) ||
+        parseStudyYearLoose(student?.year) ||
+        parseStudyYearLoose(user?.academic?.current_study_year) ||
+        parseStudyYearLoose(user?.academic?.year_label)
+      const branch = student?.dept || ""
+      let url = "/api/timetables"
+      const qs: string[] = []
+      if (branch) qs.push(`branch=${encodeURIComponent(branch)}`)
+      if (myYear) qs.push(`year=${encodeURIComponent(String(myYear))}`)
+      qs.push(`_ts=${Date.now()}`)
+      url += `?${qs.join("&")}`
+      const res = await api<{
+        timetables?: TimetableRow[]
+        branch?: string | null
+        study_year?: number | null
+      }>(url)
+      if (!res.ok) {
+        setTtErr(res.error || "Could not load timetable")
+        setTtRow(null)
+        return
+      }
+      const list = Array.isArray(res.data?.timetables) ? res.data.timetables : []
+      const year = parseStudyYearLoose(res.data?.study_year) || myYear
+      setTtMeta({ branch: res.data?.branch || branch, study_year: year })
+      setTtRow(list[0] || null)
+    } catch {
+      setTtErr("Could not load timetable")
+      setTtRow(null)
+    } finally {
+      setTtLoading(false)
+    }
+  }
+
+  async function openStudentTimetableFile() {
+    if (!ttRow?.id) return
+    setTtOpenBusy(true)
+    try {
+      const res = await api<{ timetable?: TimetableRow }>(
+        `/api/timetables?id=${encodeURIComponent(String(ttRow.id))}&include_data=1`,
+      )
+      const row = res.ok ? res.data?.timetable : null
+      if (!row?.file_data) {
+        flash(res.error || "File not available")
+        return
+      }
+      const raw = String(row.file_data)
+      const m = raw.match(/^data:([^;]+);base64,(.+)$/i)
+      const b64 = m ? m[2] : raw
+      const mime = m?.[1] || row.mime_type || "application/pdf"
+      const bin = atob(b64)
+      const arr = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+      const blob = new Blob([arr], { type: mime })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = row.file_name || "timetable.pdf"
+      a.target = "_blank"
+      a.rel = "noopener"
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      try {
+        window.open(url, "_blank")
+      } catch {
+        /* download is enough */
+      }
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(url)
+        } catch {
+          /* ignore */
+        }
+      }, 120_000)
+      flash("Timetable opened")
+    } catch {
+      flash("Could not open timetable")
+    } finally {
+      setTtOpenBusy(false)
+    }
+  }
+
   function openFormFill(form: FormRow) {
     if (form.submitted_by_me) {
       flash("You already submitted this form")
@@ -1458,6 +1583,7 @@ export default function StudentApp() {
       if (moreView === "notices") return "Notices"
       if (moreView === "notifications") return "Notifications"
       if (moreView === "attendance") return "Attendance"
+      if (moreView === "timetable") return "Time Table"
       if (moreView === "password") return "Change Password"
       if (moreView === "grievances") return "Grievances"
       if (moreView === "whatsNew") return "What's New"
@@ -2702,9 +2828,28 @@ export default function StudentApp() {
               ) : null}
               {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("attendance")}>
-                <span className="ico">📅</span>
+                <span className="ico">📊</span>
                 <span className="t">Attendance</span>
                 <span className="d">{student?.att || "Summary"}</span>
+              </button>
+              ) : null}
+              {!isParentMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreView("timetable")
+                  void loadStudentTimetable()
+                }}
+              >
+                <span className="ico">📅</span>
+                <span className="t">Time Table</span>
+                <span className="d">
+                  {studyYearLabel(
+                    parseStudyYearLoose(student?.current_study_year) ||
+                      parseStudyYearLoose(student?.year),
+                  )}{" "}
+                  only
+                </span>
               </button>
               ) : null}
               {!isParentMode ? (
@@ -3076,6 +3221,88 @@ export default function StudentApp() {
             <p className="stu-empty" style={{ paddingTop: 12 }}>
               Day-wise attendance is marked by faculty. This shows your official summary.
             </p>
+          </div>
+        )}
+
+        {tab === "more" && moreView === "timetable" && (
+          <div className="stu-card">
+            <button
+              type="button"
+              className="stu-btn stu-btn-ghost stu-btn-sm"
+              style={{ marginBottom: 12 }}
+              onClick={() => setMoreView("menu")}
+            >
+              ← Back
+            </button>
+            <h3>Time Table</h3>
+            <p className="stu-empty" style={{ paddingTop: 0, paddingBottom: 10 }}>
+              You only see the timetable for <strong>your branch and study year</strong>.
+            </p>
+            {ttLoading ? (
+              <p className="stu-empty">Loading…</p>
+            ) : ttErr ? (
+              <div className="stu-empty" style={{ color: "var(--stu-danger)" }}>
+                {ttErr}
+              </div>
+            ) : (
+              <>
+                <div className="stu-row">
+                  <span className="k">Branch</span>
+                  <span className="v">{ttMeta.branch || student?.dept || "—"}</span>
+                </div>
+                <div className="stu-row">
+                  <span className="k">Study year</span>
+                  <span className="v">{studyYearLabel(ttMeta.study_year)}</span>
+                </div>
+                {!ttMeta.study_year ? (
+                  <div className="stu-empty" style={{ marginTop: 12, color: "var(--stu-warn)" }}>
+                    Your study year is not set on the student record. Contact HOD / Admin.
+                  </div>
+                ) : ttRow ? (
+                  <>
+                    <div className="stu-row">
+                      <span className="k">File</span>
+                      <span className="v">{ttRow.file_name || "Timetable"}</span>
+                    </div>
+                    <div className="stu-row">
+                      <span className="k">Updated</span>
+                      <span className="v">
+                        {ttRow.updated_at
+                          ? new Date(ttRow.updated_at).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                        {ttRow.uploaded_by_name ? ` · ${ttRow.uploaded_by_name}` : ""}
+                      </span>
+                    </div>
+                    <div className="stu-actions" style={{ marginTop: 14 }}>
+                      <button
+                        type="button"
+                        className="stu-btn stu-btn-primary"
+                        disabled={ttOpenBusy}
+                        onClick={() => void openStudentTimetableFile()}
+                      >
+                        {ttOpenBusy ? "Opening…" : "👁️ View / Download timetable"}
+                      </button>
+                      <button
+                        type="button"
+                        className="stu-btn stu-btn-ghost"
+                        onClick={() => void loadStudentTimetable()}
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="stu-empty" style={{ marginTop: 12, color: "var(--stu-warn)" }}>
+                    {studyYearLabel(ttMeta.study_year)} timetable has not been uploaded yet. Contact
+                    your department faculty / HOD.
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

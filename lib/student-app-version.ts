@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.5.2"
+export const STUDENT_APP_VERSION = "1.5.3"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.5.3",
+    date: "2026-07-26",
+    title: "Time Table + fixed profile PDF on web",
+    items: [
+      "More → Time Table — view/download your branch timetable for your study year only.",
+      "1st year students see 1st year only; 2nd year see 2nd year only.",
+      "Profile PDF download works on web browsers (not only the Android app).",
+    ],
+  },
   {
     version: "1.5.2",
     date: "2026-07-26",
