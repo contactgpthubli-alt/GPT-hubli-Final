@@ -3,6 +3,13 @@ import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/aut
 import { STAFF_ROLES, STUDENT_WRITERS } from "@/lib/roles"
 import { normalizeBranch, OFFICIAL_BRANCHES } from "@/lib/branches"
 import { branchesMatch, hodBranchOf } from "@/lib/account-approvals"
+import {
+  ensureAcademicSchema,
+  getInstituteAcademicSettings,
+  applyProgressionToStudent,
+  rowToSnapshot,
+} from "@/lib/student-academic"
+import { parseStudyYear, parseAcademicStatus } from "@/lib/academic-year"
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
@@ -23,12 +30,29 @@ function profileCompleteness(extra: Record<string, unknown>, hasStudentRow: bool
   return "updated"
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
 
+  await ensureAcademicSchema().catch(() => null)
+  const academicSettings = await getInstituteAcademicSettings().catch(() => null)
+  const url = new URL(req.url)
+  const filterStudyYear = parseStudyYear(url.searchParams.get("study_year") || url.searchParams.get("year"))
+  const filterStatusRaw = url.searchParams.get("academic_status") || url.searchParams.get("status")
+  const filterStatus =
+    filterStatusRaw && filterStatusRaw !== "all" ? parseAcademicStatus(filterStatusRaw) : null
+  // Default staff lists: exclude alumni unless status=all or status=passed_out
+  const includeAlumni =
+    url.searchParams.get("include_alumni") === "1" ||
+    filterStatusRaw === "all" ||
+    filterStatusRaw === "passed_out" ||
+    filterStatus === "passed_out"
+
   // Student sees only own academic row (+ branch from account if needed)
   if (user.role === "student") {
+    if (user.reg_no) {
+      await applyProgressionToStudent(user.reg_no, { eventType: "login_recompute" }).catch(() => null)
+    }
     const { rows } = await query("SELECT * FROM students WHERE reg_no = $1", [user.reg_no])
     if (rows.length) {
       const row = rows[0]
@@ -43,7 +67,12 @@ export async function GET() {
       } else {
         row.dept = normalizeBranch(row.dept) || row.dept
       }
-      return Response.json({ students: [row], branches: OFFICIAL_BRANCHES })
+      const academic = rowToSnapshot(row)
+      return Response.json({
+        students: [{ ...row, ...academic, academic }],
+        branches: OFFICIAL_BRANCHES,
+        academic_settings: academicSettings,
+      })
     }
     // No students row yet — synthesize from user so My Profile can show branch
     const { rows: urows } = await query(
@@ -63,10 +92,14 @@ export async function GET() {
               att: null,
               father: null,
               extra: {},
+              academic_status: "active",
+              is_alumni: false,
+              read_only_portal: false,
             },
           ]
         : [],
       branches: OFFICIAL_BRANCHES,
+      academic_settings: academicSettings,
     })
   }
 
@@ -108,6 +141,14 @@ export async function GET() {
         s.att,
         s.father,
         s.extra,
+        s.admission_academic_year,
+        s.entry_type,
+        s.entry_study_year,
+        s.current_study_year,
+        s.academic_status,
+        s.progress_locked,
+        s.pass_out_academic_year,
+        s.needs_admission_year_review,
         (
           SELECT COUNT(*)::int
             FROM profile_requests pr
@@ -145,7 +186,35 @@ export async function GET() {
           r.user_branch ||
           null,
       ) || "—"
+    const academic = hasStudentRow
+      ? rowToSnapshot({
+          reg_no: r.reg_no || r.student_reg_no,
+          year: r.year,
+          admission_academic_year: r.admission_academic_year,
+          entry_type: r.entry_type,
+          entry_study_year: r.entry_study_year,
+          current_study_year: r.current_study_year,
+          academic_status: r.academic_status,
+          progress_locked: r.progress_locked,
+          pass_out_academic_year: r.pass_out_academic_year,
+          needs_admission_year_review: r.needs_admission_year_review,
+        })
+      : {
+          admission_academic_year: null,
+          entry_type: "regular" as const,
+          entry_study_year: 1 as const,
+          current_study_year: parseStudyYear(r.year),
+          academic_status: "active" as const,
+          progress_locked: false,
+          pass_out_academic_year: null,
+          year: r.year || "—",
+          year_label: r.year || "—",
+          needs_admission_year_review: true,
+          is_alumni: false,
+          read_only_portal: false,
+        }
     const year =
+      academic.year_label ||
       (r.year && String(r.year).trim()) ||
       (typeof extra["Current Year"] === "string" ? extra["Current Year"] : null) ||
       "—"
@@ -173,17 +242,43 @@ export async function GET() {
       extra,
       // Keep full row shape for any older consumers
       has_student_row: hasStudentRow,
+      // Academic progression fields
+      admission_academic_year: academic.admission_academic_year,
+      entry_type: academic.entry_type,
+      entry_study_year: academic.entry_study_year,
+      current_study_year: academic.current_study_year,
+      academic_status: academic.academic_status,
+      progress_locked: academic.progress_locked,
+      pass_out_academic_year: academic.pass_out_academic_year,
+      needs_admission_year_review: academic.needs_admission_year_review,
+      is_alumni: academic.is_alumni,
+      academic,
     }
   })
 
   // Defense in depth: HOD must never receive other branches even if SQL aliases slip
-  const scoped =
+  let scoped =
     user.role === "hod" && hodBranch
       ? students.filter((s) => branchesMatch(hodBranch, s.dept))
       : students
 
   // If HOD has no branch assigned, return empty rather than all students
-  const finalList = user.role === "hod" && !hodBranch ? [] : scoped
+  if (user.role === "hod" && !hodBranch) scoped = []
+
+  // Year / status filters
+  let finalList = scoped
+  if (!includeAlumni && !filterStatus) {
+    finalList = finalList.filter((s) => s.academic_status !== "passed_out")
+  }
+  if (filterStatus) {
+    finalList = finalList.filter((s) => s.academic_status === filterStatus)
+  }
+  if (filterStudyYear) {
+    finalList = finalList.filter((s) => {
+      if (s.academic_status === "passed_out") return false
+      return s.current_study_year === filterStudyYear
+    })
+  }
 
   return Response.json(
     {
@@ -193,6 +288,12 @@ export async function GET() {
       scope: {
         role: user.role,
         branch: user.role === "hod" ? hodBranch : null,
+      },
+      academic_settings: academicSettings,
+      filters: {
+        study_year: filterStudyYear,
+        academic_status: filterStatusRaw || (includeAlumni ? "all" : "active_default"),
+        include_alumni: includeAlumni,
       },
     },
     {

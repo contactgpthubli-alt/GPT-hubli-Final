@@ -468,6 +468,171 @@ function __initGptBridge() {
   }
   window.ensureAccountApprovalPanels = ensureAccountApprovalPanels;
 
+  /** Root Admin + Principal: set active academic year (DTE session) + apply progression */
+  function ensureAcademicYearPanel() {
+    function inject(shellSel, navId, panelId, showSecId, afterNavMatch) {
+      var menu = document.querySelector(shellSel + ' .sb-menu');
+      var content = document.querySelector(shellSel + ' .db-content');
+      if (!menu || !content) return;
+      if (!document.getElementById(navId)) {
+        var insertAfter = null;
+        menu.querySelectorAll('.sl').forEach(function (sl) {
+          var oc = sl.getAttribute('onclick') || '';
+          var id = sl.id || '';
+          if (afterNavMatch(oc, id, sl)) insertAfter = sl;
+        });
+        var nav = document.createElement('div');
+        nav.className = 'sl';
+        nav.id = navId;
+        nav.setAttribute('onclick', "showSec('" + showSecId + "',this)");
+        nav.innerHTML = '<span class="sli">📅</span>Academic Year';
+        if (insertAfter && insertAfter.nextSibling) {
+          insertAfter.parentNode.insertBefore(nav, insertAfter.nextSibling);
+        } else if (insertAfter) {
+          insertAfter.parentNode.appendChild(nav);
+        } else {
+          menu.appendChild(nav);
+        }
+      }
+      if (!document.getElementById(panelId)) {
+        var panel = document.createElement('div');
+        panel.id = panelId;
+        panel.style.display = 'none';
+        panel.innerHTML =
+          '<div class="info-box">📅 <strong>Active Academic Year</strong> — DTE Karnataka session (e.g. 2026-27). ' +
+          'Root Admin and Principal only. Changing the year and applying progression advances study years (1→2→3) and auto mark pass-out after 3rd year. Detained / Year Back students stay frozen.</div>' +
+          '<div class="card" style="padding:18px;">' +
+          '<div class="form-row">' +
+          '<div class="fg"><label>Active Academic Year</label>' +
+          '<input type="text" id="' + panelId + '_ay" placeholder="2026-27" style="max-width:200px;" /></div>' +
+          '<div class="fg"><label>Start month (1–12)</label>' +
+          '<input type="number" id="' + panelId + '_month" min="1" max="12" value="6" style="max-width:100px;" /></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">' +
+          '<button class="btn pr" type="button" onclick="window.saveActiveAcademicYear&&window.saveActiveAcademicYear(\'' + panelId + '\',false)">💾 Save year only</button>' +
+          '<button class="btn go" type="button" onclick="window.saveActiveAcademicYear&&window.saveActiveAcademicYear(\'' + panelId + '\',true)">▶ Save + Apply progression</button>' +
+          '<button class="btn ol" type="button" onclick="window.applyAcademicProgressionOnly&&window.applyAcademicProgressionOnly()">↻ Recompute all (current year)</button>' +
+          '</div>' +
+          '<div id="' + panelId + '_status" style="margin-top:14px;font-size:0.85rem;color:var(--text-muted);"></div>' +
+          '<div id="' + panelId + '_report" style="margin-top:12px;"></div>' +
+          '</div>';
+        content.appendChild(panel);
+      }
+    }
+    inject('#dbAdmin', 'adAcademicYearNav', 'adAcademicYear', 'adAcademicYear', function (oc, id) {
+      return oc.indexOf('adUserApprovals') !== -1 || id === 'adUserApprovalsNav' || oc.indexOf('adHome') !== -1;
+    });
+    inject('#dbPrincipal', 'priAcademicYearNav', 'priAcademicYear', 'priAcademicYear', function (oc, id) {
+      return oc.indexOf('priUserApprovals') !== -1 || id === 'priUserApprovalsNav' || oc.indexOf('priHome') !== -1;
+    });
+  }
+  window.ensureAcademicYearPanel = ensureAcademicYearPanel;
+
+  window.loadAcademicYearPanel = async function loadAcademicYearPanel() {
+    ensureAcademicYearPanel();
+    try {
+      var res = await fetch('/api/institute-settings?_ts=' + Date.now(), { credentials: 'same-origin' });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok || !data.academic) return;
+      window._academicSettings = data.academic;
+      ;['adAcademicYear', 'priAcademicYear'].forEach(function (pid) {
+        var ay = document.getElementById(pid + '_ay');
+        var mo = document.getElementById(pid + '_month');
+        var st = document.getElementById(pid + '_status');
+        if (ay) ay.value = data.academic.active_academic_year || '';
+        if (mo) mo.value = data.academic.academic_year_start_month || 6;
+        if (st) {
+          st.textContent =
+            'Current active year: ' +
+            (data.academic.active_academic_year || '—') +
+            (data.can_edit ? ' · You can edit' : ' · View only');
+        }
+      });
+    } catch (e) {
+      console.warn('[bridge] academic year load', e);
+    }
+  };
+
+  window.saveActiveAcademicYear = async function saveActiveAcademicYear(panelId, apply) {
+    var ayEl = document.getElementById(panelId + '_ay');
+    var moEl = document.getElementById(panelId + '_month');
+    var st = document.getElementById(panelId + '_status');
+    var rep = document.getElementById(panelId + '_report');
+    var ay = ayEl ? String(ayEl.value || '').trim() : '';
+    if (!ay) {
+      alert('Enter academic year e.g. 2026-27');
+      return;
+    }
+    if (apply && !confirm('Save active year ' + ay + ' and recompute study year for ALL students?\nDetained / Year Back stay frozen. Eligible students auto-alumni after 3rd year.')) {
+      return;
+    }
+    if (st) st.textContent = 'Saving…';
+    try {
+      var r = await fetch('/api/institute-settings', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          active_academic_year: ay,
+          academic_year_start_month: moEl ? Number(moEl.value) || 6 : 6,
+          apply_progression: !!apply,
+        }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Save failed');
+        if (st) st.textContent = data.error || 'Failed';
+        return;
+      }
+      window._academicSettings = data.academic;
+      if (st) st.textContent = 'Saved · Active AY ' + (data.academic && data.academic.active_academic_year);
+      if (rep && data.progression) {
+        var p = data.progression;
+        rep.innerHTML =
+          '<div class="info-box"><strong>Progression report</strong><br>' +
+          'Total rows: ' + p.total +
+          ' · Advanced: ' + p.advanced +
+          ' · Auto alumni: ' + p.auto_alumni +
+          ' · Locked (detain/year-back): ' + p.locked_skipped +
+          ' · Missing admission year: ' + p.missing_admission_year +
+          ' · Unchanged: ' + p.unchanged +
+          '</div>';
+      } else if (rep) {
+        rep.innerHTML = '<div class="info-box">Academic year saved. Use “Save + Apply progression” to advance study years.</div>';
+      }
+      alert('Academic year saved' + (apply ? ' and progression applied.' : '.'));
+    } catch (e) {
+      alert('Network error');
+    }
+  };
+
+  window.applyAcademicProgressionOnly = async function applyAcademicProgressionOnly() {
+    if (!confirm('Recompute study years for all students against the current active academic year?')) return;
+    try {
+      var r = await fetch('/api/institute-settings', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'apply_progression' }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Failed');
+        return;
+      }
+      var p = data.progression || {};
+      alert(
+        'Done.\nAdvanced: ' + (p.advanced || 0) +
+        '\nAuto alumni: ' + (p.auto_alumni || 0) +
+        '\nLocked skipped: ' + (p.locked_skipped || 0) +
+        '\nMissing admission year: ' + (p.missing_admission_year || 0),
+      );
+      if (typeof window.loadAcademicYearPanel === 'function') window.loadAcademicYearPanel();
+    } catch (e) {
+      alert('Network error');
+    }
+  };
+
   /**
    * Principal + HOD desk: Approvals (profile), Students, Student Data
    * matching ACM/Admin three-item shell. HOD data is branch-scoped by API.
@@ -487,13 +652,20 @@ function __initGptBridge() {
       '<option value="">All Branches</option></select>' +
       '<select id="' + pfx + 'YearFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
       'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:140px;">' +
-      '<option value="">All Years</option>' +
-      '<option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option>' +
-      '<option value="3rd Year">3rd Year</option><option value="YEAR BACK">YEAR BACK</option>' +
-      '<option value="Completed">Completed</option></select>' +
+      '<option value="">All Study Years</option>' +
+      '<option value="1">1st Year</option><option value="2">2nd Year</option>' +
+      '<option value="3">3rd Year</option><option value="alumni">Alumni</option></select>' +
+      '<select id="' + pfx + 'StatusFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
+      'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:150px;">' +
+      '<option value="active_like">Active (default)</option>' +
+      '<option value="active">Active only</option>' +
+      '<option value="detained">Detained</option>' +
+      '<option value="year_back">Year Back</option>' +
+      '<option value="passed_out">Passed Out / Alumni</option>' +
+      '<option value="all">All statuses</option></select>' +
       '<select id="' + pfx + 'AdmYearFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
       'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:130px;">' +
-      '<option value="">All Adm. Years</option></select>' +
+      '<option value="">All Batches</option></select>' +
       '<select id="' + pfx + 'ProfileFilter" onchange="window.filterAdminStudentList&&window.filterAdminStudentList()" ' +
       'style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;min-width:160px;">' +
       '<option value="">All Profiles</option><option value="updated">Profile Updated</option>' +
@@ -1289,6 +1461,11 @@ function __initGptBridge() {
       if (secId === 'facAttendance' && typeof window.setupAttendancePanel === 'function') {
         window.setupAttendancePanel();
       }
+      // Academic year control (admin / principal)
+      if ((secId === 'adAcademicYear' || secId === 'priAcademicYear') &&
+          typeof window.loadAcademicYearPanel === 'function') {
+        window.loadAcademicYearPanel();
+      }
       // Student Certificates — prefill reg + load live My Requests status
       if (secId === 'stuCerts' && currentUser && currentUser.role === 'student') {
         if (typeof window.prefillStudentCertForms === 'function') window.prefillStudentCertForms();
@@ -2003,6 +2180,13 @@ function __initGptBridge() {
     if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal' || user.role === 'exam') &&
         typeof window.renderProfileRequestApprovals === 'function') {
       try { window.renderProfileRequestApprovals(); } catch (e) { /* ignore */ }
+    }
+    // Academic year panel: Root Admin + Principal
+    if (user && (user.role === 'admin' || user.role === 'principal')) {
+      try {
+        ensureAcademicYearPanel();
+        if (typeof window.loadAcademicYearPanel === 'function') window.loadAcademicYearPanel();
+      } catch (e) { console.warn('[bridge] academic year panel', e); }
     }
     // Account approvals + Students / Student Data desk: Admin, Principal, HOD
     if (user && (user.role === 'admin' || user.role === 'principal' || user.role === 'hod')) {
@@ -5578,7 +5762,8 @@ async function renderAdminStudentDatabase() {
     if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading students…</td></tr>';
   });
 
-  var data = await profileApiGet('/api/students');
+  // include_alumni=1 so client-side status filter can show alumni when selected
+  var data = await profileApiGet('/api/students?include_alumni=1&_ts=' + Date.now());
   if (!data || !Array.isArray(data.students)) {
     prefixes.forEach(function (pfx) {
       var tb = document.getElementById(pfx + 'TableBody');
@@ -5593,6 +5778,7 @@ async function renderAdminStudentDatabase() {
     window._adminStudentByKey[studentListKey(s)] = s;
   });
   window._studentListScope = data.scope || null;
+  window._academicSettings = data.academic_settings || null;
 
   var official = (data.branches && data.branches.length)
     ? data.branches
@@ -5627,16 +5813,19 @@ async function renderAdminStudentDatabase() {
       var prevAdm = admSel.value || '';
       var admYears = {};
       (window._adminStudentList || []).forEach(function (s) {
-        var extra = s.extra || {};
-        if (typeof extra === 'string') {
-          try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
+        var ay = (s.admission_academic_year || '') + '';
+        if (!ay.trim()) {
+          var extra = s.extra || {};
+          if (typeof extra === 'string') {
+            try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
+          }
+          ay =
+            (extra['Admission Academic Year'] || extra['Year of Admission'] || extra['Year Of Admission'] || extra['Admission Year'] || '') + '';
         }
-        var ay =
-          (extra['Year of Admission'] || extra['Year Of Admission'] || extra['Admission Year'] || '') + '';
         ay = ay.trim();
         if (ay) admYears[ay] = true;
       });
-      var aopts = '<option value="">All Adm. Years</option>';
+      var aopts = '<option value="">All Batches</option>';
       Object.keys(admYears).sort().reverse().forEach(function (y) {
         aopts += '<option value="' + escHtml(y) + '"' + (y === prevAdm ? ' selected' : '') + '>' + escHtml(y) + '</option>';
       });
@@ -5663,15 +5852,17 @@ function filterAdminStudentList() {
   var q = ((document.getElementById(pfx + 'Search') || {}).value || '').trim().toLowerCase();
   var branch = ((document.getElementById(pfx + 'BranchFilter') || {}).value || '').trim().toLowerCase();
   var year = ((document.getElementById(pfx + 'YearFilter') || {}).value || '').trim().toLowerCase();
+  var statusF = ((document.getElementById(pfx + 'StatusFilter') || {}).value || 'active_like').trim();
   var admYear = ((document.getElementById(pfx + 'AdmYearFilter') || {}).value || '').trim();
   var prof = ((document.getElementById(pfx + 'ProfileFilter') || {}).value || '').trim();
 
   function studentAdmissionYear(s) {
+    if (s.admission_academic_year) return String(s.admission_academic_year).trim();
     var extra = s.extra || {};
     if (typeof extra === 'string') {
       try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
     }
-    var keys = ['Year of Admission', 'Year Of Admission', 'Admission Year', 'year_of_admission'];
+    var keys = ['Admission Academic Year', 'Year of Admission', 'Year Of Admission', 'Admission Year', 'year_of_admission'];
     for (var i = 0; i < keys.length; i++) {
       if (extra[keys[i]] != null && String(extra[keys[i]]).trim() !== '') {
         return String(extra[keys[i]]).trim();
@@ -5679,9 +5870,23 @@ function filterAdminStudentList() {
     }
     // case-insensitive scan
     var found = Object.keys(extra || {}).find(function (k) {
-      return /year\s*of\s*admission|admission\s*year/i.test(k);
+      return /year\s*of\s*admission|admission\s*year|admission\s*academic/i.test(k);
     });
     return found ? String(extra[found]).trim() : '';
+  }
+
+  function academicStatusOf(s) {
+    return String(s.academic_status || (s.academic && s.academic.academic_status) || 'active').toLowerCase();
+  }
+
+  function studyYearNum(s) {
+    if (s.current_study_year === 1 || s.current_study_year === 2 || s.current_study_year === 3) return Number(s.current_study_year);
+    var y = String(s.year || '').toLowerCase();
+    if (/alumni|pass/.test(y)) return 0;
+    if (/3|iii|third/.test(y)) return 3;
+    if (/2|ii|second/.test(y)) return 2;
+    if (/1|i|first/.test(y)) return 1;
+    return null;
   }
 
   var list = window._adminStudentList || [];
@@ -5691,22 +5896,30 @@ function filterAdminStudentList() {
       var d = String(s.dept || '').toLowerCase();
       if (d.indexOf(branch) === -1) return false;
     }
-    if (year) {
-      var y = String(s.year || '').toLowerCase();
-      // Match "2nd Year", "2nd", "second year", etc.
-      if (y.indexOf(year) === -1 && year.indexOf(y) === -1) {
-        // normalize: strip "year" and spaces for loose match
-        var yn = y.replace(/year/g, '').replace(/\s+/g, '');
-        var fn = year.replace(/year/g, '').replace(/\s+/g, '');
-        if (!yn || yn.indexOf(fn) === -1 && fn.indexOf(yn) === -1) return false;
-      }
+    var st = academicStatusOf(s);
+    if (statusF === 'active_like') {
+      if (st === 'passed_out') return false;
+    } else if (statusF === 'active') {
+      if (st !== 'active') return false;
+    } else if (statusF === 'detained' || statusF === 'year_back' || statusF === 'passed_out') {
+      if (st !== statusF) return false;
+    }
+    // statusF === 'all' → no status filter
+    if (year === 'alumni') {
+      if (st !== 'passed_out') return false;
+    } else if (year === '1' || year === '2' || year === '3') {
+      if (st === 'passed_out') return false;
+      if (studyYearNum(s) !== Number(year)) return false;
+    } else if (year) {
+      var yl = String(s.year || '').toLowerCase();
+      if (yl.indexOf(year) === -1) return false;
     }
     if (admYear) {
       var ay = studentAdmissionYear(s);
       if (!ay || ay.indexOf(admYear) === -1) return false;
     }
     if (q) {
-      var hay = [s.name, s.display_name, s.reg_no, s.dept, s.year, s.email, studentAdmissionYear(s)].join(' ').toLowerCase();
+      var hay = [s.name, s.display_name, s.reg_no, s.dept, s.year, s.email, studentAdmissionYear(s), st].join(' ').toLowerCase();
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
@@ -5735,6 +5948,17 @@ function filterAdminStudentList() {
       : (s.profile_edit_locked
         ? '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '">🔓 Unlock Edit</button>'
         : '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '">🔒 Lock Edit</button>');
+    var st = academicStatusOf(s);
+    var statusBadge = st === 'passed_out'
+      ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;">Alumni</span>'
+      : st === 'detained'
+        ? '<span class="badge" style="background:#fee2e2;color:#991b1b;">Detained</span>'
+        : st === 'year_back'
+          ? '<span class="badge" style="background:#ffedd5;color:#9a3412;">Year Back</span>'
+          : '';
+    var batchHint = s.admission_academic_year
+      ? '<div style="font-size:0.65rem;opacity:.65;">Batch ' + escHtml(s.admission_academic_year) + '</div>'
+      : '';
     var cb = canToggle
       ? '<input type="checkbox" class="stu-select-cb" data-stu-reg="' + regAttr + '" title="Select for bulk lock/unlock" />'
       : '<input type="checkbox" disabled title="No reg number" />';
@@ -5745,7 +5969,7 @@ function filterAdminStudentList() {
       (s.email ? '<div style="font-size:0.68rem;opacity:.7;">' + escHtml(s.email) + '</div>' : '') +
       '</td>' +
       '<td>' + escHtml(s.dept || '—') + '</td>' +
-      '<td>' + escHtml(s.year || '—') + '</td>' +
+      '<td>' + escHtml(s.year || '—') + ' ' + statusBadge + batchHint + '</td>' +
       '<td>' + accountStatusBadge(s.account_status) + '</td>' +
       '<td>' + profileStatusBadge(s.profile_status) + pending + lock + '</td>' +
       '<td><div style="display:flex;gap:5px;flex-wrap:wrap;">' +
@@ -5757,8 +5981,11 @@ function filterAdminStudentList() {
 
   tbody.innerHTML = rows;
   if (meta) {
+    var ayLabel = (window._academicSettings && window._academicSettings.active_academic_year)
+      ? (' · Active AY ' + window._academicSettings.active_academic_year)
+      : '';
     meta.textContent = 'Showing ' + filtered.length + ' of ' + list.length +
-      ' student account(s) · Filter by branch, year, admission year, profile status, or search';
+      ' student account(s)' + ayLabel + ' · Study year, status, batch, profile, search';
   }
   // Reset select-all after re-render
   var sa = document.getElementById(pfx + 'SelectAll') || document.getElementById('adStuSelectAll');
@@ -5824,13 +6051,34 @@ function viewAdminStudent(key) {
   html += row('Reg. Number', s.reg_no);
   html += row('Account status', s.account_status);
 
-  html += '<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:16px 0 6px;">Core academic</div>';
+  html += '<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:16px 0 6px;">Core academic (DTE)</div>';
   html += row('Name', s.name);
   html += row('Branch / Department', s.dept);
-  html += row('Current Year', s.year);
+  html += row('Year of Study', s.year);
+  html += row('Admission batch', s.admission_academic_year || studentAdmissionYearSafe(s));
+  html += row('Academic status', s.academic_status || 'active');
+  html += row('Progress locked', s.progress_locked ? 'Yes (detain / year-back)' : 'No');
+  html += row('Pass-out year', s.pass_out_academic_year);
   html += row('Father', s.father);
   html += row('CGPA', s.cgpa);
   html += row('Attendance', s.att);
+
+  // HOD / Exam / Admin / Principal academic actions
+  var cuAct = window.currentUser;
+  if (s.reg_no && cuAct && (cuAct.role === 'admin' || cuAct.role === 'principal' || cuAct.role === 'hod' || cuAct.role === 'exam')) {
+    var regA = escHtml(String(s.reg_no));
+    html += '<div style="font-size:0.74rem;font-weight:700;color:var(--navy);margin:16px 0 8px;">Academic actions</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    if (cuAct.role !== 'exam') {
+      html += '<button class="btn stu-act-btn" type="button" style="background:#991b1b;color:#fff;" data-stu-action="acad-detain" data-stu-reg="' + regA + '">Detain</button>';
+      html += '<button class="btn stu-act-btn" type="button" style="background:#c2410c;color:#fff;" data-stu-action="acad-yearback" data-stu-reg="' + regA + '">Year Back</button>';
+      html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="acad-unlock" data-stu-reg="' + regA + '">Unlock progress</button>';
+    }
+    html += '<button class="btn stu-act-btn" type="button" style="background:#3730a3;color:#fff;" data-stu-action="acad-passout" data-stu-reg="' + regA + '">Mark Pass-out</button>';
+    html += '<button class="btn ol stu-act-btn" type="button" data-stu-action="acad-set-admission" data-stu-reg="' + regA + '">Set admission year</button>';
+    html += '</div>';
+    html += '<p style="font-size:0.72rem;opacity:.75;margin-top:8px;">Detained / Year Back freeze auto-progress until HOD unlocks. Pass-out keeps login (read-only alumni portal).</p>';
+  }
 
   // Profile photo (if approved)
   var photoVal = extra['Profile Photo'] || extra['profile_photo'] || extra['photo'] || null;
@@ -5862,6 +6110,94 @@ function closeAdminStudentView() {
   if (modal) modal.style.display = 'none';
 }
 window.closeAdminStudentView = closeAdminStudentView;
+
+function studentAdmissionYearSafe(s) {
+  if (!s) return '';
+  if (s.admission_academic_year) return String(s.admission_academic_year);
+  var extra = s.extra || {};
+  if (typeof extra === 'string') {
+    try { extra = JSON.parse(extra); } catch (e) { extra = {}; }
+  }
+  return (
+    extra['Admission Academic Year'] ||
+    extra['Year of Admission'] ||
+    extra['Admission Year'] ||
+    ''
+  );
+}
+
+async function runStudentAcademicAction(action, reg) {
+  if (!reg) {
+    alert('No register number.');
+    return;
+  }
+  var map = {
+    'acad-detain': 'detain',
+    'acad-yearback': 'year_back',
+    'acad-unlock': 'unlock',
+    'acad-passout': 'pass_out',
+    'acad-set-admission': 'set_admission',
+  };
+  var apiAction = map[action];
+  if (!apiAction) return;
+
+  var body = { action: apiAction, reg_no: reg };
+  if (apiAction === 'detain') {
+    if (!confirm('Detain ' + reg + '?\nStudy year freezes until HOD unlocks progress.')) return;
+    body.reason = prompt('Reason for detention (optional):', '') || 'Detained';
+  } else if (apiAction === 'year_back') {
+    if (!confirm('Apply Year Back for ' + reg + '?\nStudy year drops by one (min 1st) and freezes until unlock.')) return;
+    var ty = prompt('Target study year (1, 2, or 3). Leave blank for automatic −1:', '');
+    if (ty === '1' || ty === '2' || ty === '3') body.target_year = Number(ty);
+    body.reason = prompt('Reason for year back (optional):', '') || 'Year back';
+  } else if (apiAction === 'unlock') {
+    if (!confirm('Unlock progress for ' + reg + ' and recompute study year from admission batch + active academic year?')) return;
+    body.reason = 'Unlocked';
+  } else if (apiAction === 'pass_out') {
+    if (!confirm('Mark ' + reg + ' as Passed Out / Alumni?\nLogin stays active (read-only student portal).')) return;
+    body.reason = prompt('Remarks (optional):', '') || 'Marked pass-out';
+  } else if (apiAction === 'set_admission') {
+    var ay = prompt('Admission academic year (batch), e.g. 2026-27:', studentAdmissionYearSafe(window._adminStudentByKey && Object.values(window._adminStudentByKey).find(function (x) { return String(x.reg_no).toUpperCase() === String(reg).toUpperCase(); }) || {}) || '');
+    if (!ay) return;
+    body.admission_academic_year = ay.trim();
+    var et = prompt('Entry type: regular or lateral', 'regular');
+    if (et && String(et).toLowerCase().indexOf('lat') === 0) {
+      body.entry_type = 'lateral';
+      body.entry_study_year = 2;
+    } else {
+      body.entry_type = 'regular';
+      body.entry_study_year = 1;
+    }
+    body.reason = 'Admission year set';
+  }
+
+  try {
+    var r = await fetch('/api/students/academic', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    var data = await r.json().catch(function () { return {}; });
+    if (!r.ok || !data.ok) {
+      alert(data.error || 'Academic action failed');
+      return;
+    }
+    showStuToast('Updated ' + reg + ' · ' + (data.academic && data.academic.year_label ? data.academic.year_label : apiAction));
+    if (typeof window.renderAdminStudentDatabase === 'function') {
+      await window.renderAdminStudentDatabase();
+    }
+    // Re-open view if possible
+    var key = null;
+    (window._adminStudentList || []).forEach(function (s) {
+      if (String(s.reg_no || '').toUpperCase() === String(reg).toUpperCase()) key = studentListKey(s);
+    });
+    if (key && typeof window.viewAdminStudent === 'function') window.viewAdminStudent(key);
+  } catch (err) {
+    alert('Network error');
+  }
+}
+window.runStudentAcademicAction = runStudentAcademicAction;
 
 function showStuToast(msg, isError) {
   try {
@@ -6541,6 +6877,12 @@ setInterval(function () {
         if (action === "lock") {
           if (typeof window.setStudentProfileEditLock === "function") {
             window.setStudentProfileEditLock(reg, true);
+          }
+          return;
+        }
+        if (action && action.indexOf("acad-") === 0) {
+          if (typeof window.runStudentAcademicAction === "function") {
+            window.runStudentAcademicAction(action, reg);
           }
           return;
         }
@@ -7613,9 +7955,22 @@ setInterval(function () {
 
     var roster = data.students
       .filter(function (s) {
+        // Exclude alumni / passed-out from live class attendance
+        var st = String(s.academic_status || (s.academic && s.academic.academic_status) || 'active').toLowerCase();
+        if (st === 'passed_out' || s.is_alumni) return false;
         var dept = attNormalizeBranch(s.dept || s.user_branch || '');
         if (!attBranchesMatch(dept, branch)) return false;
         if (!attYearMatch(s.year, year)) return false;
+        // Prefer current_study_year when year filter set
+        if (year === 'I' || year === 'II' || year === 'III') {
+          var map = { I: 1, II: 2, III: 3 };
+          if (s.current_study_year != null && Number(s.current_study_year) !== map[year]) {
+            // still allow unknown current_study_year via attYearMatch above
+            if (s.current_study_year === 1 || s.current_study_year === 2 || s.current_study_year === 3) {
+              return false;
+            }
+          }
+        }
         var reg = String(s.reg_no || '').trim();
         if (!reg) return false;
         return true;

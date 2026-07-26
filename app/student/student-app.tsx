@@ -38,6 +38,18 @@ type User = {
   force_password_change?: boolean
   requires_setup?: boolean
   is_demo?: boolean
+  is_alumni?: boolean
+  read_only_portal?: boolean
+  academic?: {
+    year_label?: string
+    academic_status?: string
+    admission_academic_year?: string | null
+    current_study_year?: number | null
+    is_alumni?: boolean
+    read_only_portal?: boolean
+    pass_out_academic_year?: string | null
+    active_academic_year?: string
+  } | null
 }
 
 type Student = {
@@ -49,6 +61,11 @@ type Student = {
   att?: string | null
   father?: string | null
   extra?: Record<string, unknown>
+  academic_status?: string
+  is_alumni?: boolean
+  read_only_portal?: boolean
+  admission_academic_year?: string | null
+  current_study_year?: number | null
 }
 
 type ResultRow = {
@@ -1382,6 +1399,13 @@ export default function StudentApp() {
           <div className="meta">
             {user.display_name}
             {user.reg_no ? ` · ${user.reg_no}` : ""}
+            {user.is_alumni || user.read_only_portal
+              ? " · Alumni"
+              : user.academic?.year_label
+                ? ` · ${user.academic.year_label}`
+                : student?.year
+                  ? ` · ${student.year}`
+                  : ""}
           </div>
         </div>
         <div className="stu-avatar" title={user.email}>
@@ -1401,6 +1425,24 @@ export default function StudentApp() {
         {/* ---------- HOME ---------- */}
         {tab === "home" && (
           <>
+            {(user.is_alumni || user.read_only_portal || student?.is_alumni || student?.academic_status === "passed_out") ? (
+              <div className="stu-msg stu-msg-info" role="status">
+                <strong>🎓 Alumni / Pass-out portal (read-only)</strong>
+                <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>
+                  You have completed the diploma programme. You can still view results, certificates, and your
+                  records. Class attendance and current-year editing no longer apply.
+                  {user.academic?.pass_out_academic_year
+                    ? ` Pass-out year: ${user.academic.pass_out_academic_year}.`
+                    : ""}
+                  {user.academic?.admission_academic_year
+                    ? ` Admission batch: ${user.academic.admission_academic_year}.`
+                    : student?.admission_academic_year
+                      ? ` Admission batch: ${student.admission_academic_year}.`
+                      : ""}
+                </p>
+              </div>
+            ) : null}
+
             {accountApprovedNotif ? (
               <div className="stu-alert-ready" role="status" style={{ borderColor: "#16a34a" }}>
                 <h3>{accountApprovedNotif.title || "✅ Account Approved"}</h3>

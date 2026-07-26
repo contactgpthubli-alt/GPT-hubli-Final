@@ -40,13 +40,50 @@ CREATE TABLE IF NOT EXISTS students (
   reg_no     TEXT PRIMARY KEY,
   name       TEXT NOT NULL,
   dept       TEXT NOT NULL,
-  year       TEXT,
+  year       TEXT,              -- display: 1st Year / 2nd Year / 3rd Year / Alumni
   cgpa       TEXT,
   att        TEXT,
   father     TEXT,
   extra      JSONB NOT NULL DEFAULT '{}'::jsonb, -- dynamic profile sections from admin builder
+  -- DTE academic progression
+  admission_academic_year TEXT,   -- batch e.g. 2026-27 (fixed)
+  entry_type TEXT DEFAULT 'regular', -- regular | lateral
+  entry_study_year INT DEFAULT 1,    -- lateral often 2
+  current_study_year INT,            -- 1 | 2 | 3
+  academic_status TEXT DEFAULT 'active', -- active | detained | year_back | passed_out
+  progress_locked BOOLEAN DEFAULT FALSE, -- detention / year-back freeze
+  pass_out_academic_year TEXT,
+  needs_admission_year_review BOOLEAN DEFAULT FALSE,
+  academic_updated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_students_academic_status
+  ON students (academic_status, current_study_year);
+
+-- Institute-wide settings (active academic year, etc.)
+CREATE TABLE IF NOT EXISTS institute_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS student_academic_events (
+  id BIGSERIAL PRIMARY KEY,
+  reg_no TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  from_year INT,
+  to_year INT,
+  from_status TEXT,
+  to_status TEXT,
+  academic_year TEXT,
+  reason TEXT,
+  actor_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_student_academic_events_reg
+  ON student_academic_events (reg_no, created_at DESC);
 
 -- ---------- Results ----------
 CREATE TABLE IF NOT EXISTS results (

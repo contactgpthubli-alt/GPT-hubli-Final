@@ -5,6 +5,7 @@ import {
   badRequest,
   isActiveApprovedAccount,
 } from "@/lib/auth"
+import { getStudentAcademicForUser, getInstituteAcademicSettings } from "@/lib/student-academic"
 
 export async function POST(req: Request) {
   try {
@@ -93,6 +94,17 @@ export async function POST(req: Request) {
     // email + password before full portal use. No OTP on this step.
     const requiresSetup = !!user.force_password_change
 
+    let academic = null
+    let academic_settings = null
+    try {
+      academic_settings = await getInstituteAcademicSettings()
+      if (user.role === "student" && user.reg_no) {
+        academic = await getStudentAcademicForUser(user.reg_no)
+      }
+    } catch {
+      /* academic tables may not exist yet on first boot */
+    }
+
     return Response.json({
       requires_setup: requiresSetup,
       user: {
@@ -105,8 +117,13 @@ export async function POST(req: Request) {
         force_password_change: user.force_password_change,
         is_demo: user.is_demo,
         requires_setup: requiresSetup,
+        academic,
+        is_alumni: academic?.is_alumni === true,
+        read_only_portal: academic?.read_only_portal === true,
       },
+      academic_settings,
     })
+
   } catch (err) {
     console.error("[login]", err)
     return Response.json(
