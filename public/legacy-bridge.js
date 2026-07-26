@@ -8540,11 +8540,17 @@ setInterval(function () {
       /* ignore */
     }
     window._attRoster = roster;
+    var timeElMeta = document.getElementById('attTime');
+    var attTimeVal =
+      timeElMeta && timeElMeta.value
+        ? String(timeElMeta.value)
+        : new Date().toTimeString().slice(0, 5);
     window._attSessionMeta = {
       branch: branch,
       subject: subj,
       year: year || null,
       date: attDate,
+      time: attTimeVal,
       class_type: classType,
       batch: batch || null,
     };
@@ -8710,6 +8716,7 @@ setInterval(function () {
       subject: meta.subject,
       year: meta.year,
       date: meta.date,
+      time: meta.time || (document.getElementById('attTime') && document.getElementById('attTime').value) || null,
       class_type: meta.class_type,
       batch: meta.batch,
       entries: entries,

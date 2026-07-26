@@ -343,6 +343,11 @@ export async function POST(req: Request) {
 
   // Notify student + parent (same account; parent mode shows parent-kind alerts)
   const attDateStr = String(rows[0]?.att_date || attDate || new Date().toISOString()).slice(0, 10)
+  // Prefer session time from client (attTime input); else mark time now
+  const attTimeStr =
+    (b.time != null && String(b.time).trim()) ||
+    (b.att_time != null && String(b.att_time).trim()) ||
+    new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })
   let absentNotified = 0
   const absentees = entries.filter((e) => e.status === "A")
   for (const e of absentees) {
@@ -352,9 +357,10 @@ export async function POST(req: Request) {
         studentName: e.name,
         subject,
         attDate: attDateStr,
+        attTime: attTimeStr,
         branch,
         batch,
-        markedByName: user.display_name || user.role,
+        markedByName: user.display_name || user.role || "staff",
       })
       if (r.student || r.parent) absentNotified += 1
     } catch (err) {
