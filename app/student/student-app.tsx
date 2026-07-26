@@ -1294,7 +1294,7 @@ export default function StudentApp() {
       (extra["Mother Name"] != null ? String(extra["Mother Name"]) : "") ||
       (extra["Mother's Name"] != null ? String(extra["Mother's Name"]) : "")
     const reg = student?.reg_no || user?.reg_no || ""
-    const html = buildStudentProfilePrintHtml({
+    const profileInput = {
       name: student?.name || user?.display_name || "",
       reg_no: reg,
       branch: student?.dept || String(extra.Branch || profileDraft.Branch || ""),
@@ -1312,13 +1312,16 @@ export default function StudentApp() {
         "Register Number": reg,
         Branch: student?.dept || profileDraft.Branch || extra.Branch,
       },
-    })
+    }
+    const html = buildStudentProfilePrintHtml(profileInput)
     try {
-      flash("Preparing PDF…")
-      await downloadStudentProfilePdf(html, reg)
-      flash("Profile PDF ready — use Share / Save if needed")
-    } catch {
-      flash("Could not create profile PDF. Try again, or use Share from the preview.")
+      flash("Preparing A4 PDF…")
+      // Pass structured input so jsPDF builds exact A4 (not blank html2canvas capture)
+      await downloadStudentProfilePdf(html, reg, profileInput)
+      flash("A4 profile PDF ready — use Share / Save")
+    } catch (e) {
+      console.error("[profile pdf]", e)
+      flash("Could not create profile PDF. Try again.")
     }
   }
 

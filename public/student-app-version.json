@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
-  "minShell": "1.5.0",
-  "message": "Install APK v1.5.0 for status-bar notifications with default ringtone and reliable PDF Share/Save. Web list still updates on refresh."
+  "version": "1.5.1",
+  "minShell": "1.5.1",
+  "message": "Install APK v1.5.1: true A4 profile PDF + status-bar notifications with default ringtone. Allow Notifications when asked."
 }

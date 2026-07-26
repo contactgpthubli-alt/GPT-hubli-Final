@@ -2,8 +2,13 @@ package com.gpthubli.student;
 
 import android.Manifest;
 import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +21,8 @@ import android.webkit.WebView;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
@@ -25,24 +32,29 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 /**
- * Capacitor shell:
+ * Capacitor shell with:
+ * - System notifications (status bar + default ringtone) via GpthNative
+ * - PDF Share / Save via FileProvider
  * - DownloadListener for WebView file downloads
- * - JS bridge to save base64 PDF and open system Share sheet
- * - Request notification permission on Android 13+
  */
 public class MainActivity extends BridgeActivity {
     private static final int REQ_NOTIF = 1001;
+    private static final String CH_ATTENDANCE = "gpth_attendance";
+    private static final String CH_GENERAL = "gpth_general";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        createNotificationChannels();
         requestNotificationPermissionIfNeeded();
 
         getBridge().getWebView().post(() -> {
             WebView webView = getBridge().getWebView();
             if (webView == null) return;
 
+            // Allow JS bridge for remote https://gpt-hubli-final.vercel.app origin
+            webView.getSettings().setJavaScriptEnabled(true);
             webView.addJavascriptInterface(new GpthNativeBridge(), "GpthNative");
 
             webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
@@ -89,6 +101,42 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    private void createNotificationChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm == null) return;
+
+        Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        AudioAttributes audio = new AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build();
+
+        NotificationChannel att = new NotificationChannel(
+            CH_ATTENDANCE,
+            "Attendance alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        );
+        att.setDescription("Absent marks and attendance alerts");
+        att.enableVibration(true);
+        att.setVibrationPattern(new long[]{0, 250, 120, 250});
+        att.setSound(sound, audio);
+        att.enableLights(true);
+        att.setShowBadge(true);
+        nm.createNotificationChannel(att);
+
+        NotificationChannel gen = new NotificationChannel(
+            CH_GENERAL,
+            "GPT Hubli alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        );
+        gen.setDescription("General student notifications");
+        gen.enableVibration(true);
+        gen.setSound(sound, audio);
+        gen.setShowBadge(true);
+        nm.createNotificationChannel(gen);
+    }
+
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -102,11 +150,73 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    /**
-     * Exposed to WebView as window.GpthNative.savePdfBase64(filename, base64)
-     * Saves under cache and opens Android Share / Save sheet.
-     */
     public class GpthNativeBridge {
+        @JavascriptInterface
+        public String requestNotificationPermission() {
+            try {
+                runOnUiThread(() -> requestNotificationPermissionIfNeeded());
+                return "ok";
+            } catch (Exception e) {
+                return "error:" + e.getMessage();
+            }
+        }
+
+        /**
+         * Post status-bar notification with default system notification ringtone.
+         * Called from remote WebView JS: GpthNative.showNotification(title, body, id)
+         */
+        @JavascriptInterface
+        public String showNotification(String title, String body, int id) {
+            try {
+                createNotificationChannels();
+
+                if (Build.VERSION.SDK_INT >= 33) {
+                    if (ContextCompat.checkSelfPermission(
+                        MainActivity.this, Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                        runOnUiThread(() -> requestNotificationPermissionIfNeeded());
+                        // Still try; may be blocked until user grants
+                    }
+                }
+
+                Intent open = getPackageManager().getLaunchIntentForPackage(getPackageName());
+                if (open == null) {
+                    open = new Intent(MainActivity.this, MainActivity.class);
+                }
+                open.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    flags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+                PendingIntent pi = PendingIntent.getActivity(
+                    MainActivity.this, id > 0 ? id : 1, open, flags);
+
+                Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(
+                    MainActivity.this, CH_ATTENDANCE)
+                    .setSmallIcon(R.drawable.ic_stat_icon_config_sample)
+                    .setContentTitle(title != null ? title : "GPT Hubli")
+                    .setContentText(body != null ? body : "")
+                    .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(body != null ? body : ""))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setAutoCancel(true)
+                    .setSound(sound)
+                    .setVibrate(new long[]{0, 250, 120, 250})
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setContentIntent(pi);
+
+                NotificationManagerCompat.from(MainActivity.this)
+                    .notify(id > 0 ? id : (int) (System.currentTimeMillis() % 100000), builder.build());
+
+                return "ok";
+            } catch (Exception e) {
+                return "error:" + e.getMessage();
+            }
+        }
+
         @JavascriptInterface
         public String savePdfBase64(String filename, String base64) {
             try {
@@ -143,7 +253,6 @@ public class MainActivity extends BridgeActivity {
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(chooser);
 
-                // Also try public Downloads when possible
                 try {
                     File downloads = Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOWNLOADS);
@@ -155,7 +264,7 @@ public class MainActivity extends BridgeActivity {
                         p.close();
                     }
                 } catch (Exception ignored) {
-                    /* cache + share is enough */
+                    /* share is enough */
                 }
 
                 return "ok";

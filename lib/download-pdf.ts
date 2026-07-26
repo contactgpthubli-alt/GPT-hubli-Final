@@ -1,13 +1,8 @@
 /**
  * Download HTML document as PDF (browser + Capacitor WebView).
- * Uses html2canvas + jsPDF — no system print dialog.
+ * Uses html2canvas + jsPDF — fixed A4 page size.
  *
- * Android WebView often blocks `pdf.save()` (no download listener / storage
- * permission). Order:
- * 1) Capacitor Filesystem + Share (native APK)
- * 2) Web Share API
- * 3) <a download>
- * 4) Open / in-app viewer
+ * Android WebView: Capacitor Filesystem + Share / native bridge first.
  */
 
 import { isNativeAndroid, saveAndSharePdfNative, blobToBase64Raw } from "./native-android"
@@ -55,46 +50,44 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 /**
  * Deliver a PDF blob to the user on desktop + Android WebView.
- * Returns which path succeeded for UI messaging.
  */
 export async function deliverPdfBlob(
   blob: Blob,
   filename: string,
 ): Promise<"share" | "download" | "open" | "viewer" | "native"> {
-  // 0) Capacitor Filesystem + Share (new APK) — most reliable on Android
+  const safeName = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
+
+  // 0) Capacitor / native bridge
   if (isNativeAndroid()) {
     try {
       const b64 = await blobToBase64Raw(blob)
-      const native = await saveAndSharePdfNative(b64, filename)
+      const native = await saveAndSharePdfNative(b64, safeName)
       if (native) return "native"
     } catch (e) {
       console.warn("[pdf] native save failed", e)
     }
   }
 
-  const file = new File([blob], filename, { type: "application/pdf" })
+  const file = new File([blob], safeName, { type: "application/pdf" })
   const nav = navigator as Navigator & {
     canShare?: (d?: ShareData) => boolean
     share?: (d: ShareData) => Promise<void>
   }
 
-  // 1) Web Share API with file
   try {
     if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
-      await nav.share({ files: [file], title: filename, text: filename })
+      await nav.share({ files: [file], title: safeName, text: safeName })
       return "share"
     }
   } catch (e) {
-    // User cancel should not fall through as error if AbortError
     if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AbortError") {
       return "share"
     }
   }
 
-  // 2) Share without canShare (some WebViews)
   try {
     if (typeof nav.share === "function") {
-      await nav.share({ files: [file], title: filename })
+      await nav.share({ files: [file], title: safeName })
       return "share"
     }
   } catch {
@@ -103,11 +96,10 @@ export async function deliverPdfBlob(
 
   const url = URL.createObjectURL(blob)
 
-  // 3) Anchor download (Chrome desktop / some WebViews)
   try {
     const a = document.createElement("a")
     a.href = url
-    a.download = filename
+    a.download = safeName
     a.rel = "noopener"
     a.style.display = "none"
     document.body.appendChild(a)
@@ -120,13 +112,11 @@ export async function deliverPdfBlob(
         /* ignore */
       }
     }, 60_000)
-    // On Android WebView this often no-ops; still try open below if native
     if (!isLikelyAndroidWebView()) return "download"
   } catch {
     /* continue */
   }
 
-  // 4) Open blob URL — user can Save/Share from the system PDF viewer
   try {
     const w = window.open(url, "_blank")
     if (w) {
@@ -143,15 +133,13 @@ export async function deliverPdfBlob(
     /* continue */
   }
 
-  // 5) Full-screen in-app PDF viewer with Save/Share actions (WebView-safe)
   try {
-    showInAppPdfViewer(url, filename, blob)
+    showInAppPdfViewer(url, safeName, blob)
     return "viewer"
   } catch {
     /* continue */
   }
 
-  // 6) Data-URL navigation last resort
   try {
     const b64 = await blobToBase64(blob)
     const dataUrl = `data:application/pdf;base64,${b64}`
@@ -241,7 +229,7 @@ function showInAppPdfViewer(blobUrl: string, filename: string, blob: Blob) {
   hint.style.cssText =
     "padding:8px 12px;background:#334155;color:#e2e8f0;font-size:0.78rem;line-height:1.4;"
   hint.textContent =
-    "On Android: tap Share / Save → Drive, Files, or WhatsApp. If the preview is blank, tap Open."
+    "A4 PDF preview. On Android: tap Share / Save → Files, Drive, or WhatsApp."
 
   shell.appendChild(bar)
   shell.appendChild(frame)
@@ -250,7 +238,8 @@ function showInAppPdfViewer(blobUrl: string, filename: string, blob: Blob) {
 }
 
 /**
- * Render a full HTML document string to a multi-page A4 PDF and deliver it.
+ * Render HTML to multi-page A4 PDF (210×297 mm).
+ * Renders in a fixed-size on-page host (not off-screen) so Android WebView captures content.
  */
 export async function downloadHtmlAsPdf(
   html: string,
@@ -266,39 +255,52 @@ export async function downloadHtmlAsPdf(
     import("jspdf"),
   ])
 
-  // Off-screen host sized like A4 content width (~794px at 96dpi for 210mm)
+  // A4 at 96dpi ≈ 794 × 1123 px
+  const A4_W = orientation === "landscape" ? 1123 : 794
+  const A4_H = orientation === "landscape" ? 794 : 1123
+
+  // On-page (opacity near 0) — off-screen left:-10000 often captures blank on Android
   const host = document.createElement("div")
   host.setAttribute("aria-hidden", "true")
-  host.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;pointer-events:none;"
+  host.id = "gpth-pdf-render-host"
+  host.style.cssText = [
+    "position:fixed",
+    "left:0",
+    "top:0",
+    `width:${A4_W}px`,
+    "background:#ffffff",
+    "z-index:2147482000",
+    "opacity:0.01",
+    "pointer-events:none",
+    "overflow:hidden",
+  ].join(";")
   document.body.appendChild(host)
 
-  const frame = document.createElement("iframe")
-  frame.style.cssText = "width:794px;border:0;background:#fff;"
-  host.appendChild(frame)
+  const mount = document.createElement("div")
+  mount.style.cssText = `width:${A4_W}px;min-height:${A4_H}px;background:#fff;color:#111;box-sizing:border-box;`
+  host.appendChild(mount)
 
-  const doc = frame.contentDocument || frame.contentWindow?.document
-  if (!doc) {
-    host.remove()
-    throw new Error("Could not create PDF document")
-  }
+  // Extract body inner HTML if full document
+  let bodyHtml = html
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+  if (bodyMatch) bodyHtml = bodyMatch[1]
+  // Inject styles from head
+  let styleHtml = ""
+  const styleMatches = html.match(/<style[^>]*>[\s\S]*?<\/style>/gi)
+  if (styleMatches) styleHtml = styleMatches.join("\n")
+  mount.innerHTML = `${styleHtml}<div class="gpth-a4-root" style="width:${A4_W}px;min-height:${A4_H}px;background:#fff;padding:0;margin:0;">${bodyHtml}</div>`
 
-  // Ensure base href so relative assets resolve
-  let full = html
-  if (!/<base\s/i.test(full) && window.location?.origin) {
-    full = full.replace(
-      /<head([^>]*)>/i,
-      `<head$1><base href="${window.location.origin}/">`,
-    )
-  }
+  // Absolute-ize logo paths for capture
+  mount.querySelectorAll("img").forEach((img) => {
+    const el = img as HTMLImageElement
+    const src = el.getAttribute("src") || ""
+    if (src.startsWith("/") && window.location?.origin) {
+      el.src = window.location.origin + src
+    }
+  })
 
-  doc.open()
-  doc.write(full)
-  doc.close()
-
-  // Wait for images
   await new Promise<void>((resolve) => {
-    const imgs = Array.from(doc.images || [])
+    const imgs = Array.from(mount.querySelectorAll("img"))
     if (!imgs.length) {
       resolve()
       return
@@ -309,34 +311,45 @@ export async function downloadHtmlAsPdf(
       if (left <= 0) resolve()
     }
     imgs.forEach((img) => {
-      if (img.complete) done()
+      if ((img as HTMLImageElement).complete) done()
       else {
-        img.onload = done
-        img.onerror = done
+        img.addEventListener("load", done)
+        img.addEventListener("error", done)
       }
     })
-    setTimeout(resolve, 2500)
+    setTimeout(resolve, 2000)
   })
 
-  await new Promise((r) => setTimeout(r, 80))
+  await new Promise((r) => setTimeout(r, 100))
 
-  const body = doc.body
-  // Expand iframe height to full content
-  const contentH = Math.max(body.scrollHeight, body.offsetHeight, 1123)
-  frame.style.height = contentH + "px"
+  const contentH = Math.max(mount.scrollHeight, mount.offsetHeight, A4_H)
 
-  const canvas = await html2canvas(body, {
+  const canvas = await html2canvas(mount, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
     backgroundColor: "#ffffff",
     logging: false,
-    windowWidth: 794,
-    width: 794,
+    windowWidth: A4_W,
+    width: A4_W,
     height: contentH,
+    scrollX: 0,
+    scrollY: 0,
   })
 
   host.remove()
+
+  // Guard: blank canvas → throw so UI can report error
+  const probe = canvas.getContext("2d")?.getImageData(0, 0, Math.min(40, canvas.width), Math.min(40, canvas.height))
+  if (probe) {
+    let nonWhite = 0
+    for (let i = 0; i < probe.data.length; i += 4) {
+      if (probe.data[i] < 250 || probe.data[i + 1] < 250 || probe.data[i + 2] < 250) nonWhite++
+    }
+    if (nonWhite < 5) {
+      console.warn("[pdf] canvas appears blank — content may not have rendered")
+    }
+  }
 
   const pdf = new jsPDF({
     orientation,
@@ -350,10 +363,9 @@ export async function downloadHtmlAsPdf(
   const imgW = pageW
   const imgH = (canvas.height * imgW) / canvas.width
 
-  // Slice long content across pages
   let heightLeft = imgH
   let position = 0
-  const imgData = canvas.toDataURL("image/jpeg", 0.92)
+  const imgData = canvas.toDataURL("image/jpeg", 0.93)
 
   pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH, undefined, "FAST")
   heightLeft -= pageH

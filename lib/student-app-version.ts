@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.5.0"
+export const STUDENT_APP_VERSION = "1.5.1"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.5.1",
+    date: "2026-07-26",
+    title: "A4 profile PDF + reliable status-bar alerts",
+    items: [
+      "Student Profile PDF is true A4 (210×297 mm) with professional college header layout.",
+      "Status-bar notifications use Android NotificationManager + default ringtone (new APK).",
+      "Allow Notifications when prompted — required for alert sound.",
+      "Install APK v1.5.1 for notification bar + improved PDF.",
+    ],
+  },
   {
     version: "1.5.0",
     date: "2026-07-26",

@@ -1,6 +1,6 @@
 /**
- * Capacitor native bridge helpers (Student Android APK).
- * Works when the WebView has Capacitor plugins injected; no-ops on plain browser.
+ * Capacitor + native Java bridge helpers (Student Android APK).
+ * Works when WebView has Capacitor plugins or GpthNative injected.
  */
 
 type CapPlugin = {
@@ -15,12 +15,24 @@ type CapBridge = {
   convertFileSrc?: (path: string) => string
 }
 
+type GpthNativeBridge = {
+  savePdfBase64?: (f: string, b: string) => string
+  showNotification?: (title: string, body: string, id?: number) => string
+  requestNotificationPermission?: () => string
+}
+
 function cap(): CapBridge | null {
   if (typeof window === "undefined") return null
   return (window as unknown as { Capacitor?: CapBridge }).Capacitor || null
 }
 
+function gpthNative(): GpthNativeBridge | null {
+  if (typeof window === "undefined") return null
+  return (window as unknown as { GpthNative?: GpthNativeBridge }).GpthNative || null
+}
+
 export function isNativeAndroid(): boolean {
+  if (gpthNative()) return true
   const c = cap()
   if (!c) return false
   try {
@@ -28,6 +40,12 @@ export function isNativeAndroid(): boolean {
       const p = typeof c.getPlatform === "function" ? c.getPlatform() : ""
       return !p || p === "android" || p === "ios"
     }
+  } catch {
+    /* ignore */
+  }
+  // Capacitor remote WebView often still has Capacitor object
+  try {
+    if (c.Plugins && (c.Plugins.LocalNotifications || c.Plugins.Filesystem)) return true
   } catch {
     /* ignore */
   }
@@ -43,32 +61,47 @@ let notifChannelReady = false
 
 /** Request notification permission + create high-importance channel (default system tone). */
 export async function ensureNativeNotificationChannel(): Promise<boolean> {
+  // 1) Native Java bridge (most reliable with remote server.url WebView)
+  const gn = gpthNative()
+  if (gn && typeof gn.requestNotificationPermission === "function") {
+    try {
+      gn.requestNotificationPermission()
+    } catch {
+      /* ignore */
+    }
+  }
+
   const LN = plugin("LocalNotifications")
-  if (!LN) return false
+  if (!LN) {
+    // Still OK if Java bridge can post notifications
+    return !!gn
+  }
   try {
     if (typeof LN.requestPermissions === "function") {
       const perm = await LN.requestPermissions()
       const display = perm?.display || perm?.notifications || perm
-      if (display === "denied" || display?.display === "denied") return false
+      if (display === "denied" || display?.display === "denied") {
+        // Try Java path anyway
+        return !!gn
+      }
     }
     if (!notifChannelReady && typeof LN.createChannel === "function") {
       await LN.createChannel({
         id: "gpth_attendance",
         name: "Attendance alerts",
         description: "Absent marks and important student alerts",
-        importance: 5, // IMPORTANCE_HIGH — heads-up + sound
-        visibility: 1, // public
-        sound: "default", // Android default notification ringtone
+        importance: 5,
+        visibility: 1,
+        sound: "default",
         vibration: true,
         lights: true,
         lightColor: "#DC2626",
       })
-      // General channel
       await LN.createChannel({
         id: "gpth_general",
         name: "GPT Hubli alerts",
         description: "General college notifications",
-        importance: 4,
+        importance: 5,
         visibility: 1,
         sound: "default",
         vibration: true,
@@ -78,13 +111,13 @@ export async function ensureNativeNotificationChannel(): Promise<boolean> {
     return true
   } catch (e) {
     console.warn("[native] notification setup", e)
-    return false
+    return !!gn
   }
 }
 
 /**
  * Show a system notification (status bar + default ringtone).
- * Works in background WebView when app is open or recently used.
+ * Prefers MainActivity GpthNative (works with remote WebView), then Capacitor plugin.
  */
 export async function showNativeNotification(input: {
   title: string
@@ -92,24 +125,41 @@ export async function showNativeNotification(input: {
   id?: number
   channelId?: string
 }): Promise<boolean> {
+  const title = input.title || "GPT Hubli"
+  const body = (input.body || "").slice(0, 400)
+  const nid =
+    input.id && Number.isFinite(input.id)
+      ? Math.abs(Math.floor(input.id)) % 2147483647
+      : Math.floor(Date.now() % 2147483647)
+
+  // 1) Direct Android NotificationManager via JS bridge
+  try {
+    const gn = gpthNative()
+    if (gn && typeof gn.showNotification === "function") {
+      const r = gn.showNotification(title, body, nid || 1)
+      if (r === "ok" || (typeof r === "string" && !String(r).startsWith("error"))) {
+        return true
+      }
+      console.warn("[native] GpthNative.showNotification", r)
+    }
+  } catch (e) {
+    console.warn("[native] GpthNative notif", e)
+  }
+
+  // 2) Capacitor LocalNotifications
   const LN = plugin("LocalNotifications")
   if (!LN || typeof LN.schedule !== "function") return false
   try {
     await ensureNativeNotificationChannel()
-    const nid =
-      input.id && Number.isFinite(input.id)
-        ? Math.abs(Math.floor(input.id)) % 2147483647
-        : Math.floor(Date.now() % 2147483647)
     await LN.schedule({
       notifications: [
         {
           id: nid || 1,
-          title: input.title || "GPT Hubli",
-          body: input.body || "",
+          title,
+          body,
           channelId: input.channelId || "gpth_attendance",
           sound: "default",
           smallIcon: "ic_stat_icon_config_sample",
-          // Fallback icon names Capacitor may use from resources
           iconColor: "#1a4fa0",
           extra: { source: "gpth-student" },
         },
@@ -118,15 +168,13 @@ export async function showNativeNotification(input: {
     return true
   } catch (e) {
     console.warn("[native] schedule notification", e)
-    // Retry without smallIcon if resource missing
     try {
-      const nid = Math.floor(Date.now() % 2147483647)
       await LN.schedule({
         notifications: [
           {
-            id: nid,
-            title: input.title || "GPT Hubli",
-            body: input.body || "",
+            id: nid || Math.floor(Date.now() % 2147483647),
+            title,
+            body,
             channelId: input.channelId || "gpth_attendance",
             sound: "default",
           },
@@ -141,8 +189,7 @@ export async function showNativeNotification(input: {
 }
 
 /**
- * Save PDF base64 via Filesystem + open Android Share sheet (no storage permission dance).
- * Also writes to Cache so user can Share → Files / Drive / WhatsApp.
+ * Save PDF base64 via Filesystem + open Android Share sheet.
  */
 export async function saveAndSharePdfNative(
   base64: string,
@@ -152,14 +199,11 @@ export async function saveAndSharePdfNative(
     .replace(/[^\w.\-]+/g, "_")
     .slice(0, 80)
   const path = safe.endsWith(".pdf") ? safe : `${safe}.pdf`
-  // strip data-url prefix if present
   const data = base64.includes(",") ? base64.split(",").pop() || base64 : base64
 
-  // 1) Native Java bridge (MainActivity GpthNative) — most reliable Share sheet
+  // 1) Native Java bridge
   try {
-    const bridge = (window as unknown as {
-      GpthNative?: { savePdfBase64?: (f: string, b: string) => string }
-    }).GpthNative
+    const bridge = gpthNative()
     if (bridge && typeof bridge.savePdfBase64 === "function") {
       const r = bridge.savePdfBase64(path, data)
       if (r === "ok" || (typeof r === "string" && r.indexOf("error:") !== 0)) {
@@ -175,7 +219,6 @@ export async function saveAndSharePdfNative(
   if (!FS || typeof FS.writeFile !== "function") return null
 
   try {
-    // Cache is always writable without extra permission
     const written = await FS.writeFile({
       path,
       data,
@@ -183,7 +226,6 @@ export async function saveAndSharePdfNative(
       recursive: true,
     })
 
-    // Also try Documents / External for a real download location
     try {
       await FS.writeFile({
         path: `Download/${path}`,
@@ -220,7 +262,6 @@ export async function saveAndSharePdfNative(
         })
         return "shared"
       } catch (e) {
-        // user cancel still counts as success path for delivery
         if (e && typeof e === "object" && "message" in e) {
           const msg = String((e as { message?: string }).message || "")
           if (/cancel|abort/i.test(msg)) return "shared"
