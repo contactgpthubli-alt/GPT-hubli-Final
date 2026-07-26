@@ -8,6 +8,9 @@ import {
   normalizeVerifyRole,
   parseFormFields,
   fieldLabel,
+  fieldMaxMb,
+  approxBase64Bytes,
+  type FormField,
 } from "@/lib/forms"
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -119,18 +122,11 @@ export async function POST(req: Request, { params }: Ctx) {
     if (st === "pending") return badRequest("Your submission is already pending verification")
   }
 
-  // Validate required fields
+  // Validate required fields + file size limits
   const fields = parseFormFields(form.fields)
   const answers = b.answers as Record<string, unknown>
-  for (const f of fields) {
-    if (String(f.type || "").toLowerCase() === "section") continue
-    if (!f.required) continue
-    const key = fieldLabel(f)
-    const val = answers[key] ?? answers[f.id || ""]
-    if (val == null || String(val).trim() === "") {
-      return badRequest(`Please answer: ${key}`)
-    }
-  }
+  const fileErr = validateAnswers(fields, answers)
+  if (fileErr) return badRequest(fileErr)
 
   const verifyRole = normalizeVerifyRole(form.verify_role)
   const autoOk = verifyRole === "none"
@@ -148,7 +144,11 @@ export async function POST(req: Request, { params }: Ctx) {
   return Response.json({ ok: true, response: rows[0] })
 }
 
-/** Approve / reject a response. Body: { response_id, action: 'verify'|'reject', note? } */
+/**
+ * PATCH actions:
+ * - verify | approve | reject  (verifier)
+ * - edit  (form owner / admin / principal) — update answers; student sees new data
+ */
 export async function PATCH(req: Request, { params }: Ctx) {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
@@ -160,13 +160,50 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const b = await req.json().catch(() => null)
   if (!b?.response_id) return badRequest("response_id is required")
   const action = String(b.action || b.status || "").toLowerCase()
-  if (action !== "verify" && action !== "approve" && action !== "reject") {
-    return badRequest("action must be verify or reject")
-  }
 
   const formRes = await query(`SELECT * FROM forms WHERE id = $1`, [formId])
   const form = formRes.rows[0] as Record<string, unknown> | undefined
   if (!form) return badRequest("Form not found")
+
+  const role = String(user.role || "").toLowerCase()
+  const isOwner =
+    (FORM_BUILDERS as readonly string[]).includes(role) ||
+    Number(form.created_by) === user.id
+
+  // --- Owner edits answers ---
+  if (action === "edit" || action === "update") {
+    if (!isOwner) return unauthorized("Only form owner / admin can edit responses")
+    if (!b.answers || typeof b.answers !== "object") return badRequest("answers are required")
+    const fields = parseFormFields(form.fields)
+    const answers = b.answers as Record<string, unknown>
+    const err = validateAnswers(fields, answers, { skipRequired: true })
+    if (err) return badRequest(err)
+    const editNote = b.edit_note != null ? String(b.edit_note).trim() : b.note != null ? String(b.note).trim() : ""
+    const { rows } = await query(
+      `UPDATE form_responses
+          SET answers = $3::jsonb,
+              edited_by = $4,
+              edited_by_name = $5,
+              edited_at = now(),
+              edit_note = $6
+        WHERE id = $1 AND form_id = $2
+        RETURNING *`,
+      [
+        Number(b.response_id),
+        formId,
+        JSON.stringify(answers),
+        user.id,
+        String(user.display_name || user.email || user.role),
+        editNote || null,
+      ],
+    )
+    if (!rows[0]) return badRequest("Response not found")
+    return Response.json({ ok: true, response: rows[0] })
+  }
+
+  if (action !== "verify" && action !== "approve" && action !== "reject") {
+    return badRequest("action must be verify, reject, or edit")
+  }
 
   if (!canVerifyForm(String(form.verify_role), user.role)) {
     return unauthorized("You are not the verifier for this form")
@@ -195,4 +232,45 @@ export async function PATCH(req: Request, { params }: Ctx) {
   )
   if (!rows[0]) return badRequest("Pending response not found")
   return Response.json({ ok: true, response: rows[0] })
+}
+
+function validateAnswers(
+  fields: FormField[],
+  answers: Record<string, unknown>,
+  opts?: { skipRequired?: boolean },
+): string | null {
+  for (const f of fields) {
+    const type = String(f.type || "").toLowerCase()
+    if (type === "section") continue
+    const key = fieldLabel(f)
+    const val = answers[key] ?? (f.id ? answers[f.id] : undefined)
+
+    if (!opts?.skipRequired && f.required) {
+      if (val == null || (typeof val === "string" && !val.trim())) {
+        return `Please answer: ${key}`
+      }
+      if (type === "file" && typeof val === "object" && val) {
+        const o = val as { data?: string; name?: string }
+        if (!o.data && !o.name) return `Please upload a file for: ${key}`
+      }
+    }
+
+    if (type === "file" && val && typeof val === "object") {
+      const o = val as { data?: string; name?: string; size?: number; mime?: string }
+      const data = String(o.data || "")
+      if (data) {
+        const bytes = approxBase64Bytes(data)
+        const maxMb = fieldMaxMb(f)
+        const maxBytes = maxMb * 1024 * 1024
+        if (bytes > maxBytes) {
+          return `File for "${key}" exceeds max size (${maxMb} MB)`
+        }
+        // Hard server cap ~4MB decoded to stay under typical body limits
+        if (bytes > 4 * 1024 * 1024) {
+          return `File for "${key}" is too large (server max 4 MB)`
+        }
+      }
+    }
+  }
+  return null
 }

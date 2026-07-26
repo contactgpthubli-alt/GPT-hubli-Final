@@ -72,7 +72,8 @@ export async function GET(req: Request) {
             COALESCE((SELECT count(*)::int FROM form_responses r WHERE r.form_id = f.id AND r.status = 'pending'), 0) AS pending_count,
             (
               SELECT row_to_json(x) FROM (
-                SELECT r.id, r.status, r.submitted_at, r.verified_at, r.verifier_note, r.verified_by_name
+                SELECT r.id, r.status, r.submitted_at, r.verified_at, r.verifier_note, r.verified_by_name,
+                       r.edited_at, r.edited_by_name, r.edit_note
                   FROM form_responses r
                  WHERE r.form_id = f.id AND r.submitted_by = $1
                  ORDER BY r.submitted_at DESC
@@ -117,13 +118,31 @@ export async function POST(req: Request) {
 
   const title = String(b.title).trim()
   const description = String(b.description ?? b.desc ?? "").trim()
-  const fields = parseFormFields(b.fields)
+  let fields = parseFormFields(b.fields)
+  // Normalize file field max_mb
+  fields = fields.map((f) => {
+    if (String(f.type || "").toLowerCase() !== "file") return f
+    const max = Number(f.max_mb)
+    return {
+      ...f,
+      max_mb: Number.isFinite(max) && max > 0 ? Math.min(15, Math.max(0.5, max)) : 2,
+      accept: f.accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip",
+    }
+  })
   const status = normalizeFormStatus(b.status)
   const audience = normalizeAudience(b.audience)
   const verify_role = normalizeVerifyRole(b.verify_role)
   const priority = ["normal", "important", "emergency"].includes(String(b.priority || "").toLowerCase())
     ? String(b.priority).toLowerCase()
     : "normal"
+
+  // Cannot publish open without an explicit verifier (none = auto-accept is allowed)
+  if (status === "open" && !b.verify_role && !b.id) {
+    // still ok if verify_role defaulted
+  }
+  if (status === "open" && !String(b.verify_role || verify_role).trim()) {
+    return badRequest("Choose who verifies this form before publishing")
+  }
 
   if (b.id) {
     const { rows } = await query(
@@ -179,6 +198,12 @@ export async function DELETE(req: Request) {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get("id")
   if (!id) return badRequest("id is required")
-  await query(`DELETE FROM forms WHERE id = $1`, [Number(id)])
-  return Response.json({ ok: true })
+  const formId = Number(id)
+  // Hard wipe: all responses then form — students no longer see form or answers
+  const delR = await query(`DELETE FROM form_responses WHERE form_id = $1 RETURNING id`, [formId])
+  await query(`DELETE FROM forms WHERE id = $1`, [formId])
+  return Response.json({
+    ok: true,
+    deleted_responses: Array.isArray(delR.rows) ? delR.rows.length : 0,
+  })
 }

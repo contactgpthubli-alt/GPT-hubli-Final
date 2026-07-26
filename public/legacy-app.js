@@ -1690,7 +1690,7 @@ function addGFField(type) {
   const hint = document.getElementById('gfEmptyHint');
   if (hint) hint.remove();
   gfFieldCount++;
-  const fd = { id:'gff_'+gfFieldCount, type, question:'', required:false, options:[] };
+  const fd = { id:'gff_'+gfFieldCount, type, question:'', required:false, options:[], max_mb: type === 'file' ? 2 : undefined };
   if (['radio','checkbox','dropdown'].includes(type)) fd.options = ['Option 1','Option 2'];
   buildFieldCard(fd);
 }
@@ -1717,7 +1717,8 @@ function buildFieldCard(fd) {
   const card = document.createElement('div');
   card.id = fd.id; card.className = 'gf-card';
 
-  const typeLabel = {text:'Short Answer',paragraph:'Paragraph',radio:'Multiple Choice',checkbox:'Checkboxes',dropdown:'Dropdown',date:'Date',time:'Time',file:'File Upload'}[fd.type] || fd.type;
+  const typeLabel = {text:'Short Answer',paragraph:'Paragraph',radio:'Multiple Choice',checkbox:'Checkboxes',dropdown:'Dropdown',date:'Date',time:'Time',file:'File Upload',number:'Number',email:'Email'}[fd.type] || fd.type;
+  const maxMb = (fd.max_mb != null && Number(fd.max_mb) > 0) ? Number(fd.max_mb) : 2;
 
   let fieldPreview = '';
   if (fd.type === 'text')      fieldPreview = '<div style="border-bottom:1px solid #94a3b8;width:60%;padding:4px 0;font-size:0.8rem;color:#94a3b8;font-family:\'Plus Jakarta Sans\',sans-serif;">Short answer text</div>';
@@ -1726,14 +1727,13 @@ function buildFieldCard(fd) {
   else if (fd.type === 'time') fieldPreview = '<div style="font-size:0.82rem;color:#94a3b8;font-family:\'Plus Jakarta Sans\',sans-serif;padding:4px 0;">🕐 Time</div>';
   else if (fd.type === 'file') fieldPreview = (
     '<div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-top:6px;">' +
-    '<div style="font-size:0.78rem;font-weight:700;color:#1a2437;margin-bottom:8px;font-family:\'Plus Jakarta Sans\',sans-serif;">Accepted file types:</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
-      ['📄 PDF (10 MB)','📝 DOC/DOCX (5 MB)','📊 XLS/XLSX (5 MB)','🖼️ JPG/PNG (2 MB)','📸 JPEG (2 MB)','📦 ZIP (15 MB)','📋 PPT/PPTX (10 MB)','📃 TXT (1 MB)'].map(f =>
-        '<span style="background:#e0f2fe;color:#0369a1;padding:3px 9px;border-radius:20px;font-size:0.7rem;font-family:\'Plus Jakarta Sans\',sans-serif;">' + f + '</span>'
-      ).join('') +
-    '</div>' +
+    '<div style="font-size:0.78rem;font-weight:700;color:#1a2437;margin-bottom:8px;font-family:\'Plus Jakarta Sans\',sans-serif;">📎 File upload</div>' +
+    '<label style="font-size:0.75rem;font-weight:700;color:#334155;display:block;margin-bottom:4px;">Max file size (MB)</label>' +
+    '<input type="number" class="gf-max-mb" min="0.5" max="15" step="0.5" value="'+maxMb+'" ' +
+      'style="width:120px;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:0.82rem;margin-bottom:8px;" />' +
+    '<div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;">PDF, DOC, XLS, JPG, PNG, ZIP · server cap ~4 MB per file for reliability</div>' +
     '<div style="border:2px dashed #cbd5e1;border-radius:7px;padding:14px;text-align:center;font-size:0.78rem;color:#94a3b8;font-family:\'Plus Jakarta Sans\',sans-serif;">' +
-      '📎 Drag & drop or click to upload' +
+      'Students will upload a file (max '+maxMb+' MB)' +
     '</div></div>'
   );
 
@@ -1808,7 +1808,13 @@ function collectGFFields() {
       typeLabel === 'File Upload'  ? 'file' : 'text';
     const optInputs = card.querySelectorAll('.gf-option-inp');
     const options = Array.from(optInputs).map(i => i.value.trim()).filter(Boolean);
-    fields.push({ id: card.id, type, question, required, options });
+    const maxMbEl = card.querySelector('.gf-max-mb');
+    let max_mb = undefined;
+    if (type === 'file') {
+      const n = maxMbEl ? Number(maxMbEl.value) : 2;
+      max_mb = Number.isFinite(n) && n > 0 ? Math.min(15, Math.max(0.5, n)) : 2;
+    }
+    fields.push({ id: card.id, type, question, required, options, max_mb, label: question });
   });
   return fields;
 }
@@ -2028,21 +2034,36 @@ function dismissFormNotif() {
 }
 
 function deleteForm(btn, title) {
+  // Prefer live API delete when row has form id
+  const row = btn && btn.closest ? btn.closest('tr') : null;
+  const formId = row && row.getAttribute('data-form-id');
+  if (formId && typeof window.renderLiveFormManager === 'function') {
+    if (!confirm('DELETE form "' + title + '" and ALL submissions from the database?\nStudents will no longer see it.')) return;
+    fetch('/api/forms?id=' + encodeURIComponent(formId), { method: 'DELETE', credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { alert((x.d && x.d.error) || 'Delete failed'); return; }
+        window.renderLiveFormManager();
+      })
+      .catch(function () { alert('Network error'); });
+    return;
+  }
   if (!confirm('Delete form "' + title + '"?\nThis cannot be undone.')) return;
   delete formStore[title];
-  const row = btn.closest('tr');
-  row.style.transition = 'opacity 0.3s';
-  row.style.opacity = '0';
-  setTimeout(() => {
-    row.remove();
-    const tbody = document.getElementById('formListBody');
-    if (tbody && tbody.children.length === 0) {
-      const tr = document.createElement('tr');
-      tr.id = 'formEmptyRow';
-      tr.innerHTML = '<td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong> to build one.</td>';
-      tbody.appendChild(tr);
-    }
-  }, 300);
+  if (row) {
+    row.style.transition = 'opacity 0.3s';
+    row.style.opacity = '0';
+    setTimeout(() => {
+      row.remove();
+      const tbody = document.getElementById('formListBody');
+      if (tbody && tbody.children.length === 0) {
+        const tr = document.createElement('tr');
+        tr.id = 'formEmptyRow';
+        tr.innerHTML = '<td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong> to build one.</td>';
+        tbody.appendChild(tr);
+      }
+    }, 300);
+  }
 }
 
 function openFormApprover(formName) {

@@ -2593,10 +2593,16 @@ function __initGptBridge() {
     if (user && user.role === 'student') {
       try { ensureStudentTimetableMenu(); } catch (e) { console.warn('[bridge] student TT menu', e); }
     }
-    // Forms: ensure builder meta + verifier menu
+    // Forms: ensure builder meta + verifier menu + preload admin list
     try {
       if (typeof window.ensureFormBuilderMeta === 'function') window.ensureFormBuilderMeta();
       if (typeof window.ensureFormVerifyMenu === 'function') window.ensureFormVerifyMenu(user);
+      if (user && (user.role === 'admin' || user.role === 'principal') &&
+          typeof window.renderLiveFormManager === 'function') {
+        setTimeout(function () {
+          try { window.renderLiveFormManager(); } catch (e2) { /* ignore */ }
+        }, 200);
+      }
     } catch (e) { console.warn('[bridge] forms boot', e); }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
@@ -10408,26 +10414,47 @@ setInterval(function () {
 
   window.renderLiveFormManager = async function renderLiveFormManager() {
     window.ensureFormBuilderMeta();
+    // Rebuild entire list so demo View/Share rows never stick
+    var listView = document.getElementById('formListView');
+    if (listView) {
+      listView.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">' +
+        '<div><h3 style="font-family:Libre Baskerville,serif;font-size:0.95rem;color:var(--navy);margin:0;">My Forms</h3>' +
+        '<div style="font-size:0.75rem;opacity:.75;margin-top:4px;">Set <strong>who verifies</strong> before publish. Delete erases form + all student data.</div></div>' +
+        '<button type="button" class="btn pr" id="liveCreateFormBtn">+ Create New Form</button></div>' +
+        '<div class="card"><div style="overflow:auto;"><table style="width:100%;"><thead><tr>' +
+        '<th>Form</th><th>Audience / Verifier</th><th>Status</th><th>Actions</th></tr></thead>' +
+        '<tbody id="formListBody"><tr><td colspan="4" style="padding:20px;opacity:.7;">Loading…</td></tr></tbody></table></div></div>' +
+        '<div id="liveFormResponsesPanel" style="display:none;margin-top:16px;"></div>';
+      var createBtn = document.getElementById('liveCreateFormBtn');
+      if (createBtn) {
+        createBtn.onclick = function () {
+          window.openLiveFormEditor(null);
+        };
+      }
+    }
     var tbody = document.getElementById('formListBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;opacity:.7;">Loading forms…</td></tr>';
     try {
       var res = await fetch('/api/forms?_ts=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' });
       var data = await res.json().catch(function () { return null; });
       if (!res.ok || !data || !Array.isArray(data.forms)) {
-        tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;color:#991b1b;">Could not load forms.</td></tr>';
+        tbody.innerHTML =
+          '<tr><td colspan="4" style="padding:20px;color:#991b1b;">Could not load forms. ' +
+          fEsc((data && data.error) || 'Hard-refresh and try again.') +
+          '</td></tr>';
         return;
       }
       window._liveForms = data.forms;
       if (!data.forms.length) {
         tbody.innerHTML =
-          '<tr id="formEmptyRow"><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong> to build one.</td></tr>';
+          '<tr id="formEmptyRow"><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong>.</td></tr>';
         return;
       }
       tbody.innerHTML = data.forms
         .map(function (f) {
           var st = String(f.status || 'open');
-          var my = f.pending_count != null ? f.pending_count : 0;
+          var pending = f.pending_count != null ? f.pending_count : 0;
           return (
             '<tr data-form-id="' +
             f.id +
@@ -10436,17 +10463,18 @@ setInterval(function () {
             fEsc(f.title) +
             '</strong>' +
             (f.description
-              ? '<div style="font-size:0.68rem;color:var(--text-muted);">' + fEsc(f.description) + '</div>'
+              ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;">' + fEsc(f.description) + '</div>'
               : '') +
-            '<div style="font-size:0.68rem;margin-top:4px;opacity:.8;">' +
-            fEsc(audienceLabel(f.audience)) +
-            ' · Verifier: ' +
-            fEsc(verifyLabel(f.verify_role)) +
-            ' · ' +
+            '<div style="font-size:0.68rem;margin-top:4px;opacity:.75;">' +
             (f.response_count || 0) +
             ' response(s)' +
-            (my ? ' · <strong style="color:#b45309;">' + my + ' pending</strong>' : '') +
+            (pending ? ' · <strong style="color:#b45309;">' + pending + ' pending</strong>' : '') +
             '</div></td>' +
+            '<td style="font-size:0.78rem;">' +
+            fEsc(audienceLabel(f.audience)) +
+            '<br/><strong>Verifier:</strong> ' +
+            fEsc(verifyLabel(f.verify_role)) +
+            '</td>' +
             '<td><span class="badge ' +
             statusBadge(st) +
             '">' +
@@ -10455,7 +10483,7 @@ setInterval(function () {
             '<td><div style="display:flex;gap:5px;flex-wrap:wrap;">' +
             '<button type="button" class="btn pr" data-live-form-edit="' +
             f.id +
-            '">✏️ Edit</button>' +
+            '">✏️ Edit form</button>' +
             '<button type="button" class="btn go" data-live-form-responses="' +
             f.id +
             '">📥 Responses</button>' +
@@ -10464,7 +10492,7 @@ setInterval(function () {
               : '<button type="button" class="btn ol" data-live-form-open="' + f.id + '">Publish</button>') +
             '<button type="button" class="btn re" data-live-form-del="' +
             f.id +
-            '">🗑️</button>' +
+            '">🗑 Delete all</button>' +
             '</div></td></tr>'
           );
         })
@@ -10480,24 +10508,39 @@ setInterval(function () {
       tbody.querySelectorAll('[data-live-form-del]').forEach(function (btn) {
         btn.onclick = async function () {
           var id = btn.getAttribute('data-live-form-del');
-          if (!confirm('Delete this form and all responses?')) return;
+          if (
+            !confirm(
+              'DELETE this form and ALL submissions from the database?\n\nStudents will no longer see this form. This cannot be undone.',
+            )
+          ) {
+            return;
+          }
           var r = await fetch('/api/forms?id=' + encodeURIComponent(id), {
             method: 'DELETE',
             credentials: 'same-origin',
           });
+          var d = await r.json().catch(function () { return null; });
           if (!r.ok) {
-            var d = await r.json().catch(function () { return null; });
             alert((d && d.error) || 'Delete failed');
             return;
           }
+          alert(
+            'Form deleted' +
+              (d && d.deleted_responses != null ? ' (' + d.deleted_responses + ' response(s) erased)' : '') +
+              '.',
+          );
           window.renderLiveFormManager();
         };
       });
       tbody.querySelectorAll('[data-live-form-close]').forEach(function (btn) {
-        btn.onclick = function () { window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-close')), 'closed'); };
+        btn.onclick = function () {
+          window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-close')), 'closed');
+        };
       });
       tbody.querySelectorAll('[data-live-form-open]').forEach(function (btn) {
-        btn.onclick = function () { window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-open')), 'open'); };
+        btn.onclick = function () {
+          window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-open')), 'open');
+        };
       });
       tbody.querySelectorAll('[data-live-form-responses]').forEach(function (btn) {
         btn.onclick = function () {
@@ -10539,10 +10582,22 @@ setInterval(function () {
   window.openLiveFormEditor = function openLiveFormEditor(f) {
     window.ensureFormBuilderMeta();
     window._editingFormId = f ? f.id : null;
+    // Clear modal via original opener when available
     if (typeof window.openCreateFormModal === 'function') {
-      // Use empty then fill — openCreateFormModal clears canvas
-      window.openCreateFormModal(null);
+      try {
+        // Call original if we wrapped it — clear canvas
+        var titleEl0 = document.getElementById('fbFormTitle');
+        var canvas0 = document.getElementById('gfCanvas');
+        var modal0 = document.getElementById('formBuilderModal');
+        if (titleEl0) titleEl0.value = '';
+        if (canvas0) {
+          canvas0.innerHTML =
+            '<div id="gfEmptyHint" style="text-align:center;color:#94a3b8;padding:32px;background:white;border-radius:10px;font-size:0.82rem;">Click a field type above to add questions</div>';
+        }
+        if (modal0) modal0.style.display = 'flex';
+      } catch (e) { /* ignore */ }
     }
+    window.ensureFormBuilderMeta();
     var titleEl = document.getElementById('fbFormTitle');
     var descEl = document.getElementById('fbFormDesc');
     var canvas = document.getElementById('gfCanvas');
@@ -10563,7 +10618,11 @@ setInterval(function () {
       canvas.innerHTML = '';
       var fields = Array.isArray(f.fields) ? f.fields : [];
       if (typeof f.fields === 'string') {
-        try { fields = JSON.parse(f.fields); } catch (e) { fields = []; }
+        try {
+          fields = JSON.parse(f.fields);
+        } catch (e) {
+          fields = [];
+        }
       }
       if (!fields.length) {
         canvas.innerHTML =
@@ -10577,6 +10636,7 @@ setInterval(function () {
             required: !!fd.required,
             options: fd.options || [],
             desc: fd.desc || '',
+            max_mb: fd.max_mb,
           });
         });
       }
@@ -10597,7 +10657,7 @@ setInterval(function () {
     var fields = typeof window.collectGFFields === 'function' ? window.collectGFFields() : [];
     // Normalize labels for API (question field)
     fields = fields.map(function (fd) {
-      return {
+      var out = {
         id: fd.id,
         type: fd.type,
         question: fd.question || fd.label || '',
@@ -10605,15 +10665,29 @@ setInterval(function () {
         required: !!fd.required,
         options: fd.options || [],
       };
+      if (String(fd.type || '').toLowerCase() === 'file') {
+        var n = Number(fd.max_mb);
+        out.max_mb = Number.isFinite(n) && n > 0 ? Math.min(15, Math.max(0.5, n)) : 2;
+        out.accept = fd.accept || '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip';
+      }
+      return out;
     });
     var idEl = document.getElementById('fbFormId');
+    var verifyRole =
+      (document.getElementById('fbVerifyRole') && document.getElementById('fbVerifyRole').value) || '';
+    var status =
+      (document.getElementById('fbFormStatus') && document.getElementById('fbFormStatus').value) || 'open';
+    if (status === 'open' && !verifyRole) {
+      alert('Choose who verifies this form before publishing (Audience + Verifier).');
+      return;
+    }
     var body = {
       title: title,
       description: desc,
       fields: fields,
       audience: (document.getElementById('fbAudience') && document.getElementById('fbAudience').value) || 'students',
-      verify_role: (document.getElementById('fbVerifyRole') && document.getElementById('fbVerifyRole').value) || 'acm',
-      status: (document.getElementById('fbFormStatus') && document.getElementById('fbFormStatus').value) || 'open',
+      verify_role: verifyRole || 'acm',
+      status: status,
       priority: (document.getElementById('fbPriority') && document.getElementById('fbPriority').value) || 'normal',
     };
     if (idEl && idEl.value) body.id = Number(idEl.value);
@@ -10647,6 +10721,13 @@ setInterval(function () {
   };
 
   window.viewLiveFormResponses = async function viewLiveFormResponses(formId) {
+    var panel = document.getElementById('liveFormResponsesPanel');
+    if (!panel) {
+      alert('Open Form Builder section first.');
+      return;
+    }
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="card" style="padding:16px;">Loading responses…</div>';
     try {
       var res = await fetch('/api/forms/' + formId + '/responses?_ts=' + Date.now(), {
         credentials: 'same-origin',
@@ -10654,34 +10735,184 @@ setInterval(function () {
       });
       var data = await res.json().catch(function () { return null; });
       if (!res.ok) {
-        alert((data && data.error) || 'Could not load responses');
+        panel.innerHTML = '<div class="warn-box">' + fEsc((data && data.error) || 'Could not load') + '</div>';
         return;
       }
       var list = data.responses || [];
-      var msg =
-        'Responses: ' +
-        list.length +
-        '\n\n' +
-        list
-          .slice(0, 15)
-          .map(function (r, i) {
+      var form = data.form || {};
+      var html =
+        '<div class="card" style="padding:16px;">' +
+        '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">' +
+        '<h3 style="margin:0;color:var(--navy);">📥 Responses — ' +
+        fEsc(form.title || '') +
+        '</h3>' +
+        '<button type="button" class="btn ol" id="liveRespClose">Close panel</button></div>';
+      if (!list.length) {
+        html += '<div class="info-box">No submissions yet.</div></div>';
+        panel.innerHTML = html;
+        document.getElementById('liveRespClose').onclick = function () {
+          panel.style.display = 'none';
+        };
+        return;
+      }
+      list.forEach(function (r) {
+        var answers = r.answers || {};
+        if (typeof answers === 'string') {
+          try {
+            answers = JSON.parse(answers);
+          } catch (e) {
+            answers = {};
+          }
+        }
+        var ansHtml = Object.keys(answers)
+          .map(function (k) {
+            var v = answers[k];
+            var shown = v;
+            if (v && typeof v === 'object' && (v.name || v.data)) {
+              shown = '📎 ' + (v.name || 'file') + (v.size ? ' (' + Math.round(v.size / 1024) + ' KB)' : '');
+            }
             return (
-              i +
-              1 +
-              '. ' +
-              (r.submitter_name || r.submitter_reg || r.submitted_by) +
-              ' — ' +
-              (r.status || '') +
-              ' — ' +
-              fFmtDate(r.submitted_at)
+              '<div style="font-size:0.78rem;margin:3px 0;"><strong>' +
+              fEsc(k) +
+              ':</strong> ' +
+              fEsc(shown) +
+              '</div>'
             );
           })
-          .join('\n') +
-        (list.length > 15 ? '\n…' : '');
-      alert(msg || 'No responses yet.');
+          .join('');
+        html +=
+          '<div class="card" style="padding:12px;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;" data-owner-resp="' +
+          r.id +
+          '">' +
+          '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+          '<div><strong>' +
+          fEsc(r.submitter_name || r.submitter_reg || 'User') +
+          '</strong>' +
+          '<div style="font-size:0.72rem;opacity:.75;">' +
+          fEsc(r.submitter_reg || '') +
+          ' · ' +
+          fEsc(fFmtDate(r.submitted_at)) +
+          ' · <span class="badge ' +
+          statusBadge(r.status) +
+          '">' +
+          fEsc(r.status) +
+          '</span></div>' +
+          (r.edited_at
+            ? '<div style="font-size:0.72rem;color:#1d4ed8;margin-top:3px;">Edited by ' +
+              fEsc(r.edited_by_name || 'admin') +
+              ' on ' +
+              fEsc(fFmtDate(r.edited_at)) +
+              (r.edit_note ? ' — ' + fEsc(r.edit_note) : '') +
+              '</div>'
+            : '') +
+          '<div style="margin-top:8px;">' +
+          ansHtml +
+          '</div></div>' +
+          '<div style="display:flex;flex-direction:column;gap:6px;">' +
+          '<button type="button" class="btn pr" data-owner-edit="' +
+          r.id +
+          '">✏️ Edit answers</button>' +
+          (String(r.status) === 'pending'
+            ? '<button type="button" class="btn gr" data-owner-verify="' +
+              r.id +
+              '">✓ Verify</button>'
+            : '') +
+          '</div></div></div>';
+      });
+      html += '</div>';
+      panel.innerHTML = html;
+      document.getElementById('liveRespClose').onclick = function () {
+        panel.style.display = 'none';
+      };
+      panel.querySelectorAll('[data-owner-edit]').forEach(function (btn) {
+        btn.onclick = function () {
+          var rid = Number(btn.getAttribute('data-owner-edit'));
+          var r = list.find(function (x) {
+            return Number(x.id) === rid;
+          });
+          if (r) window.openOwnerEditResponse(formId, r, form);
+        };
+      });
+      panel.querySelectorAll('[data-owner-verify]').forEach(function (btn) {
+        btn.onclick = async function () {
+          await window.verifyFormResponse(formId, btn.getAttribute('data-owner-verify'), 'verify');
+          window.viewLiveFormResponses(formId);
+        };
+      });
     } catch (e) {
-      alert('Failed to load responses');
+      panel.innerHTML = '<div class="warn-box">Failed to load responses</div>';
     }
+  };
+
+  window.openOwnerEditResponse = function openOwnerEditResponse(formId, response, form) {
+    var answers = response.answers || {};
+    if (typeof answers === 'string') {
+      try {
+        answers = JSON.parse(answers);
+      } catch (e) {
+        answers = {};
+      }
+    }
+    var keys = Object.keys(answers);
+    if (!keys.length) {
+      alert('No answers to edit');
+      return;
+    }
+    var lines = keys
+      .map(function (k) {
+        var v = answers[k];
+        if (v && typeof v === 'object') return k + ' = [file: ' + (v.name || 'attachment') + ']';
+        return k + ' = ' + String(v == null ? '' : v);
+      })
+      .join('\n');
+    var edited = prompt(
+      'Edit answers as lines: Label = value\n(File fields keep as-is if you leave [file: …])\n\nCurrent:\n' +
+        lines +
+        '\n\nPaste full updated text:',
+      lines,
+    );
+    if (edited == null) return;
+    var next = {};
+    edited.split('\n').forEach(function (line) {
+      var i = line.indexOf('=');
+      if (i < 0) return;
+      var k = line.slice(0, i).trim();
+      var v = line.slice(i + 1).trim();
+      if (!k) return;
+      if (/^\[file:/i.test(v) && answers[k] && typeof answers[k] === 'object') {
+        next[k] = answers[k];
+      } else {
+        next[k] = v;
+      }
+    });
+    var note = prompt('Edit note (shown to student, optional):', '') || '';
+    fetch('/api/forms/' + formId + '/responses', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        response_id: response.id,
+        action: 'edit',
+        answers: next,
+        edit_note: note,
+      }),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) {
+          return { ok: r.ok, d: d };
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) {
+          alert((x.d && x.d.error) || 'Edit failed');
+          return;
+        }
+        alert('Response updated. Student will see the new answers / PDF.');
+        window.viewLiveFormResponses(formId);
+      })
+      .catch(function () {
+        alert('Network error');
+      });
   };
 
   // Hook Create button if present
@@ -10797,6 +11028,14 @@ setInterval(function () {
                 fEsc(my.verifier_note) +
                 '</div>'
               : '') +
+            (my.edited_at
+              ? '<div style="font-size:0.75rem;margin-top:4px;color:#1d4ed8;">Updated by ' +
+                fEsc(my.edited_by_name || 'admin') +
+                ' on ' +
+                fEsc(fFmtDate(my.edited_at)) +
+                (my.edit_note ? ' — ' + fEsc(my.edit_note) : '') +
+                '</div>'
+              : '') +
             '</div>' +
             '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
             '<span class="badge ' +
@@ -10804,7 +11043,7 @@ setInterval(function () {
             '">' +
             fEsc(st || '—') +
             '</span>' +
-            (st === 'verified'
+            (st === 'verified' || st === 'pending'
               ? '<button type="button" class="btn go" data-stu-form-pdf="' +
                 f.id +
                 '" data-resp-id="' +
@@ -10941,6 +11180,21 @@ setInterval(function () {
           '" data-fkey="' +
           fEsc(key) +
           '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;" />';
+      } else if (type === 'file') {
+        var maxMb = Number(fd.max_mb) > 0 ? Number(fd.max_mb) : 2;
+        block +=
+          '<input type="file" id="' +
+          fid +
+          '" data-fkey="' +
+          fEsc(key) +
+          '" data-ffile="1" data-max-mb="' +
+          maxMb +
+          '" accept="' +
+          fEsc(fd.accept || '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip') +
+          '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;" />' +
+          '<div style="font-size:0.7rem;opacity:.7;margin-top:4px;">Max ' +
+          maxMb +
+          ' MB</div>';
       } else {
         block +=
           '<input type="text" id="' +
@@ -10962,6 +11216,7 @@ setInterval(function () {
     document.getElementById('stuFormFillSubmit').onclick = async function () {
       var err = document.getElementById('stuFormFillErr');
       answers = {};
+      var fileInputs = [];
       body.querySelectorAll('[data-fkey]').forEach(function (el) {
         var key = el.getAttribute('data-fkey');
         if (el.getAttribute('data-fradio') === '1') {
@@ -10973,19 +11228,74 @@ setInterval(function () {
             vals.push(c.value);
           });
           answers[key] = vals.join(', ');
+        } else if (el.getAttribute('data-ffile') === '1' || el.type === 'file') {
+          fileInputs.push(el);
         } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
           answers[key] = el.value;
         }
       });
-      // required check
+
+      function readFileAsAnswer(input) {
+        return new Promise(function (resolve, reject) {
+          var key = input.getAttribute('data-fkey');
+          var file = input.files && input.files[0];
+          var maxMb = Number(input.getAttribute('data-max-mb')) || 2;
+          if (!file) {
+            resolve({ key: key, value: null });
+            return;
+          }
+          if (file.size > maxMb * 1024 * 1024) {
+            reject(new Error('File for "' + key + '" exceeds max ' + maxMb + ' MB'));
+            return;
+          }
+          if (file.size > 4 * 1024 * 1024) {
+            reject(new Error('File for "' + key + '" is too large (server max 4 MB)'));
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function () {
+            resolve({
+              key: key,
+              value: {
+                name: file.name,
+                mime: file.type || 'application/octet-stream',
+                size: file.size,
+                data: String(reader.result || ''),
+              },
+            });
+          };
+          reader.onerror = function () {
+            reject(new Error('Could not read file for ' + key));
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      try {
+        var fileResults = await Promise.all(fileInputs.map(readFileAsAnswer));
+        fileResults.forEach(function (fr) {
+          answers[fr.key] = fr.value || '';
+        });
+      } catch (fe) {
+        err.style.display = 'block';
+        err.textContent = fe.message || 'File error';
+        return;
+      }
+
       for (var i = 0; i < fields.length; i++) {
         var fd = fields[i];
         if (String(fd.type || '').toLowerCase() === 'section') continue;
         if (!fd.required) continue;
         var k = String(fd.question || fd.label || '').trim();
-        if (!answers[k] || !String(answers[k]).trim()) {
+        var av = answers[k];
+        if (av == null || av === '') {
           err.style.display = 'block';
           err.textContent = 'Please answer: ' + k;
+          return;
+        }
+        if (String(fd.type || '').toLowerCase() === 'file' && typeof av === 'object' && !av.data) {
+          err.style.display = 'block';
+          err.textContent = 'Please upload a file for: ' + k;
           return;
         }
       }
