@@ -7998,7 +7998,7 @@ setInterval(function () {
       '<div class="card" style="padding:14px 16px;"><div style="font-size:0.85rem;color:var(--text-muted);">Loading recent sessions…</div></div>';
     var q = '/api/attendance?limit=12&_ts=' + Date.now();
     if (branch) q += '&branch=' + encodeURIComponent(branch);
-    var data = await apiReqQuiet(q);
+    var data = await attFetchJson(q, 10000);
     if (!data) {
       host.innerHTML =
         '<div class="info-box">Could not load attendance history. Check your login session.</div>';
@@ -8118,6 +8118,29 @@ setInterval(function () {
     return sy === fy;
   }
 
+  /** Fetch with timeout so Attendance never spins forever. */
+  async function attFetchJson(url, timeoutMs) {
+    var ms = timeoutMs || 20000;
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = null;
+    try {
+      if (ctrl) timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { /* ignore */ } }, ms);
+      var res = await fetch(url, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.warn('[attendance] fetch failed', url, e);
+      return null;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   window.startAttendance = async function startAttendanceLive() {
     var user = currentUser || window.currentUser;
     if (!user) {
@@ -8125,7 +8148,22 @@ setInterval(function () {
       return;
     }
 
-    window.setupAttendancePanel();
+    // Do NOT re-run full setupAttendancePanel here (it reloads history and can race).
+    // Only ensure branch lock + subject input exist.
+    try {
+      var branchSel0 = document.getElementById('attBranch');
+      if (user.role === 'hod' && branchSel0) {
+        var hb = attHodBranch(user);
+        if (hb) {
+          branchSel0.innerHTML = '<option value="' + attEsc(hb) + '" selected>' + attEsc(hb) + '</option>';
+          branchSel0.disabled = true;
+          branchSel0.value = hb;
+        }
+      }
+      ensureAttSubjectInput();
+      ensureAttYearSelect();
+      ensureAttBatchSelectId();
+    } catch (e) { /* ignore */ }
 
     var branchSel = document.getElementById('attBranch');
     var subjEl = document.getElementById('attSubject');
@@ -8173,29 +8211,58 @@ setInterval(function () {
     if (step1) step1.style.display = 'none';
     if (markUI) markUI.style.display = 'block';
 
-    // Live students (API already HOD-scoped); lite skips photo blobs
-    var data = await apiReqQuiet('/api/students?lite=1&_ts=' + Date.now());
+    var label = document.getElementById('attSessionLabel');
+    if (label) {
+      label.textContent =
+        'Attendance — ' +
+        subj +
+        ' · ' +
+        branch +
+        (year ? ' · ' + year + ' Yr' : '') +
+        (batch ? ' · ' + batch : '') +
+        ' · ' +
+        attDate;
+    }
+
+    // Fast dedicated roster API (no photos, no heavy student list)
+    var yearQ = '';
+    if (year === 'I' || year === '1') yearQ = '&year=1';
+    else if (year === 'II' || year === '2') yearQ = '&year=2';
+    else if (year === 'III' || year === '3') yearQ = '&year=3';
+
+    var rosterUrl =
+      '/api/attendance/roster?branch=' +
+      encodeURIComponent(branch) +
+      yearQ +
+      '&_ts=' +
+      Date.now();
+
+    var data = await attFetchJson(rosterUrl, 20000);
+    // Fallback once to lite students list if roster route not deployed yet
+    if (!data || !Array.isArray(data.students)) {
+      data = await attFetchJson('/api/students?lite=1&_ts=' + Date.now(), 20000);
+    }
     if (!data || !Array.isArray(data.students)) {
       if (grid) {
         grid.innerHTML =
-          '<div class="warn-box">Could not load student roster. Session may have expired — please log in again.</div>';
+          '<div class="warn-box">Could not load student roster (timeout or session expired). ' +
+          'Please hard-refresh (Ctrl+F5) and try again. If it keeps failing, log out and log in.</div>' +
+          '<div style="margin:12px;"><button type="button" class="btn pr" onclick="window.startAttendance&&window.startAttendance()">Retry</button> ' +
+          '<button type="button" class="btn ol" onclick="document.getElementById(\'attMarkUI\').style.display=\'none\';document.getElementById(\'attStep1\').style.display=\'block\';">← Back</button></div>';
       }
       return;
     }
 
     var roster = data.students
       .filter(function (s) {
-        // Exclude alumni / passed-out from live class attendance
         var st = String(s.academic_status || (s.academic && s.academic.academic_status) || 'active').toLowerCase();
         if (st === 'passed_out' || s.is_alumni) return false;
         var dept = attNormalizeBranch(s.dept || s.user_branch || '');
-        if (!attBranchesMatch(dept, branch)) return false;
+        if (dept && !attBranchesMatch(dept, branch)) return false;
         if (!attYearMatch(s.year, year)) return false;
-        // Prefer current_study_year when year filter set
         if (year === 'I' || year === 'II' || year === 'III') {
           var map = { I: 1, II: 2, III: 3 };
           if (s.current_study_year != null && Number(s.current_study_year) !== map[year]) {
-            // still allow unknown current_study_year via attYearMatch above
             if (s.current_study_year === 1 || s.current_study_year === 2 || s.current_study_year === 3) {
               return false;
             }
@@ -8217,18 +8284,19 @@ setInterval(function () {
         return a.reg.localeCompare(b.reg);
       });
 
-    // Merge with any existing session for same class/date
+    // Prefill previous marks (non-blocking: 8s max)
     var existingEntries = window._attPrefillEntries || null;
     window._attPrefillEntries = null;
     if (!existingEntries) {
       try {
-        var hist = await apiReqQuiet(
+        var hist = await attFetchJson(
           '/api/attendance?branch=' +
             encodeURIComponent(branch) +
             '&date=' +
             encodeURIComponent(attDate) +
-            '&limit=30&_ts=' +
+            '&limit=20&_ts=' +
             Date.now(),
+          8000,
         );
         var sessions = (hist && (hist.sessions || hist.attendance)) || [];
         var subjLower = subj.toLowerCase();
@@ -8245,7 +8313,6 @@ setInterval(function () {
       }
     }
 
-    // Populate shared demoAtt so legacy markAtt still works
     try {
       if (typeof demoAtt !== 'undefined') {
         demoAtt.length = 0;
@@ -8266,7 +8333,6 @@ setInterval(function () {
       batch: batch || null,
     };
 
-    // Clear attState
     try {
       Object.keys(attState).forEach(function (k) {
         delete attState[k];
@@ -8275,27 +8341,15 @@ setInterval(function () {
       /* ignore */
     }
 
-    var label = document.getElementById('attSessionLabel');
-    if (label) {
-      label.textContent =
-        'Attendance — ' +
-        subj +
-        ' · ' +
-        branch +
-        (year ? ' · ' + year + ' Yr' : '') +
-        (batch ? ' · ' + batch : '') +
-        ' · ' +
-        attDate;
-    }
-
     if (!roster.length) {
       if (grid) {
         grid.innerHTML =
-          '<div class="warn-box" style="margin:16px;">No students found for <strong>' +
+          '<div class="warn-box" style="margin:16px;">No <strong>active</strong> students found for <strong>' +
           attEsc(branch) +
           '</strong>' +
           (year ? ' · Year ' + attEsc(year) : '') +
-          '. Approve student accounts for this branch or clear the year filter.</div>';
+          '. Alumni are excluded. Clear year filter or check Student Data.</div>' +
+          '<div style="margin:12px;"><button type="button" class="btn ol" onclick="document.getElementById(\'attMarkUI\').style.display=\'none\';document.getElementById(\'attStep1\').style.display=\'block\';">← Back</button></div>';
       }
       return;
     }
@@ -8309,47 +8363,64 @@ setInterval(function () {
     }
 
     if (!grid) return;
-    grid.innerHTML = '';
+
+    // Fast DOM: one HTML string instead of hundreds of appendChild calls
+    var cards = [];
     roster.forEach(function (s) {
       attState[s.reg] = prefillMap[s.reg] || null;
-      var div = document.createElement('div');
-      div.className = 'att-card';
-      div.innerHTML =
-        '<div class="reg">' +
-        attEsc(s.reg) +
-        '</div><div class="sname">' +
-        attEsc(s.name) +
-        (s.year && s.year !== '—'
-          ? ' <span style="font-size:0.68rem;color:var(--text-muted);">(' + attEsc(s.year) + ')</span>'
-          : '') +
-        '</div>' +
-        '<div class="att-btns">' +
-        '<button class="att-btn pres" id="p_' +
-        attEsc(s.reg) +
-        '" onclick="markAtt(\'' +
-        s.reg.replace(/'/g, '') +
-        '\',\'P\')">✓ Present</button>' +
-        '<button class="att-btn abs" id="a_' +
-        attEsc(s.reg) +
-        '" onclick="markAtt(\'' +
-        s.reg.replace(/'/g, '') +
-        '\',\'A\')">✗ Absent</button>' +
-        '<button class="att-btn wait" id="w_' +
-        attEsc(s.reg) +
-        '" onclick="markAtt(\'' +
-        s.reg.replace(/'/g, '') +
-        '\',\'W\')" title="Wait — mark later; auto-absent after 6PM">⏳ Wait</button>' +
-        '</div>' +
-        '<div id="wt_' +
-        attEsc(s.reg) +
-        '" style="font-size:0.65rem;color:var(--accent);font-family:\'JetBrains Mono\',monospace;margin-top:4px;display:none;">⏳ Wait — auto-absent if not updated by 6:00 PM</div>';
-      grid.appendChild(div);
-      if (prefillMap[s.reg] && typeof window.markAtt === 'function') {
-        window.markAtt(s.reg, prefillMap[s.reg]);
-      }
+      var regSafe = s.reg.replace(/'/g, '');
+      var selP = prefillMap[s.reg] === 'P' ? ' sel' : '';
+      var selA = prefillMap[s.reg] === 'A' ? ' sel' : '';
+      var selW = prefillMap[s.reg] === 'W' ? ' sel' : '';
+      cards.push(
+        '<div class="att-card">' +
+          '<div class="reg">' +
+          attEsc(s.reg) +
+          '</div><div class="sname">' +
+          attEsc(s.name) +
+          (s.year && s.year !== '—'
+            ? ' <span style="font-size:0.68rem;color:var(--text-muted);">(' + attEsc(s.year) + ')</span>'
+            : '') +
+          '</div>' +
+          '<div class="att-btns">' +
+          '<button class="att-btn pres' +
+          selP +
+          '" id="p_' +
+          attEsc(s.reg) +
+          '" onclick="markAtt(\'' +
+          regSafe +
+          '\',\'P\')">✓ Present</button>' +
+          '<button class="att-btn abs' +
+          selA +
+          '" id="a_' +
+          attEsc(s.reg) +
+          '" onclick="markAtt(\'' +
+          regSafe +
+          '\',\'A\')">✗ Absent</button>' +
+          '<button class="att-btn wait' +
+          selW +
+          '" id="w_' +
+          attEsc(s.reg) +
+          '" onclick="markAtt(\'' +
+          regSafe +
+          '\',\'W\')" title="Wait">⏳ Wait</button>' +
+          '</div>' +
+          '<div id="wt_' +
+          attEsc(s.reg) +
+          '" style="font-size:0.65rem;color:var(--accent);font-family:\'JetBrains Mono\',monospace;margin-top:4px;display:' +
+          (prefillMap[s.reg] === 'W' ? 'block' : 'none') +
+          ';">⏳ Wait — auto-absent if not updated by 6:00 PM</div></div>',
+      );
     });
+    grid.innerHTML =
+      '<div style="padding:8px 14px;font-size:0.8rem;color:var(--text-muted);">' +
+      roster.length +
+      ' students · ' +
+      attEsc(branch) +
+      (year ? ' · ' + attEsc(year) : '') +
+      '</div>' +
+      cards.join('');
 
-    // Quick actions bar
     var acts = document.querySelector('#attMarkUI .card-acts');
     if (acts && !document.getElementById('attMarkAllPresent')) {
       var allP = document.createElement('button');
