@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.5.3"
+export const STUDENT_APP_VERSION = "1.5.4"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.5.4",
+    date: "2026-07-26",
+    title: "Survey forms with verification",
+    items: [
+      "Submit Forms: open surveys + My submissions with pending / verified / rejected.",
+      "After verifier (e.g. ACM) approves, download official PDF.",
+      "Admin builds forms; chooses audience and verifier desk.",
+    ],
+  },
   {
     version: "1.5.3",
     date: "2026-07-26",

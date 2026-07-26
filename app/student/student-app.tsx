@@ -113,6 +113,16 @@ type FormRow = {
   submitted_by_me?: boolean
   fields?: unknown
   created_at?: string
+  audience?: string
+  verify_role?: string
+  my_response?: {
+    id?: number
+    status?: string
+    submitted_at?: string
+    verified_at?: string | null
+    verified_by_name?: string | null
+    verifier_note?: string | null
+  } | null
 }
 
 type CertRow = {
@@ -1491,13 +1501,24 @@ export default function StudentApp() {
     }
   }
 
+  function formMyStatus(form: FormRow): string {
+    return String(form.my_response?.status || "").toLowerCase()
+  }
+
+  function canFillForm(form: FormRow): boolean {
+    if (String(form.status).toLowerCase() !== "open") return false
+    const st = formMyStatus(form)
+    if (st === "pending" || st === "verified") return false
+    // rejected or never submitted → can fill
+    return true
+  }
+
   function openFormFill(form: FormRow) {
-    if (form.submitted_by_me) {
-      flash("You already submitted this form")
-      return
-    }
-    if (String(form.status).toLowerCase() !== "open") {
-      flash("This form is closed")
+    if (!canFillForm(form)) {
+      const st = formMyStatus(form)
+      if (st === "pending") flash("Already submitted — pending verification")
+      else if (st === "verified") flash("Already verified — download PDF from My submissions")
+      else flash("This form is closed")
       return
     }
     setActiveForm(form)
@@ -1509,7 +1530,9 @@ export default function StudentApp() {
 
   async function submitFormResponse() {
     if (!activeForm) return
-    const fields = parseFormFields(activeForm.fields)
+    const fields = parseFormFields(activeForm.fields).filter(
+      (f) => String(f.type || "").toLowerCase() !== "section",
+    )
     for (const f of fields) {
       const key = fieldLabel(f)
       if (f.required && !String(formAnswers[key] || "").trim()) {
@@ -1519,7 +1542,7 @@ export default function StudentApp() {
     }
     setFormBusy(true)
     setFormErr("")
-    const res = await api(`/api/forms/${activeForm.id}/responses`, {
+    const res = await api<{ response?: { status?: string } }>(`/api/forms/${activeForm.id}/responses`, {
       method: "POST",
       body: JSON.stringify({ answers: formAnswers }),
     })
@@ -1528,11 +1551,72 @@ export default function StudentApp() {
       setFormErr(res.error || "Could not submit form")
       return
     }
-    flash("Form submitted successfully")
+    const st = String(res.data?.response?.status || "pending")
+    flash(
+      st === "verified"
+        ? "Submitted and verified — download PDF from My submissions"
+        : "Submitted — waiting for verification",
+    )
     setActiveForm(null)
     setMoreView("menu")
     setTab("forms")
     await loadDashboard()
+  }
+
+  async function downloadVerifiedFormPdf(form: FormRow) {
+    const rid = form.my_response?.id
+    if (!rid) {
+      flash("No submission found")
+      return
+    }
+    try {
+      flash("Preparing PDF…")
+      const res = await api<{
+        response?: {
+          id?: number
+          answers?: Record<string, unknown>
+          status?: string
+          submitted_at?: string
+          verified_at?: string | null
+          verified_by_name?: string | null
+          verifier_note?: string | null
+          form_title?: string
+          form_fields?: unknown
+          submitter_name?: string
+          submitter_reg?: string
+          submitter_email?: string
+        }
+        form?: { title?: string; description?: string; fields?: unknown }
+      }>(`/api/forms/${form.id}/responses?response_id=${encodeURIComponent(String(rid))}`)
+      if (!res.ok || !res.data?.response) {
+        flash(res.error || "Could not load submission")
+        return
+      }
+      const r = res.data.response
+      if (String(r.status).toLowerCase() !== "verified") {
+        flash("PDF available only after verification")
+        return
+      }
+      const { downloadFormResponsePdf } = await import("@/lib/form-print")
+      await downloadFormResponsePdf({
+        form_title: r.form_title || res.data.form?.title || form.title,
+        form_description: res.data.form?.description || form.description,
+        fields: r.form_fields || res.data.form?.fields || form.fields,
+        answers: (r.answers || {}) as Record<string, unknown>,
+        submitter_name: r.submitter_name || user?.display_name || "",
+        submitter_reg: r.submitter_reg || user?.reg_no || "",
+        submitter_email: r.submitter_email || user?.email || "",
+        submitted_at: r.submitted_at,
+        status: r.status,
+        verified_by_name: r.verified_by_name,
+        verified_at: r.verified_at,
+        verifier_note: r.verifier_note,
+      })
+      flash("PDF ready")
+    } catch (e) {
+      console.error("[form pdf]", e)
+      flash("Could not create PDF")
+    }
   }
 
   async function submitGrievance() {
@@ -2649,33 +2733,106 @@ export default function StudentApp() {
           <div className="stu-card">
             <h3>Submit forms</h3>
             <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: "var(--stu-muted)" }}>
-              Tap a form to fill and submit. Already submitted forms stay marked Done.
+              Fill open surveys. Verified copies stay under My submissions for PDF download.
             </p>
-            {!forms.length ? (
-              <div className="stu-empty">No forms available.</div>
+            <h4 style={{ margin: "8px 0", fontSize: "0.9rem" }}>Open forms</h4>
+            {!forms.filter((f) => String(f.status).toLowerCase() === "open").length ? (
+              <div className="stu-empty">No open forms right now.</div>
             ) : (
-              forms.map((f) => (
-                <div className="stu-list-item" key={f.id}>
-                  <div style={{ flex: 1 }}>
-                    <div className="title">{f.title}</div>
-                    <div className="desc">{f.description || "No description"}</div>
-                    <div className="desc">{fmtDate(f.created_at)}</div>
-                    {!f.submitted_by_me && String(f.status).toLowerCase() === "open" ? (
-                      <button
-                        type="button"
-                        className="stu-link-btn"
-                        style={{ marginTop: 6 }}
-                        onClick={() => openFormFill(f)}
+              forms
+                .filter((f) => String(f.status).toLowerCase() === "open")
+                .map((f) => {
+                  const st = formMyStatus(f)
+                  const fill = canFillForm(f)
+                  return (
+                    <div className="stu-list-item" key={f.id}>
+                      <div style={{ flex: 1 }}>
+                        <div className="title">{f.title}</div>
+                        <div className="desc">{f.description || "No description"}</div>
+                        {fill ? (
+                          <button
+                            type="button"
+                            className="stu-link-btn"
+                            style={{ marginTop: 6 }}
+                            onClick={() => openFormFill(f)}
+                          >
+                            Fill &amp; submit →
+                          </button>
+                        ) : null}
+                        {st === "verified" ? (
+                          <button
+                            type="button"
+                            className="stu-link-btn"
+                            style={{ marginTop: 6 }}
+                            onClick={() => void downloadVerifiedFormPdf(f)}
+                          >
+                            ⬇ Download PDF
+                          </button>
+                        ) : null}
+                      </div>
+                      <span
+                        className={`stu-badge ${statusBadge(
+                          st === "verified" ? "ready" : st === "pending" ? "pending" : f.status,
+                        )}`}
                       >
-                        Fill &amp; submit →
-                      </button>
-                    ) : null}
-                  </div>
-                  <span className={`stu-badge ${statusBadge(f.submitted_by_me ? "ready" : f.status)}`}>
-                    {f.submitted_by_me ? "Done" : f.status}
-                  </span>
-                </div>
-              ))
+                        {st || f.status}
+                      </span>
+                    </div>
+                  )
+                })
+            )}
+            <h4 style={{ margin: "18px 0 8px", fontSize: "0.9rem" }}>My submissions</h4>
+            {!forms.filter((f) => f.my_response).length ? (
+              <div className="stu-empty">No submissions yet.</div>
+            ) : (
+              forms
+                .filter((f) => f.my_response)
+                .map((f) => {
+                  const st = formMyStatus(f)
+                  return (
+                    <div className="stu-list-item" key={`mine-${f.id}`}>
+                      <div style={{ flex: 1 }}>
+                        <div className="title">{f.title}</div>
+                        <div className="desc">
+                          Submitted {fmtDate(f.my_response?.submitted_at)}
+                          {f.my_response?.verified_by_name
+                            ? ` · ${f.my_response.verified_by_name}`
+                            : ""}
+                        </div>
+                        {f.my_response?.verifier_note ? (
+                          <div className="desc">Note: {f.my_response.verifier_note}</div>
+                        ) : null}
+                        {st === "verified" ? (
+                          <button
+                            type="button"
+                            className="stu-link-btn"
+                            style={{ marginTop: 6 }}
+                            onClick={() => void downloadVerifiedFormPdf(f)}
+                          >
+                            ⬇ Download PDF
+                          </button>
+                        ) : null}
+                        {st === "rejected" && String(f.status).toLowerCase() === "open" ? (
+                          <button
+                            type="button"
+                            className="stu-link-btn"
+                            style={{ marginTop: 6 }}
+                            onClick={() => openFormFill(f)}
+                          >
+                            Resubmit →
+                          </button>
+                        ) : null}
+                      </div>
+                      <span
+                        className={`stu-badge ${statusBadge(
+                          st === "verified" ? "ready" : st === "pending" ? "pending" : st,
+                        )}`}
+                      >
+                        {st || "—"}
+                      </span>
+                    </div>
+                  )
+                })
             )}
           </div>
         )}

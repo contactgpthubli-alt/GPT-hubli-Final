@@ -30,9 +30,9 @@ export default function Page() {
       <Script src="/legacy-app.js?v=20260726j" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order). */}
-      <Script src="/legacy-bridge.js?v=20260726j" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260726k" strategy="afterInteractive" />
       {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}
-      <Script src="/gpth-print.js?v=20260726j" strategy="lazyOnload" />
+      <Script src="/gpth-print.js?v=20260726k" strategy="lazyOnload" />
       <Script src="/legacy-tc.js?v=20260726g" strategy="lazyOnload" />
       <Script src="/legacy-acm-study.js?v=20260726g" strategy="lazyOnload" />
     </>

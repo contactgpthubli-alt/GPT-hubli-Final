@@ -1757,6 +1757,17 @@ function __initGptBridge() {
         renderStuCertRequests();
         startStuCertPolling();
       }
+      // Live form builder / student submit / verifier inbox
+      if ((secId === 'adForms' || secId === 'facForms') && typeof window.renderLiveFormManager === 'function') {
+        window.renderLiveFormManager();
+      }
+      if (secId === 'stuForms' && typeof window.renderStudentFormsPanel === 'function') {
+        window.renderStudentFormsPanel();
+      }
+      if ((secId === 'facACM' || secId === 'adACM' || secId === 'facFormVerify' || secId === 'adFormVerify') &&
+          typeof window.renderFormVerifyInbox === 'function') {
+        window.renderFormVerifyInbox();
+      }
       // Student Profile Manager (Google Form builder)
       if (secId === 'adStudentProfile') {
         if (typeof window.loadStudentProfileSchema === 'function') {
@@ -2582,6 +2593,11 @@ function __initGptBridge() {
     if (user && user.role === 'student') {
       try { ensureStudentTimetableMenu(); } catch (e) { console.warn('[bridge] student TT menu', e); }
     }
+    // Forms: ensure builder meta + verifier menu
+    try {
+      if (typeof window.ensureFormBuilderMeta === 'function') window.ensureFormBuilderMeta();
+      if (typeof window.ensureFormVerifyMenu === 'function') window.ensureFormVerifyMenu(user);
+    } catch (e) { console.warn('[bridge] forms boot', e); }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
       window.renderLiveNotifications();
@@ -10225,5 +10241,1079 @@ setInterval(function () {
   };
 
   console.log('[bridge] timetable live handlers installed');
+})();
+
+/* ============================================================
+ * LIVE FORMS / SURVEYS — Admin builder, student Submit Forms,
+ * verifier inbox (ACM etc.), PDF for verified responses.
+ * ============================================================ */
+;(function () {
+  'use strict';
+
+  var VERIFY_ROLES = [
+    { v: 'none', t: 'No verification (auto-accept)' },
+    { v: 'admin', t: 'Root Admin' },
+    { v: 'principal', t: 'Principal' },
+    { v: 'hod', t: 'HOD' },
+    { v: 'acm', t: 'ACM Section' },
+    { v: 'exam', t: 'Exam Cell' },
+    { v: 'registrar', t: 'Registrar' },
+    { v: 'est', t: 'EST' },
+  ];
+
+  function fEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fFmtDate(iso) {
+    if (!iso) return '—';
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return '—';
+    }
+  }
+
+  function audienceLabel(a) {
+    a = String(a || 'students').toLowerCase();
+    if (a === 'staff') return 'Staff';
+    if (a === 'both') return 'Students + Staff';
+    return 'Students';
+  }
+
+  function verifyLabel(r) {
+    r = String(r || 'admin').toLowerCase();
+    for (var i = 0; i < VERIFY_ROLES.length; i++) {
+      if (VERIFY_ROLES[i].v === r) return VERIFY_ROLES[i].t;
+    }
+    return r;
+  }
+
+  function statusBadge(st) {
+    st = String(st || '').toLowerCase();
+    if (st === 'open' || st === 'verified' || st === 'approved') return 'approved';
+    if (st === 'pending') return 'pending';
+    if (st === 'rejected' || st === 'closed') return 'rejected';
+    if (st === 'draft') return 'info';
+    return '';
+  }
+
+  /** Inject audience + verifier fields into form builder modal. */
+  window.ensureFormBuilderMeta = function ensureFormBuilderMeta() {
+    if (document.getElementById('fbAudience')) return;
+    var titleEl = document.getElementById('fbFormTitle');
+    if (!titleEl) return;
+    var host = titleEl.parentNode;
+    if (!host) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'fbLiveMeta';
+    wrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;';
+    wrap.innerHTML =
+      '<div><label style="font-size:0.72rem;font-weight:700;opacity:.85;display:block;margin-bottom:4px;">Audience</label>' +
+      '<select id="fbAudience" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.15);color:#fff;font-size:0.82rem;">' +
+      '<option value="students">Students</option>' +
+      '<option value="staff">Staff</option>' +
+      '<option value="both">Students + Staff</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;opacity:.85;display:block;margin-bottom:4px;">Verifier (approves submissions)</label>' +
+      '<select id="fbVerifyRole" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.15);color:#fff;font-size:0.82rem;">' +
+      VERIFY_ROLES.map(function (r) {
+        return '<option value="' + r.v + '"' + (r.v === 'acm' ? ' selected' : '') + '>' + fEsc(r.t) + '</option>';
+      }).join('') +
+      '</select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;opacity:.85;display:block;margin-bottom:4px;">Status</label>' +
+      '<select id="fbFormStatus" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.15);color:#fff;font-size:0.82rem;">' +
+      '<option value="open">Open (published)</option>' +
+      '<option value="draft">Draft</option>' +
+      '<option value="closed">Closed</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;opacity:.85;display:block;margin-bottom:4px;">Priority</label>' +
+      '<select id="fbPriority" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.15);color:#fff;font-size:0.82rem;">' +
+      '<option value="normal">Normal</option><option value="important">Important</option><option value="emergency">Emergency</option></select></div>' +
+      '<input type="hidden" id="fbFormId" value="" />';
+    host.appendChild(wrap);
+  };
+
+  window.ensureFormVerifyMenu = function ensureFormVerifyMenu(user) {
+    if (!user) return;
+    var role = String(user.role || '').toLowerCase();
+    var shells = [];
+    if (role === 'acm' || role === 'admin') {
+      shells.push({ root: '#dbFaculty', sec: 'facFormVerify', label: 'Form verifications' });
+      shells.push({ root: '#dbAdmin', sec: 'adFormVerify', label: 'Form verifications' });
+    }
+    if (role === 'exam' || role === 'hod' || role === 'principal' || role === 'registrar' || role === 'est') {
+      shells.push({ root: '#dbFaculty', sec: 'facFormVerify', label: 'Form verifications' });
+      if (role === 'principal' || role === 'admin') {
+        shells.push({ root: '#dbPrincipal', sec: 'adFormVerify', label: 'Form verifications' });
+      }
+    }
+    shells.forEach(function (cfg) {
+      var menu = document.querySelector(cfg.root + ' .sb-menu');
+      if (!menu) return;
+      if (menu.querySelector('[data-form-verify-nav="1"]')) return;
+      var item = document.createElement('div');
+      item.className = 'sl';
+      item.setAttribute('data-form-verify-nav', '1');
+      item.setAttribute('onclick', "showSec('" + cfg.sec + "',this)");
+      item.innerHTML =
+        '<span class="sli">✅</span>Form verifications<span class="slb bridge-badge" id="formVerifyBadge" style="display:none;">0</span>';
+      // Prefer after ACM / Approvals
+      var after = null;
+      menu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        if (oc.indexOf('facACM') >= 0 || oc.indexOf('adACM') >= 0 || oc.indexOf('Approvals') >= 0) after = sl;
+      });
+      if (after && after.nextSibling) after.parentNode.insertBefore(item, after.nextSibling);
+      else menu.appendChild(item);
+
+      // Panel host
+      var main = document.querySelector(cfg.root + ' .db-content') || document.querySelector(cfg.root + ' .db-main');
+      if (main && !document.getElementById(cfg.sec)) {
+        var panel = document.createElement('div');
+        panel.id = cfg.sec;
+        panel.style.display = 'none';
+        panel.innerHTML =
+          '<div class="info-box">✅ <strong>Form verifications</strong> — Approve or reject survey submissions assigned to your desk.</div>' +
+          '<div id="' + cfg.sec + 'Body"><div style="padding:16px;opacity:.7;">Loading…</div></div>';
+        main.appendChild(panel);
+      }
+    });
+    // Refresh badge
+    if (typeof window.refreshFormVerifyBadge === 'function') window.refreshFormVerifyBadge();
+  };
+
+  window.refreshFormVerifyBadge = async function refreshFormVerifyBadge() {
+    try {
+      var res = await fetch('/api/forms?pending_verify=1&_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await res.json().catch(function () { return null; });
+      var n = data && data.pending_count != null ? Number(data.pending_count) : 0;
+      document.querySelectorAll('#formVerifyBadge, .form-verify-badge').forEach(function (b) {
+        if (n > 0) {
+          b.style.display = '';
+          b.textContent = String(n);
+        } else {
+          b.style.display = 'none';
+        }
+      });
+    } catch (e) { /* ignore */ }
+  };
+
+  window.renderLiveFormManager = async function renderLiveFormManager() {
+    window.ensureFormBuilderMeta();
+    var tbody = document.getElementById('formListBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;opacity:.7;">Loading forms…</td></tr>';
+    try {
+      var res = await fetch('/api/forms?_ts=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok || !data || !Array.isArray(data.forms)) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;color:#991b1b;">Could not load forms.</td></tr>';
+        return;
+      }
+      window._liveForms = data.forms;
+      if (!data.forms.length) {
+        tbody.innerHTML =
+          '<tr id="formEmptyRow"><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.82rem;">No forms yet. Click <strong>+ Create New Form</strong> to build one.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.forms
+        .map(function (f) {
+          var st = String(f.status || 'open');
+          var my = f.pending_count != null ? f.pending_count : 0;
+          return (
+            '<tr data-form-id="' +
+            f.id +
+            '">' +
+            '<td><strong>📋 ' +
+            fEsc(f.title) +
+            '</strong>' +
+            (f.description
+              ? '<div style="font-size:0.68rem;color:var(--text-muted);">' + fEsc(f.description) + '</div>'
+              : '') +
+            '<div style="font-size:0.68rem;margin-top:4px;opacity:.8;">' +
+            fEsc(audienceLabel(f.audience)) +
+            ' · Verifier: ' +
+            fEsc(verifyLabel(f.verify_role)) +
+            ' · ' +
+            (f.response_count || 0) +
+            ' response(s)' +
+            (my ? ' · <strong style="color:#b45309;">' + my + ' pending</strong>' : '') +
+            '</div></td>' +
+            '<td><span class="badge ' +
+            statusBadge(st) +
+            '">' +
+            fEsc(st) +
+            '</span></td>' +
+            '<td><div style="display:flex;gap:5px;flex-wrap:wrap;">' +
+            '<button type="button" class="btn pr" data-live-form-edit="' +
+            f.id +
+            '">✏️ Edit</button>' +
+            '<button type="button" class="btn go" data-live-form-responses="' +
+            f.id +
+            '">📥 Responses</button>' +
+            (st === 'open'
+              ? '<button type="button" class="btn ol" data-live-form-close="' + f.id + '">Close</button>'
+              : '<button type="button" class="btn ol" data-live-form-open="' + f.id + '">Publish</button>') +
+            '<button type="button" class="btn re" data-live-form-del="' +
+            f.id +
+            '">🗑️</button>' +
+            '</div></td></tr>'
+          );
+        })
+        .join('');
+
+      tbody.querySelectorAll('[data-live-form-edit]').forEach(function (btn) {
+        btn.onclick = function () {
+          var id = Number(btn.getAttribute('data-live-form-edit'));
+          var f = (window._liveForms || []).find(function (x) { return Number(x.id) === id; });
+          if (f) window.openLiveFormEditor(f);
+        };
+      });
+      tbody.querySelectorAll('[data-live-form-del]').forEach(function (btn) {
+        btn.onclick = async function () {
+          var id = btn.getAttribute('data-live-form-del');
+          if (!confirm('Delete this form and all responses?')) return;
+          var r = await fetch('/api/forms?id=' + encodeURIComponent(id), {
+            method: 'DELETE',
+            credentials: 'same-origin',
+          });
+          if (!r.ok) {
+            var d = await r.json().catch(function () { return null; });
+            alert((d && d.error) || 'Delete failed');
+            return;
+          }
+          window.renderLiveFormManager();
+        };
+      });
+      tbody.querySelectorAll('[data-live-form-close]').forEach(function (btn) {
+        btn.onclick = function () { window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-close')), 'closed'); };
+      });
+      tbody.querySelectorAll('[data-live-form-open]').forEach(function (btn) {
+        btn.onclick = function () { window.setLiveFormStatus(Number(btn.getAttribute('data-live-form-open')), 'open'); };
+      });
+      tbody.querySelectorAll('[data-live-form-responses]').forEach(function (btn) {
+        btn.onclick = function () {
+          window.viewLiveFormResponses(Number(btn.getAttribute('data-live-form-responses')));
+        };
+      });
+    } catch (e) {
+      console.warn('[forms] manager', e);
+      tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;color:#991b1b;">Failed to load.</td></tr>';
+    }
+  };
+
+  window.setLiveFormStatus = async function setLiveFormStatus(id, status) {
+    var f = (window._liveForms || []).find(function (x) { return Number(x.id) === id; });
+    if (!f) return;
+    var res = await fetch('/api/forms', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: f.id,
+        title: f.title,
+        description: f.description,
+        fields: f.fields,
+        status: status,
+        audience: f.audience,
+        verify_role: f.verify_role,
+        priority: f.priority,
+      }),
+    });
+    var data = await res.json().catch(function () { return null; });
+    if (!res.ok) {
+      alert((data && data.error) || 'Update failed');
+      return;
+    }
+    window.renderLiveFormManager();
+  };
+
+  window.openLiveFormEditor = function openLiveFormEditor(f) {
+    window.ensureFormBuilderMeta();
+    window._editingFormId = f ? f.id : null;
+    if (typeof window.openCreateFormModal === 'function') {
+      // Use empty then fill — openCreateFormModal clears canvas
+      window.openCreateFormModal(null);
+    }
+    var titleEl = document.getElementById('fbFormTitle');
+    var descEl = document.getElementById('fbFormDesc');
+    var canvas = document.getElementById('gfCanvas');
+    if (titleEl) titleEl.value = f ? f.title || '' : '';
+    if (descEl) descEl.value = f ? f.description || '' : '';
+    var idEl = document.getElementById('fbFormId');
+    if (idEl) idEl.value = f && f.id ? String(f.id) : '';
+    var aud = document.getElementById('fbAudience');
+    if (aud) aud.value = (f && f.audience) || 'students';
+    var vr = document.getElementById('fbVerifyRole');
+    if (vr) vr.value = (f && f.verify_role) || 'acm';
+    var st = document.getElementById('fbFormStatus');
+    if (st) st.value = (f && f.status) || 'open';
+    var pr = document.getElementById('fbPriority');
+    if (pr) pr.value = (f && f.priority) || 'normal';
+
+    if (f && canvas && typeof window.buildFieldCard === 'function') {
+      canvas.innerHTML = '';
+      var fields = Array.isArray(f.fields) ? f.fields : [];
+      if (typeof f.fields === 'string') {
+        try { fields = JSON.parse(f.fields); } catch (e) { fields = []; }
+      }
+      if (!fields.length) {
+        canvas.innerHTML =
+          '<div id="gfEmptyHint" style="text-align:center;color:#94a3b8;padding:32px;background:white;border-radius:10px;font-size:0.82rem;">Click a field type above to add questions</div>';
+      } else {
+        fields.forEach(function (fd) {
+          window.buildFieldCard({
+            id: fd.id || 'gff_' + Math.random().toString(36).slice(2, 8),
+            type: fd.type || 'text',
+            question: fd.question || fd.label || '',
+            required: !!fd.required,
+            options: fd.options || [],
+            desc: fd.desc || '',
+          });
+        });
+      }
+    }
+    var modal = document.getElementById('formBuilderModal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  // Override save to API
+  window.saveGFForm = async function saveGFForm() {
+    window.ensureFormBuilderMeta();
+    var title = (document.getElementById('fbFormTitle') && document.getElementById('fbFormTitle').value || '').trim();
+    if (!title) {
+      alert('Please enter a form title.');
+      return;
+    }
+    var desc = (document.getElementById('fbFormDesc') && document.getElementById('fbFormDesc').value || '').trim();
+    var fields = typeof window.collectGFFields === 'function' ? window.collectGFFields() : [];
+    // Normalize labels for API (question field)
+    fields = fields.map(function (fd) {
+      return {
+        id: fd.id,
+        type: fd.type,
+        question: fd.question || fd.label || '',
+        label: fd.question || fd.label || '',
+        required: !!fd.required,
+        options: fd.options || [],
+      };
+    });
+    var idEl = document.getElementById('fbFormId');
+    var body = {
+      title: title,
+      description: desc,
+      fields: fields,
+      audience: (document.getElementById('fbAudience') && document.getElementById('fbAudience').value) || 'students',
+      verify_role: (document.getElementById('fbVerifyRole') && document.getElementById('fbVerifyRole').value) || 'acm',
+      status: (document.getElementById('fbFormStatus') && document.getElementById('fbFormStatus').value) || 'open',
+      priority: (document.getElementById('fbPriority') && document.getElementById('fbPriority').value) || 'normal',
+    };
+    if (idEl && idEl.value) body.id = Number(idEl.value);
+    try {
+      var res = await fetch('/api/forms', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        alert((data && data.error) || 'Save failed');
+        return;
+      }
+      if (typeof window.closeFBModal === 'function') window.closeFBModal();
+      alert(
+        'Form saved (' +
+          fields.length +
+          ' questions).\nAudience: ' +
+          audienceLabel(body.audience) +
+          '\nVerifier: ' +
+          verifyLabel(body.verify_role) +
+          '\nStatus: ' +
+          body.status,
+      );
+      window.renderLiveFormManager();
+    } catch (e) {
+      alert('Network error saving form');
+    }
+  };
+
+  window.viewLiveFormResponses = async function viewLiveFormResponses(formId) {
+    try {
+      var res = await fetch('/api/forms/' + formId + '/responses?_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        alert((data && data.error) || 'Could not load responses');
+        return;
+      }
+      var list = data.responses || [];
+      var msg =
+        'Responses: ' +
+        list.length +
+        '\n\n' +
+        list
+          .slice(0, 15)
+          .map(function (r, i) {
+            return (
+              i +
+              1 +
+              '. ' +
+              (r.submitter_name || r.submitter_reg || r.submitted_by) +
+              ' — ' +
+              (r.status || '') +
+              ' — ' +
+              fFmtDate(r.submitted_at)
+            );
+          })
+          .join('\n') +
+        (list.length > 15 ? '\n…' : '');
+      alert(msg || 'No responses yet.');
+    } catch (e) {
+      alert('Failed to load responses');
+    }
+  };
+
+  // Hook Create button if present
+  document.addEventListener(
+    'click',
+    function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      var btn = t.closest('button');
+      if (!btn) return;
+      var txt = (btn.textContent || '').trim();
+      if (txt.indexOf('Create New Form') >= 0 || txt.indexOf('+ Create') >= 0) {
+        // Let openCreateFormModal run, then clear id
+        setTimeout(function () {
+          window.ensureFormBuilderMeta();
+          var idEl = document.getElementById('fbFormId');
+          if (idEl) idEl.value = '';
+          window._editingFormId = null;
+        }, 50);
+      }
+    },
+    true,
+  );
+
+  /** Student Submit Forms panel */
+  window.renderStudentFormsPanel = async function renderStudentFormsPanel() {
+    var root = document.getElementById('stuForms');
+    if (!root) return;
+    // Preserve structure: inject live host
+    var host = document.getElementById('stuLiveFormsHost');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'stuLiveFormsHost';
+      root.innerHTML = '';
+      root.appendChild(host);
+    }
+    host.innerHTML = '<div style="padding:16px;opacity:.7;">Loading forms…</div>';
+    try {
+      var res = await fetch('/api/forms?_ts=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok || !data) {
+        host.innerHTML = '<div class="warn-box">Could not load forms.</div>';
+        return;
+      }
+      var forms = Array.isArray(data.forms) ? data.forms : [];
+      var open = forms.filter(function (f) {
+        return String(f.status).toLowerCase() === 'open';
+      });
+      var mine = forms.filter(function (f) {
+        return f.my_response;
+      });
+
+      var html =
+        '<div class="info-box">📝 <strong>Submit Forms</strong> — Fill open surveys. Verified copies stay here for download/print.</div>';
+
+      html += '<h3 style="margin:14px 0 8px;font-size:0.95rem;color:var(--navy);">Open forms</h3>';
+      if (!open.length) {
+        html += '<div class="info-box" style="opacity:.8;">No open forms right now.</div>';
+      } else {
+        open.forEach(function (f) {
+          var my = f.my_response;
+          var st = my ? String(my.status || '') : '';
+          var canFill =
+            !my || st === 'rejected' || (st !== 'pending' && st !== 'verified');
+          // submitted_by_me blocks pending+verified
+          if (f.submitted_by_me && st !== 'rejected') canFill = false;
+          html +=
+            '<div class="card" style="padding:14px 16px;margin-bottom:10px;border-left:4px solid #6d28d9;">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;">' +
+            '<div><strong>📋 ' +
+            fEsc(f.title) +
+            '</strong>' +
+            (f.description
+              ? '<div style="font-size:0.78rem;opacity:.75;margin-top:4px;">' + fEsc(f.description) + '</div>'
+              : '') +
+            '<div style="font-size:0.7rem;margin-top:6px;opacity:.7;">Verifier: ' +
+            fEsc(verifyLabel(f.verify_role)) +
+            '</div></div>';
+          if (canFill) {
+            html +=
+              '<button type="button" class="btn pr" data-stu-fill-form="' +
+              f.id +
+              '">📝 Fill form</button>';
+          } else if (st === 'pending') {
+            html += '<span class="badge pending">Pending verification</span>';
+          } else if (st === 'verified') {
+            html += '<span class="badge approved">Verified</span>';
+          }
+          html += '</div></div>';
+        });
+      }
+
+      html += '<h3 style="margin:18px 0 8px;font-size:0.95rem;color:var(--navy);">My submissions</h3>';
+      if (!mine.length) {
+        html += '<div class="info-box" style="opacity:.8;">No submissions yet.</div>';
+      } else {
+        mine.forEach(function (f) {
+          var my = f.my_response || {};
+          var st = String(my.status || '');
+          html +=
+            '<div class="card" style="padding:14px 16px;margin-bottom:10px;">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">' +
+            '<div><strong>' +
+            fEsc(f.title) +
+            '</strong>' +
+            '<div style="font-size:0.72rem;opacity:.75;margin-top:4px;">Submitted ' +
+            fEsc(fFmtDate(my.submitted_at)) +
+            (my.verified_at ? ' · Verified ' + fEsc(fFmtDate(my.verified_at)) : '') +
+            (my.verified_by_name ? ' by ' + fEsc(my.verified_by_name) : '') +
+            '</div>' +
+            (my.verifier_note
+              ? '<div style="font-size:0.75rem;margin-top:4px;color:#92400e;">Note: ' +
+                fEsc(my.verifier_note) +
+                '</div>'
+              : '') +
+            '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+            '<span class="badge ' +
+            statusBadge(st) +
+            '">' +
+            fEsc(st || '—') +
+            '</span>' +
+            (st === 'verified'
+              ? '<button type="button" class="btn go" data-stu-form-pdf="' +
+                f.id +
+                '" data-resp-id="' +
+                fEsc(my.id) +
+                '">⬇ PDF</button>'
+              : '') +
+            (st === 'rejected'
+              ? '<button type="button" class="btn pr" data-stu-fill-form="' + f.id + '">Resubmit</button>'
+              : '') +
+            '</div></div></div>';
+        });
+      }
+
+      host.innerHTML = html;
+
+      host.querySelectorAll('[data-stu-fill-form]').forEach(function (btn) {
+        btn.onclick = function () {
+          var id = Number(btn.getAttribute('data-stu-fill-form'));
+          var f = forms.find(function (x) { return Number(x.id) === id; });
+          if (f) window.openStudentFormFill(f);
+        };
+      });
+      host.querySelectorAll('[data-stu-form-pdf]').forEach(function (btn) {
+        btn.onclick = function () {
+          window.downloadStudentFormPdf(
+            Number(btn.getAttribute('data-stu-form-pdf')),
+            Number(btn.getAttribute('data-resp-id')),
+          );
+        };
+      });
+    } catch (e) {
+      console.warn('[forms] student', e);
+      host.innerHTML = '<div class="warn-box">Failed to load forms.</div>';
+    }
+  };
+
+  window.openStudentFormFill = function openStudentFormFill(form) {
+    var fields = form.fields;
+    if (typeof fields === 'string') {
+      try { fields = JSON.parse(fields); } catch (e) { fields = []; }
+    }
+    if (!Array.isArray(fields)) fields = [];
+
+    var overlay = document.getElementById('stuFormFillOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'stuFormFillOverlay';
+      overlay.style.cssText =
+        'position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,0.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;';
+      document.body.appendChild(overlay);
+    }
+    var html =
+      '<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;padding:20px 18px;margin-bottom:40px;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px;">' +
+      '<div><h2 style="margin:0;font-size:1.15rem;color:#0f2d5c;">' +
+      fEsc(form.title) +
+      '</h2>' +
+      (form.description
+        ? '<p style="margin:6px 0 0;font-size:0.82rem;color:#64748b;">' + fEsc(form.description) + '</p>'
+        : '') +
+      '</div>' +
+      '<button type="button" id="stuFormFillClose" class="btn ol" style="padding:6px 10px;">✕</button></div>' +
+      '<div id="stuFormFillErr" style="display:none;color:#991b1b;font-size:0.82rem;margin-bottom:10px;"></div>' +
+      '<div id="stuFormFillBody"></div>' +
+      '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">' +
+      '<button type="button" class="btn ol" id="stuFormFillCancel">Cancel</button>' +
+      '<button type="button" class="btn pr" id="stuFormFillSubmit">Submit</button></div></div>';
+    overlay.innerHTML = html;
+    overlay.style.display = 'flex';
+
+    var body = document.getElementById('stuFormFillBody');
+    var answers = {};
+    fields.forEach(function (fd, idx) {
+      if (String(fd.type || '').toLowerCase() === 'section') {
+        body.innerHTML +=
+          '<div style="margin:14px 0 8px;padding:8px 10px;background:#e8f0fe;border-left:3px solid #1a4fa0;font-weight:800;color:#0f2d5c;">' +
+          fEsc(fd.question || fd.label || 'Section') +
+          '</div>';
+        return;
+      }
+      var key = String(fd.question || fd.label || 'Q' + (idx + 1)).trim();
+      var type = String(fd.type || 'text').toLowerCase();
+      var req = fd.required ? ' <span style="color:#dc2626">*</span>' : '';
+      var fid = 'sff_' + (fd.id || idx);
+      var block = '<div style="margin-bottom:12px;"><label style="font-weight:700;font-size:0.82rem;display:block;margin-bottom:4px;">' + fEsc(key) + req + '</label>';
+      if (type === 'paragraph' || type === 'textarea') {
+        block +=
+          '<textarea id="' +
+          fid +
+          '" data-fkey="' +
+          fEsc(key) +
+          '" rows="3" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;"></textarea>';
+      } else if (type === 'dropdown' || type === 'select') {
+        block += '<select id="' + fid + '" data-fkey="' + fEsc(key) + '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;"><option value="">Choose…</option>';
+        (fd.options || []).forEach(function (o) {
+          block += '<option value="' + fEsc(o) + '">' + fEsc(o) + '</option>';
+        });
+        block += '</select>';
+      } else if (type === 'radio') {
+        block += '<div data-fkey="' + fEsc(key) + '" data-fradio="1">';
+        (fd.options || []).forEach(function (o, oi) {
+          block +=
+            '<label style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:0.84rem;"><input type="radio" name="' +
+            fid +
+            '" value="' +
+            fEsc(o) +
+            '" /> ' +
+            fEsc(o) +
+            '</label>';
+        });
+        block += '</div>';
+      } else if (type === 'checkbox') {
+        block += '<div data-fkey="' + fEsc(key) + '" data-fcheck="1">';
+        (fd.options || []).forEach(function (o) {
+          block +=
+            '<label style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:0.84rem;"><input type="checkbox" value="' +
+            fEsc(o) +
+            '" /> ' +
+            fEsc(o) +
+            '</label>';
+        });
+        block += '</div>';
+      } else if (type === 'date') {
+        block +=
+          '<input type="date" id="' +
+          fid +
+          '" data-fkey="' +
+          fEsc(key) +
+          '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;" />';
+      } else if (type === 'number') {
+        block +=
+          '<input type="number" id="' +
+          fid +
+          '" data-fkey="' +
+          fEsc(key) +
+          '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;" />';
+      } else {
+        block +=
+          '<input type="text" id="' +
+          fid +
+          '" data-fkey="' +
+          fEsc(key) +
+          '" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;" />';
+      }
+      block += '</div>';
+      body.innerHTML += block;
+    });
+
+    function close() {
+      overlay.style.display = 'none';
+      overlay.innerHTML = '';
+    }
+    document.getElementById('stuFormFillClose').onclick = close;
+    document.getElementById('stuFormFillCancel').onclick = close;
+    document.getElementById('stuFormFillSubmit').onclick = async function () {
+      var err = document.getElementById('stuFormFillErr');
+      answers = {};
+      body.querySelectorAll('[data-fkey]').forEach(function (el) {
+        var key = el.getAttribute('data-fkey');
+        if (el.getAttribute('data-fradio') === '1') {
+          var sel = el.querySelector('input[type=radio]:checked');
+          answers[key] = sel ? sel.value : '';
+        } else if (el.getAttribute('data-fcheck') === '1') {
+          var vals = [];
+          el.querySelectorAll('input[type=checkbox]:checked').forEach(function (c) {
+            vals.push(c.value);
+          });
+          answers[key] = vals.join(', ');
+        } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+          answers[key] = el.value;
+        }
+      });
+      // required check
+      for (var i = 0; i < fields.length; i++) {
+        var fd = fields[i];
+        if (String(fd.type || '').toLowerCase() === 'section') continue;
+        if (!fd.required) continue;
+        var k = String(fd.question || fd.label || '').trim();
+        if (!answers[k] || !String(answers[k]).trim()) {
+          err.style.display = 'block';
+          err.textContent = 'Please answer: ' + k;
+          return;
+        }
+      }
+      err.style.display = 'none';
+      try {
+        var res = await fetch('/api/forms/' + form.id + '/responses', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ answers: answers }),
+        });
+        var data = await res.json().catch(function () { return null; });
+        if (!res.ok) {
+          err.style.display = 'block';
+          err.textContent = (data && data.error) || 'Submit failed';
+          return;
+        }
+        close();
+        alert(
+          data.response && data.response.status === 'verified'
+            ? 'Submitted and auto-verified. You can download the PDF from My submissions.'
+            : 'Submitted. Waiting for verification (' + verifyLabel(form.verify_role) + ').',
+        );
+        window.renderStudentFormsPanel();
+      } catch (e) {
+        err.style.display = 'block';
+        err.textContent = 'Network error';
+      }
+    };
+  };
+
+  window.downloadStudentFormPdf = async function downloadStudentFormPdf(formId, responseId) {
+    try {
+      var res = await fetch(
+        '/api/forms/' +
+          formId +
+          '/responses?response_id=' +
+          encodeURIComponent(responseId) +
+          '&_ts=' +
+          Date.now(),
+        { credentials: 'same-origin', cache: 'no-store' },
+      );
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok || !data || !data.response) {
+        alert((data && data.error) || 'Could not load response');
+        return;
+      }
+      var r = data.response;
+      if (String(r.status).toLowerCase() !== 'verified') {
+        alert('PDF is available after verification.');
+        return;
+      }
+      // Use same CDN jspdf path as profile if available, else open print HTML
+      if (typeof window.buildAndDownloadFormPdf === 'function') {
+        await window.buildAndDownloadFormPdf(r, data.form || {});
+        return;
+      }
+      // Lightweight HTML print fallback
+      var answers = r.answers || {};
+      if (typeof answers === 'string') {
+        try { answers = JSON.parse(answers); } catch (e) { answers = {}; }
+      }
+      var rows = Object.keys(answers)
+        .map(function (k) {
+          return '<tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f2d5c;">' + fEsc(k) + '</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">' + fEsc(answers[k]) + '</td></tr>';
+        })
+        .join('');
+      var html =
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' +
+        fEsc(r.form_title || 'Form') +
+        '</title></head><body style="font-family:system-ui;padding:24px;">' +
+        '<h1 style="color:#0f2d5c;">' +
+        fEsc(r.form_title || 'Form response') +
+        '</h1>' +
+        '<p>Submitted: ' +
+        fEsc(fFmtDate(r.submitted_at)) +
+        ' · Verified by ' +
+        fEsc(r.verified_by_name || '') +
+        ' on ' +
+        fEsc(fFmtDate(r.verified_at)) +
+        '</p>' +
+        '<table style="width:100%;border-collapse:collapse;">' +
+        rows +
+        '</table></body></html>';
+      if (typeof window.gpthPrintHtml === 'function') {
+        window.gpthPrintHtml(html, { title: r.form_title || 'Form', autoPrint: false });
+      } else {
+        var w = window.open('', '_blank');
+        if (w) {
+          w.document.write(html);
+          w.document.close();
+        }
+      }
+    } catch (e) {
+      alert('Could not download PDF');
+    }
+  };
+
+  // jsPDF form download (CDN)
+  window.buildAndDownloadFormPdf = async function buildAndDownloadFormPdf(response, form) {
+    if (typeof window.loadJsPdfUmd !== 'function' && typeof loadJsPdfUmd !== 'function') {
+      // reuse profile loader if present
+    }
+    var loadPdf =
+      window.loadJsPdfUmd ||
+      function () {
+        return new Promise(function (resolve, reject) {
+          if (window.jspdf && window.jspdf.jsPDF) {
+            resolve(window.jspdf.jsPDF);
+            return;
+          }
+          var s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+          s.onload = function () {
+            if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+            else reject(new Error('jspdf'));
+          };
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      };
+    // Prefer server-less client build: fetch full print via dynamic import not available — use HTML print for reliability in legacy
+    // Actually call student app style is hard; keep HTML open which works
+    var answers = response.answers || {};
+    if (typeof answers === 'string') {
+      try { answers = JSON.parse(answers); } catch (e) { answers = {}; }
+    }
+    try {
+      var jsPDF = await loadPdf();
+      var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var y = 16;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('Government Polytechnic, Hubballi', 105, y, { align: 'center' });
+      y += 8;
+      pdf.setFontSize(14);
+      pdf.text(String(response.form_title || form.title || 'Form'), 14, y);
+      y += 8;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(
+        'Status: ' +
+          (response.status || '') +
+          ' · Submitted: ' +
+          fFmtDate(response.submitted_at) +
+          ' · Verified: ' +
+          fFmtDate(response.verified_at) +
+          ' by ' +
+          (response.verified_by_name || '—'),
+        14,
+        y,
+      );
+      y += 10;
+      Object.keys(answers).forEach(function (k) {
+        if (y > 270) {
+          pdf.addPage();
+          y = 16;
+        }
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(11, 61, 110);
+        pdf.text(String(k), 14, y);
+        y += 5;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(15, 23, 42);
+        var lines = pdf.splitTextToSize(String(answers[k] == null ? '—' : answers[k]), 180);
+        pdf.text(lines, 14, y);
+        y += lines.length * 4.5 + 4;
+      });
+      pdf.save('form-' + (response.id || 'response') + '.pdf');
+    } catch (e) {
+      console.warn('[forms] pdf', e);
+      alert('Could not build PDF — try again.');
+    }
+  };
+
+  window.renderFormVerifyInbox = async function renderFormVerifyInbox() {
+    var body =
+      document.getElementById('facFormVerifyBody') ||
+      document.getElementById('adFormVerifyBody') ||
+      document.querySelector('#facFormVerifyBody, #adFormVerifyBody');
+    // Also inject into ACM modules if panel missing
+    if (!body) {
+      var acm = document.getElementById('facACM') || document.getElementById('adACM');
+      if (acm && !document.getElementById('acmFormVerifyHost')) {
+        var host = document.createElement('div');
+        host.id = 'acmFormVerifyHost';
+        host.style.marginTop = '16px';
+        host.innerHTML =
+          '<div class="card" style="padding:16px;"><h3 style="margin:0 0 10px;color:var(--navy);">✅ Form verifications</h3><div id="acmFormVerifyBody">Loading…</div></div>';
+        acm.insertBefore(host, acm.firstChild);
+        body = document.getElementById('acmFormVerifyBody');
+      }
+    }
+    if (!body) {
+      // create minimal panel if verify section open
+      ;['facFormVerify', 'adFormVerify'].forEach(function (id) {
+        var p = document.getElementById(id);
+        if (p && !document.getElementById(id + 'Body')) {
+          p.innerHTML =
+            '<div class="info-box">✅ Form verifications</div><div id="' + id + 'Body"></div>';
+        }
+      });
+      body =
+        document.getElementById('facFormVerifyBody') || document.getElementById('adFormVerifyBody');
+    }
+    if (!body) return;
+    body.innerHTML = '<div style="padding:12px;opacity:.7;">Loading pending…</div>';
+    try {
+      var res = await fetch('/api/forms?pending_verify=1&_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        body.innerHTML = '<div class="warn-box">' + fEsc((data && data.error) || 'Failed') + '</div>';
+        return;
+      }
+      var list = data.responses || [];
+      window.refreshFormVerifyBadge();
+      if (!list.length) {
+        body.innerHTML = '<div class="info-box">No pending form submissions for your desk.</div>';
+        return;
+      }
+      body.innerHTML = list
+        .map(function (r) {
+          var answers = r.answers || {};
+          if (typeof answers === 'string') {
+            try { answers = JSON.parse(answers); } catch (e) { answers = {}; }
+          }
+          var ansHtml = Object.keys(answers)
+            .slice(0, 8)
+            .map(function (k) {
+              return (
+                '<div style="font-size:0.78rem;margin:2px 0;"><strong>' +
+                fEsc(k) +
+                ':</strong> ' +
+                fEsc(answers[k]) +
+                '</div>'
+              );
+            })
+            .join('');
+          return (
+            '<div class="card" style="padding:14px;margin-bottom:10px;border-left:4px solid #f59e0b;" data-vr-id="' +
+            r.id +
+            '" data-vr-form="' +
+            r.form_id +
+            '">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+            '<div><strong>📋 ' +
+            fEsc(r.form_title || 'Form') +
+            '</strong>' +
+            '<div style="font-size:0.78rem;opacity:.8;margin-top:4px;">' +
+            fEsc(r.submitter_name || '') +
+            (r.submitter_reg ? ' · ' + fEsc(r.submitter_reg) : '') +
+            ' · ' +
+            fEsc(fFmtDate(r.submitted_at)) +
+            '</div>' +
+            '<div style="margin-top:8px;">' +
+            ansHtml +
+            '</div></div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+            '<button type="button" class="btn gr" data-vr-approve="1">✓ Approve</button>' +
+            '<button type="button" class="btn re" data-vr-reject="1">✕ Reject</button>' +
+            '</div></div></div>'
+          );
+        })
+        .join('');
+
+      body.querySelectorAll('[data-vr-id]').forEach(function (card) {
+        var rid = card.getAttribute('data-vr-id');
+        var fid = card.getAttribute('data-vr-form');
+        var ap = card.querySelector('[data-vr-approve]');
+        var rj = card.querySelector('[data-vr-reject]');
+        if (ap) {
+          ap.onclick = async function () {
+            await window.verifyFormResponse(fid, rid, 'verify');
+          };
+        }
+        if (rj) {
+          rj.onclick = async function () {
+            var note = prompt('Rejection reason (optional):') || '';
+            await window.verifyFormResponse(fid, rid, 'reject', note);
+          };
+        }
+      });
+    } catch (e) {
+      body.innerHTML = '<div class="warn-box">Failed to load inbox.</div>';
+    }
+  };
+
+  window.verifyFormResponse = async function verifyFormResponse(formId, responseId, action, note) {
+    try {
+      var res = await fetch('/api/forms/' + formId + '/responses', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ response_id: Number(responseId), action: action, note: note || '' }),
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        alert((data && data.error) || 'Action failed');
+        return;
+      }
+      alert(action === 'reject' ? 'Rejected.' : 'Verified and saved.');
+      window.renderFormVerifyInbox();
+      window.refreshFormVerifyBadge();
+    } catch (e) {
+      alert('Network error');
+    }
+  };
+
+  // Hook create form modal open to ensure meta
+  var _origOpenCreate = window.openCreateFormModal;
+  if (typeof _origOpenCreate === 'function') {
+    window.openCreateFormModal = function (prefill) {
+      // If prefill is numeric id from live edit, handled separately
+      if (prefill && typeof prefill === 'object') {
+        window.openLiveFormEditor(prefill);
+        return;
+      }
+      _origOpenCreate(null);
+      window.ensureFormBuilderMeta();
+      var idEl = document.getElementById('fbFormId');
+      if (idEl) idEl.value = '';
+    };
+  }
+
+  console.log('[bridge] live forms handlers installed');
 })();
 
