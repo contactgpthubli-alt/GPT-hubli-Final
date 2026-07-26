@@ -24,8 +24,36 @@ export default function RootLayout({
 }>) {
   return (
     // suppressHydrationWarning: CMS login may set body/html classes before React hydrates
-    <html lang="en" suppressHydrationWarning>
+    // Default class cms-login-mode prevents flash of the old public landing page.
+    <html lang="en" className="cms-login-mode" suppressHydrationWarning>
       <head>
+        {/* Critical: hide marketing landing until CMS gate is ready (no FOUC) */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+html.cms-login-mode body, body.cms-login-mode { background:#0b1f38!important; min-height:100vh; }
+html.cms-login-mode #landingPage > *:not(#cmsLoginGate),
+body.cms-login-mode #landingPage > *:not(#cmsLoginGate) { display:none!important; }
+html.cms-login-mode #landingPage, body.cms-login-mode #landingPage {
+  display:block!important; min-height:100vh; background:transparent;
+}
+html.cms-login-mode .demo-bar, html.cms-login-mode #demoBar,
+body.cms-login-mode .demo-bar, body.cms-login-mode #demoBar { display:none!important; }
+html.cms-login-mode #dbAdmin:not(.show),
+html.cms-login-mode #dbStudent:not(.show),
+html.cms-login-mode #dbFaculty:not(.show),
+html.cms-login-mode #dbPrincipal:not(.show) { display:none!important; }
+/* Soft shell while scripts load */
+#cmsLoginGate .cms-msg-loading { color:#64748b; font-weight:600; font-size:0.85rem; text-align:center; padding:8px 0 4px; }
+`,
+          }}
+        />
+        {/* Apply mode before first paint when possible */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{document.documentElement.classList.add('cms-login-mode');}catch(e){}})();`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -33,7 +61,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body suppressHydrationWarning>
+      <body className="cms-login-mode" suppressHydrationWarning>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

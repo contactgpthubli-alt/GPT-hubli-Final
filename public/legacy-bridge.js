@@ -4174,23 +4174,32 @@ function __initGptBridge() {
   function installCmsLoginGate() {
     var landing = document.getElementById('landingPage');
     if (!landing) return;
-    if (document.getElementById('cmsLoginGate')) {
-      window.showCmsLoginGate();
+
+    var existingGate = document.getElementById('cmsLoginGate');
+    var alreadyWired = existingGate && existingGate.getAttribute('data-cms-wired') === '1';
+    if (alreadyWired) {
+      window.showCmsLoginGate && window.showCmsLoginGate();
       return;
+    }
+
+    // Remove lightweight cms-boot placeholder and build full interactive gate
+    if (existingGate) {
+      try { existingGate.remove(); } catch (e) { /* ignore */ }
     }
 
     var gate = document.createElement('div');
     gate.id = 'cmsLoginGate';
+    gate.setAttribute('data-cms-wired', '1');
     gate.innerHTML =
       '<div class="cms-shell">' +
       '<div class="cms-bg" aria-hidden="true">' +
-      '<img src="/images/campus-building.jpg" alt="" />' +
+      '<img src="/images/campus-building.jpg" alt="" loading="lazy" decoding="async" />' +
       '<div class="cms-bg-overlay"></div>' +
       '</div>' +
       '<div class="cms-card">' +
       '<div class="cms-card-hd">' +
-      '<img class="cms-logo" src="/images/college-logo.jpg" alt="Government Polytechnic Hubballi" ' +
-      'onerror="this.onerror=null;this.src=\'/images/college-logo.png\'" />' +
+      '<img class="cms-logo" src="/images/college-logo.png" alt="Government Polytechnic Hubballi" ' +
+      'onerror="this.onerror=null;this.src=\'/images/college-logo.jpg\'" />' +
       '<h1>Government Polytechnic Hubballi</h1>' +
       '<p>Management Information System<br>Dept. of Technical Education, Karnataka · Estd. 2009</p>' +
       '<div class="cms-badge">Secure CMS Login</div>' +
@@ -4400,32 +4409,50 @@ function __initGptBridge() {
     }
   }
 
-  setTimeout(async function () {
+  // Install CMS gate immediately (don't wait) — kills old landing flash
+  try {
     hideDemoBarIfDisabled();
     installCmsLoginGate();
-    /* registration is handled by the window.createAccount override above */
-    // Public marketing content is no longer shown; skip public hydrations that need landing
-    try { hydratePublic(); } catch (e) { /* ignore */ }
-    var me = await apiReqQuiet('/api/auth/me');
+  } catch (eGate) {
+    console.warn('[bridge] early cms gate', eGate);
+  }
+
+  // Session restore + light boot (defer heavy public hydration forever — CMS is private)
+  setTimeout(async function () {
+    hideDemoBarIfDisabled();
+    try { installCmsLoginGate(); } catch (e2) { /* ignore */ }
+    /* Do NOT call hydratePublic() — old public homepage content is unused and freezes boot */
+    var me = null;
+    try {
+      me = await apiReqQuiet('/api/auth/me');
+    } catch (eMe) {
+      me = null;
+    }
     if (me && me.user) {
       window.hideCmsLoginGate && window.hideCmsLoginGate();
       openDashboardFor(me.user);
-      await afterAuth(me.user);
+      // afterAuth is heavy — keep UI responsive
+      try {
+        await afterAuth(me.user);
+      } catch (eAuth) {
+        console.error('[bridge] afterAuth', eAuth);
+      }
     } else {
       window.showCmsLoginGate && window.showCmsLoginGate();
     }
-  }, 50);
+  }, 0);
 }
 
-/* Boot: wait until legacy-app.js has defined its globals before wrapping them. */
+/* Boot: wait until legacy-app.js has defined its globals before wrapping them.
+   Fast poll (20ms) so CMS login wires quickly after scripts land. */
 (function bridgeBoot(attempt) {
   attempt = attempt || 0;
   if (typeof window.login === 'function' && typeof window.demoLogin === 'function') {
     try { __initGptBridge(); } catch (e) { console.error('[bridge] init failed', e); }
     return;
   }
-  if (attempt > 100) { console.error('[bridge] legacy app never became ready'); return; }
-  setTimeout(function () { bridgeBoot(attempt + 1); }, 100);
+  if (attempt > 200) { console.error('[bridge] legacy app never became ready'); return; }
+  setTimeout(function () { bridgeBoot(attempt + 1); }, 20);
 })(0);
 
 /* ================================================================

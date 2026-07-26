@@ -21,21 +21,20 @@ export default function Page() {
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: legacyBodyHtml }} />
       {/* Bridge config must exist before the bridge script runs.
           Demo quick-login is opt-in via NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true. */}
-      <Script id="bridge-config" strategy="afterInteractive">
+      <Script id="bridge-config" strategy="beforeInteractive">
         {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
-      {/* Cache-bust static legacy scripts so HOD/Admin always get attendance/academic fixes */}
-      {/* Shared print preview (mobile WebView + desktop) — load before cert/TC printers */}
-      <Script src="/gpth-print.js?v=20260726c" strategy="afterInteractive" />
-      <Script src="/legacy-app.js?v=20260726e" strategy="afterInteractive" />
+      {/* Instant CMS shell — hide old public landing before heavy scripts load */}
+      <Script src="/cms-boot.js?v=20260726f" strategy="beforeInteractive" />
+      {/* Core app scripts — afterInteractive so DOM from legacy body exists */}
+      <Script src="/legacy-app.js?v=20260726f" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
-          Must load after legacy-app.js (same strategy preserves document order).
-          afterInteractive — not lazyOnload — so auth is wired before the user clicks Login. */}
-      <Script src="/legacy-bridge.js?v=20260726e" strategy="afterInteractive" />
-      {/* Transfer Certificate (ACM Issue TC / Register / Template) */}
-      <Script src="/legacy-tc.js?v=20260726e" strategy="afterInteractive" />
-      {/* Study + Studying Certificates (ACM) */}
-      <Script src="/legacy-acm-study.js?v=20260726e" strategy="afterInteractive" />
+          Must load after legacy-app.js (same strategy preserves document order). */}
+      <Script src="/legacy-bridge.js?v=20260726f" strategy="afterInteractive" />
+      {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}
+      <Script src="/gpth-print.js?v=20260726f" strategy="lazyOnload" />
+      <Script src="/legacy-tc.js?v=20260726f" strategy="lazyOnload" />
+      <Script src="/legacy-acm-study.js?v=20260726f" strategy="lazyOnload" />
     </>
   )
 }

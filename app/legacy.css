@@ -1031,6 +1031,7 @@ html.cms-login-mode body,
 body.cms-login-mode {
   background: #0b1f38;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 html.cms-login-mode #landingPage > *:not(#cmsLoginGate),
 body.cms-login-mode #landingPage > *:not(#cmsLoginGate) {
@@ -1046,6 +1047,17 @@ html.cms-login-mode .demo-bar,
 html.cms-login-mode #demoBar,
 body.cms-login-mode .demo-bar,
 body.cms-login-mode #demoBar {
+  display: none !important;
+}
+/* Hide dashboards while on CMS gate (prevents flash of old admin/faculty shells) */
+html.cms-login-mode #dbAdmin:not(.show),
+html.cms-login-mode #dbStudent:not(.show),
+html.cms-login-mode #dbFaculty:not(.show),
+html.cms-login-mode #dbPrincipal:not(.show),
+body.cms-login-mode #dbAdmin:not(.show),
+body.cms-login-mode #dbStudent:not(.show),
+body.cms-login-mode #dbFaculty:not(.show),
+body.cms-login-mode #dbPrincipal:not(.show) {
   display: none !important;
 }
 /* Create-account modals must sit above the CMS login gate */
