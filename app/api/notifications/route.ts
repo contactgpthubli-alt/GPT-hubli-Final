@@ -159,7 +159,7 @@ export async function GET() {
   } else if (user.role === "student") {
     // Persistent in-app notifications (e.g. account approved)
     try {
-      const mineNotifs = await listUserNotifications(Number(user.id), 15)
+      const mineNotifs = await listUserNotifications(Number(user.id), 40)
       for (const n of mineNotifs) {
         items.unshift({
           id: `un-${n.id}`,

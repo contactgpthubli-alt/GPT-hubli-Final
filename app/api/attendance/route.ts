@@ -342,7 +342,15 @@ export async function POST(req: Request) {
   }
 
   // Notify student + parent (same account; parent mode shows parent-kind alerts)
-  const attDateStr = String(rows[0]?.att_date || attDate || new Date().toISOString()).slice(0, 10)
+  // pg DATE columns arrive as JS Date — never String(date).slice(0,10) (becomes "Sat Jul 26…")
+  const rawDate = rows[0]?.att_date ?? attDate
+  let attDateStr = new Date().toISOString().slice(0, 10)
+  if (rawDate instanceof Date && !Number.isNaN(rawDate.getTime())) {
+    attDateStr = rawDate.toISOString().slice(0, 10)
+  } else if (rawDate != null) {
+    const s = String(rawDate)
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) attDateStr = s.slice(0, 10)
+  }
   // Prefer session time from client (attTime input); else mark time now
   const attTimeStr =
     (b.time != null && String(b.time).trim()) ||

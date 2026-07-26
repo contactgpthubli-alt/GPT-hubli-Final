@@ -28,6 +28,7 @@ type MoreView =
   | "certRequest"
   | "formFill"
   | "whatsNew"
+  | "notifications"
 
 type PortalMode = "student" | "parent"
 
@@ -492,10 +493,35 @@ export default function StudentApp() {
       ) || null,
     [appNotifs],
   )
-  const unreadAppNotifs = useMemo(
-    () => appNotifs.filter((n) => n.unread).slice(0, 5),
-    [appNotifs],
-  )
+  /** Absent alerts — always surfaced (parent prefers parent-kind). */
+  const absentNotifs = useMemo(() => {
+    const isAbsent = (n: AppNotif) =>
+      n.kind === "attendance_absent" ||
+      n.kind === "attendance_absent_parent" ||
+      (n.title || "").toLowerCase().includes("absent")
+    let list = appNotifs.filter(isAbsent)
+    if (portalMode === "parent") {
+      // Parent view: prefer ward-absent wording; still show student-kind as fallback
+      const parentFirst = list.filter((n) => n.kind === "attendance_absent_parent" || (n.title || "").toLowerCase().includes("ward"))
+      const rest = list.filter((n) => !parentFirst.includes(n))
+      list = [...parentFirst, ...rest]
+    } else if (portalMode === "student") {
+      list = list.filter((n) => n.kind !== "attendance_absent_parent")
+    }
+    return list.slice(0, 10)
+  }, [appNotifs, portalMode])
+  const unreadAppNotifs = useMemo(() => {
+    // Don't let "account approved" hide everything else — exclude only if already shown separately is handled in UI
+    return appNotifs
+      .filter((n) => n.unread)
+      .filter((n) => {
+        // Parent mode: hide pure student-only noise if needed later; show absent + general
+        if (portalMode === "parent" && n.kind === "attendance_absent") return false
+        if (portalMode === "student" && n.kind === "attendance_absent_parent") return false
+        return true
+      })
+      .slice(0, 8)
+  }, [appNotifs, portalMode])
   const profileLocked = useMemo(() => {
     const extra = student?.extra || {}
     return extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
@@ -714,6 +740,8 @@ export default function StudentApp() {
       /* ignore */
     }
     flash(mode === "parent" ? "Parent view (read-only)" : "Student view")
+    // Refresh notifications so parent sees latest absent alerts
+    void loadDashboard()
   }
 
   async function doRegister() {
@@ -1173,6 +1201,7 @@ export default function StudentApp() {
       if (moreView === "certs") return "Certificates"
       if (moreView === "certRequest") return "Request Certificate"
       if (moreView === "notices") return "Notices"
+      if (moreView === "notifications") return "Notifications"
       if (moreView === "attendance") return "Attendance"
       if (moreView === "password") return "Change Password"
       if (moreView === "grievances") return "Grievances"
@@ -1568,6 +1597,56 @@ export default function StudentApp() {
               </div>
             ) : null}
 
+            {/* Absent alerts always shown (parent + student) — not blocked by account-approved banner */}
+            {absentNotifs.length > 0 ? (
+              <div
+                className="stu-alert-ready"
+                role="status"
+                style={{ borderColor: "#dc2626", background: "rgba(254,226,226,0.45)" }}
+              >
+                <h3>
+                  {isParentMode ? "⚠️ Ward absent alerts" : "⚠️ Absent alerts"} ({absentNotifs.length})
+                </h3>
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: "0.88rem", lineHeight: 1.45 }}>
+                  {absentNotifs.slice(0, 5).map((n) => (
+                    <li key={n.id} style={{ marginBottom: 8 }}>
+                      <strong>{n.title}</strong>
+                      {n.desc ? <div style={{ marginTop: 2 }}>{n.desc}</div> : null}
+                      {n.time ? (
+                        <div style={{ fontSize: "0.75rem", opacity: 0.75, marginTop: 2 }}>{n.time}</div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-ghost stu-btn-sm"
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("notifications")
+                    }}
+                  >
+                    All notifications
+                  </button>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-ghost stu-btn-sm"
+                    onClick={async () => {
+                      await api("/api/notifications", {
+                        method: "PATCH",
+                        body: JSON.stringify({}),
+                      })
+                      setAppNotifs((prev) => prev.map((n) => ({ ...n, unread: false })))
+                      flash("Notifications marked read")
+                    }}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             {accountApprovedNotif ? (
               <div className="stu-alert-ready" role="status" style={{ borderColor: "#16a34a" }}>
                 <h3>{accountApprovedNotif.title || "✅ Account Approved"}</h3>
@@ -1584,13 +1663,18 @@ export default function StudentApp() {
                   className="stu-btn stu-btn-ghost stu-btn-sm"
                   style={{ marginTop: 10 }}
                   onClick={async () => {
-                    // Mark all unread app notifications as read
                     await api("/api/notifications", {
                       method: "PATCH",
                       body: JSON.stringify({}),
                     })
-                    setAppNotifs((prev) => prev.map((n) => ({ ...n, unread: false })))
-                    flash("Notification dismissed")
+                    setAppNotifs((prev) =>
+                      prev.map((n) =>
+                        n.kind === "account_approved" || (n.title || "").toLowerCase().includes("account approved")
+                          ? { ...n, unread: false }
+                          : n,
+                      ),
+                    )
+                    flash("Dismissed")
                   }}
                 >
                   Got it
@@ -1598,17 +1682,55 @@ export default function StudentApp() {
               </div>
             ) : null}
 
-            {!accountApprovedNotif && unreadAppNotifs.length > 0 ? (
+            {unreadAppNotifs.filter(
+              (n) =>
+                n.kind !== "attendance_absent" &&
+                n.kind !== "attendance_absent_parent" &&
+                n.kind !== "account_approved" &&
+                !(n.title || "").toLowerCase().includes("account approved") &&
+                !(n.title || "").toLowerCase().includes("absent"),
+            ).length > 0 ? (
               <div className="stu-msg stu-msg-info">
-                <strong>🔔 {unreadAppNotifs.length} notification{unreadAppNotifs.length === 1 ? "" : "s"}</strong>
+                <strong>
+                  🔔{" "}
+                  {
+                    unreadAppNotifs.filter(
+                      (n) =>
+                        n.kind !== "attendance_absent" &&
+                        n.kind !== "attendance_absent_parent" &&
+                        n.kind !== "account_approved",
+                    ).length
+                  }{" "}
+                  other notification(s)
+                </strong>
                 <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
-                  {unreadAppNotifs.map((n) => (
-                    <li key={n.id} style={{ marginBottom: 4 }}>
-                      <strong>{n.title}</strong>
-                      {n.desc ? ` — ${n.desc}` : ""}
-                    </li>
-                  ))}
+                  {unreadAppNotifs
+                    .filter(
+                      (n) =>
+                        n.kind !== "attendance_absent" &&
+                        n.kind !== "attendance_absent_parent" &&
+                        n.kind !== "account_approved" &&
+                        !(n.title || "").toLowerCase().includes("absent"),
+                    )
+                    .slice(0, 4)
+                    .map((n) => (
+                      <li key={n.id} style={{ marginBottom: 4 }}>
+                        <strong>{n.title}</strong>
+                        {n.desc ? ` — ${n.desc}` : ""}
+                      </li>
+                    ))}
                 </ul>
+                <button
+                  type="button"
+                  className="stu-btn stu-btn-ghost stu-btn-sm"
+                  style={{ marginTop: 8 }}
+                  onClick={() => {
+                    setTab("more")
+                    setMoreView("notifications")
+                  }}
+                >
+                  View all
+                </button>
               </div>
             ) : null}
 
@@ -2140,6 +2262,14 @@ export default function StudentApp() {
                 <span className="t">Attendance</span>
                 <span className="d">{student?.att || "Summary"}</span>
               </button>
+              <button type="button" onClick={() => setMoreView("notifications")}>
+                <span className="ico">🔔</span>
+                <span className="t">Notifications</span>
+                <span className="d">
+                  {isParentMode ? "Ward absent alerts" : "Absent alerts & updates"}
+                  {unreadAppNotifs.length ? ` · ${unreadAppNotifs.length} new` : ""}
+                </span>
+              </button>
               <button type="button" onClick={() => setMoreView("notices")}>
                 <span className="ico">📢</span>
                 <span className="t">Notices</span>
@@ -2181,6 +2311,100 @@ export default function StudentApp() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ---------- NOTIFICATIONS ---------- */}
+        {tab === "more" && moreView === "notifications" && (
+          <div className="stu-card">
+            <button
+              type="button"
+              className="stu-btn stu-btn-ghost stu-btn-sm"
+              style={{ marginBottom: 12 }}
+              onClick={() => setMoreView("menu")}
+            >
+              ← Back
+            </button>
+            <h3>{isParentMode ? "Parent notifications" : "Notifications"}</h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--stu-muted)", marginTop: 0 }}>
+              {isParentMode
+                ? "Absent alerts for your ward appear here when staff mark attendance."
+                : "Absent marks and other updates from the college appear here."}
+            </p>
+            <div className="stu-actions" style={{ marginBottom: 12 }}>
+              <button type="button" className="stu-btn stu-btn-ghost stu-btn-sm" onClick={() => loadDashboard()}>
+                Refresh
+              </button>
+              <button
+                type="button"
+                className="stu-btn stu-btn-ghost stu-btn-sm"
+                onClick={async () => {
+                  await api("/api/notifications", { method: "PATCH", body: JSON.stringify({}) })
+                  setAppNotifs((prev) => prev.map((n) => ({ ...n, unread: false })))
+                  flash("All marked read")
+                }}
+              >
+                Mark all read
+              </button>
+            </div>
+            {absentNotifs.length > 0 ? (
+              <>
+                <h4 style={{ margin: "8px 0" }}>Absent alerts</h4>
+                {absentNotifs.map((n) => (
+                  <div
+                    key={n.id}
+                    className="stu-row"
+                    style={{
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      borderLeft: n.unread ? "3px solid #dc2626" : "3px solid transparent",
+                      paddingLeft: 10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <strong>{n.title}</strong>
+                    <span style={{ fontSize: "0.86rem", marginTop: 4 }}>{n.desc}</span>
+                    {n.time ? (
+                      <span style={{ fontSize: "0.75rem", opacity: 0.7, marginTop: 4 }}>{n.time}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p style={{ opacity: 0.75 }}>No absent alerts yet.</p>
+            )}
+            <h4 style={{ margin: "16px 0 8px" }}>All notifications</h4>
+            {appNotifs.length === 0 ? (
+              <p style={{ opacity: 0.75 }}>No notifications yet.</p>
+            ) : (
+              appNotifs
+                .filter((n) => {
+                  if (portalMode === "parent" && n.kind === "attendance_absent") return false
+                  if (portalMode === "student" && n.kind === "attendance_absent_parent") return false
+                  return true
+                })
+                .map((n) => (
+                  <div
+                    key={n.id}
+                    className="stu-row"
+                    style={{
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      opacity: n.unread ? 1 : 0.75,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <strong>
+                      {n.unread ? "• " : ""}
+                      {n.title}
+                    </strong>
+                    <span style={{ fontSize: "0.86rem", marginTop: 4 }}>{n.desc}</span>
+                    {n.time ? (
+                      <span style={{ fontSize: "0.75rem", opacity: 0.7, marginTop: 4 }}>{n.time}</span>
+                    ) : null}
+                  </div>
+                ))
+            )}
+          </div>
         )}
 
         {/* ---------- CERT REQUEST ---------- */}
