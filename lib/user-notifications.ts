@@ -194,6 +194,103 @@ export async function listUserNotifications(
   }>
 }
 
+/** Insert one in-app notification for a user (student or staff account). */
+export async function createUserNotification(input: {
+  userId: number
+  title: string
+  body?: string
+  kind?: string
+  meta?: Record<string, unknown>
+}): Promise<number | null> {
+  await ensureAccountApprovalSchema()
+  const uid = Number(input.userId)
+  if (!Number.isFinite(uid) || uid <= 0) return null
+  try {
+    const { rows } = await query(
+      `INSERT INTO user_notifications (user_id, title, body, kind, meta)
+       VALUES ($1, $2, $3, $4, COALESCE($5::jsonb, '{}'::jsonb))
+       RETURNING id`,
+      [
+        uid,
+        String(input.title || "Notification").slice(0, 200),
+        String(input.body || ""),
+        String(input.kind || "info").slice(0, 64),
+        JSON.stringify(input.meta || {}),
+      ],
+    )
+    return rows[0]?.id != null ? Number(rows[0].id) : null
+  } catch (e) {
+    console.error("[user-notifications] create failed", e)
+    return null
+  }
+}
+
+/**
+ * Notify student account (and parent-facing copy) that they were marked absent.
+ * Same login is used for Student/Parent app modes — one user_id, two notification kinds optional.
+ */
+export async function notifyStudentAbsent(input: {
+  regNo: string
+  studentName?: string | null
+  subject: string
+  attDate: string
+  branch?: string | null
+  batch?: string | null
+  markedByName?: string | null
+}): Promise<{ student: boolean; parent: boolean }> {
+  await ensureAccountApprovalSchema()
+  const reg = String(input.regNo || "").trim().toUpperCase()
+  if (!reg) return { student: false, parent: false }
+
+  const { rows: users } = await query(
+    `SELECT id, display_name FROM users
+      WHERE role = 'student' AND deleted_at IS NULL
+        AND upper(reg_no) = $1
+      LIMIT 1`,
+    [reg],
+  )
+  const u = users[0]
+  if (!u) return { student: false, parent: false }
+
+  const name = String(input.studentName || u.display_name || reg).trim()
+  const dateLabel = String(input.attDate || "").slice(0, 10)
+  const subj = String(input.subject || "Class").trim()
+  const batchPart = input.batch ? ` · ${input.batch}` : ""
+  const by = input.markedByName ? ` (marked by ${input.markedByName})` : ""
+
+  const studentTitle = "⚠️ Marked Absent"
+  const studentBody = `${name} was marked Absent for ${subj} on ${dateLabel}${batchPart}.${by}`
+
+  const parentTitle = "⚠️ Your ward is Absent"
+  const parentBody = `Your ward ${name} (${reg}) was marked Absent for ${subj} on ${dateLabel}${batchPart}.${by} Open the app as Parent to view attendance (read-only).`
+
+  const meta = {
+    reg_no: reg,
+    subject: subj,
+    att_date: dateLabel,
+    branch: input.branch || null,
+    batch: input.batch || null,
+    audience: "both",
+  }
+
+  const sId = await createUserNotification({
+    userId: Number(u.id),
+    title: studentTitle,
+    body: studentBody,
+    kind: "attendance_absent",
+    meta: { ...meta, for: "student" },
+  })
+  const pId = await createUserNotification({
+    userId: Number(u.id),
+    title: parentTitle,
+    body: parentBody,
+    kind: "attendance_absent_parent",
+    meta: { ...meta, for: "parent" },
+  })
+
+  return { student: sId != null, parent: pId != null }
+}
+
 export async function markUserNotificationsRead(
   userId: number,
   ids?: number[],

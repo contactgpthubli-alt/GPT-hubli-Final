@@ -46,6 +46,10 @@ export async function ensureAcademicSchema() {
   await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS pass_out_academic_year TEXT`)
   await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS needs_admission_year_review BOOLEAN DEFAULT FALSE`)
   await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS academic_updated_at TIMESTAMPTZ`)
+  // Practical batch (1–4). 3 & 4 optional for extra lab groups.
+  await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS attendance_batch INT`)
+  await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS parent_name TEXT`)
+  await query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS parent_mobile TEXT`)
 
   await query(`
     CREATE TABLE IF NOT EXISTS student_academic_events (

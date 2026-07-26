@@ -29,6 +29,8 @@ type MoreView =
   | "formFill"
   | "whatsNew"
 
+type PortalMode = "student" | "parent"
+
 type User = {
   id: number
   email: string
@@ -380,11 +382,16 @@ function isLockedField(label: string) {
   return l.includes("register number") || l === "reg no" || l === "reg_no"
 }
 
+const PORTAL_MODE_KEY = "gpth_portal_mode"
+
 export default function StudentApp() {
   const [booting, setBooting] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [tab, setTab] = useState<Tab>("home")
   const [moreView, setMoreView] = useState<MoreView>("menu")
+  /** After login: choose Student vs Parent view (same credentials). */
+  const [portalMode, setPortalMode] = useState<PortalMode | null>(null)
+  const [needPortalChoice, setNeedPortalChoice] = useState(false)
 
   const [authMode, setAuthMode] = useState<AuthMode>("login")
   const [loginId, setLoginId] = useState("")
@@ -620,6 +627,18 @@ export default function StudentApp() {
             ...u,
             requires_setup: !!(u.force_password_change || me.data.requires_setup || u.requires_setup),
           })
+          // Restore portal mode from session, or ask again
+          try {
+            const saved = sessionStorage.getItem(PORTAL_MODE_KEY) as PortalMode | null
+            if (saved === "student" || saved === "parent") {
+              setPortalMode(saved)
+              setNeedPortalChoice(false)
+            } else {
+              setNeedPortalChoice(true)
+            }
+          } catch {
+            setNeedPortalChoice(true)
+          }
         }
       }
       setBooting(false)
@@ -675,7 +694,26 @@ export default function StudentApp() {
       ...u,
       requires_setup: !!(u.force_password_change || res.data.requires_setup || u.requires_setup),
     })
+    // Always ask Student vs Parent after password login
+    try {
+      sessionStorage.removeItem(PORTAL_MODE_KEY)
+    } catch {
+      /* ignore */
+    }
+    setPortalMode(null)
+    setNeedPortalChoice(true)
     setTab("home")
+  }
+
+  function choosePortalMode(mode: PortalMode) {
+    setPortalMode(mode)
+    setNeedPortalChoice(false)
+    try {
+      sessionStorage.setItem(PORTAL_MODE_KEY, mode)
+    } catch {
+      /* ignore */
+    }
+    flash(mode === "parent" ? "Parent view (read-only)" : "Student view")
   }
 
   async function doRegister() {
@@ -829,6 +867,11 @@ export default function StudentApp() {
       setProfileErr("Profile editing is locked by Admin. Contact the office.")
       return
     }
+    if (portalMode === "parent") {
+      setProfileErr("Parent view is read-only. Switch to Student to edit the profile.")
+      flash("Parent view is read-only")
+      return
+    }
     if (profilePending) {
       setProfileErr("You already have a profile update pending approval.")
       return
@@ -918,6 +961,10 @@ export default function StudentApp() {
   }
 
   async function submitCertRequest() {
+    if (portalMode === "parent") {
+      setCertErr("Parent view is read-only. Switch to Student to request certificates.")
+      return
+    }
     setCertErr("")
     setCertOk("")
     if (!certType) {
@@ -1335,6 +1382,61 @@ export default function StudentApp() {
     )
   }
 
+  const isParentMode = portalMode === "parent"
+  const isReadOnlyPortal =
+    isParentMode || user.is_alumni || user.read_only_portal || student?.is_alumni
+
+  if (needPortalChoice && user && !requiresSetup) {
+    return (
+      <div className="stu-auth">
+        <div className="stu-auth-brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/college-logo.png"
+            alt="GPT Hubli"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = "/images/gpt-logo.png"
+            }}
+          />
+          <div>
+            <h1>Continue as…</h1>
+            <p>
+              {user.display_name} · {user.reg_no || "Student"}
+            </p>
+          </div>
+        </div>
+        <div className="stu-auth-card">
+          <h2>Who is using the app?</h2>
+          <p className="sub">
+            Same login works for both. Parents get a read-only view and absent alerts when staff marks attendance.
+          </p>
+          <div className="stu-actions" style={{ flexDirection: "column", gap: 12, marginTop: 16 }}>
+            <button type="button" className="stu-btn stu-btn-primary" onClick={() => choosePortalMode("student")}>
+              🎓 Student
+            </button>
+            <button type="button" className="stu-btn stu-btn-ghost" onClick={() => choosePortalMode("parent")}>
+              👨‍👩‍👧 Parent / Guardian
+            </button>
+          </div>
+          <p className="stu-auth-switch" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="stu-link-btn"
+              onClick={async () => {
+                await api("/api/auth/logout", { method: "POST", body: "{}" })
+                setUser(null)
+                setNeedPortalChoice(false)
+                setPortalMode(null)
+              }}
+            >
+              Sign out
+            </button>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (requiresSetup) {
     return (
       <div className="stu-auth">
@@ -1399,13 +1501,15 @@ export default function StudentApp() {
           <div className="meta">
             {user.display_name}
             {user.reg_no ? ` · ${user.reg_no}` : ""}
-            {user.is_alumni || user.read_only_portal
-              ? " · Alumni"
-              : user.academic?.year_label
-                ? ` · ${user.academic.year_label}`
-                : student?.year
-                  ? ` · ${student.year}`
-                  : ""}
+            {isParentMode
+              ? " · Parent view"
+              : user.is_alumni || user.read_only_portal
+                ? " · Alumni"
+                : user.academic?.year_label
+                  ? ` · ${user.academic.year_label}`
+                  : student?.year
+                    ? ` · ${student.year}`
+                    : ""}
           </div>
         </div>
         <div className="stu-avatar" title={user.email}>
@@ -1422,10 +1526,31 @@ export default function StudentApp() {
         {toast ? <div className="stu-msg stu-msg-ok">{toast}</div> : null}
         {dataErr ? <div className="stu-msg stu-msg-err">{dataErr}</div> : null}
 
+        {isParentMode ? (
+          <div className="stu-msg stu-msg-info" role="status">
+            <strong>👨‍👩‍👧 Parent / Guardian view (read-only)</strong>
+            <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>
+              You can view your ward&apos;s profile, results, attendance and notices. Editing and form submissions are
+              disabled. You will receive notifications when staff mark your ward absent.
+            </p>
+            <button
+              type="button"
+              className="stu-btn stu-btn-ghost stu-btn-sm"
+              style={{ marginTop: 8 }}
+              onClick={() => {
+                setNeedPortalChoice(true)
+                setPortalMode(null)
+              }}
+            >
+              Switch to Student / Parent…
+            </button>
+          </div>
+        ) : null}
+
         {/* ---------- HOME ---------- */}
         {tab === "home" && (
           <>
-            {(user.is_alumni || user.read_only_portal || student?.is_alumni || student?.academic_status === "passed_out") ? (
+            {(user.is_alumni || user.read_only_portal || student?.is_alumni || student?.academic_status === "passed_out") && !isParentMode ? (
               <div className="stu-msg stu-msg-info" role="status">
                 <strong>🎓 Alumni / Pass-out portal (read-only)</strong>
                 <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>

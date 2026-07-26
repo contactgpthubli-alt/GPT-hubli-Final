@@ -3,6 +3,7 @@ import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/aut
 import { STAFF_ROLES } from "@/lib/roles"
 import { normalizeBranch, isOfficialBranch } from "@/lib/branches"
 import { branchesMatch, hodBranchOf } from "@/lib/account-approvals"
+import { notifyStudentAbsent } from "@/lib/user-notifications"
 
 type AttEntry = {
   reg: string
@@ -340,9 +341,31 @@ export async function POST(req: Request) {
     console.warn("[attendance] recompute att % failed", e)
   }
 
+  // Notify student + parent (same account; parent mode shows parent-kind alerts)
+  const attDateStr = String(rows[0]?.att_date || attDate || new Date().toISOString()).slice(0, 10)
+  let absentNotified = 0
+  const absentees = entries.filter((e) => e.status === "A")
+  for (const e of absentees) {
+    try {
+      const r = await notifyStudentAbsent({
+        regNo: e.reg,
+        studentName: e.name,
+        subject,
+        attDate: attDateStr,
+        branch,
+        batch,
+        markedByName: user.display_name || user.role,
+      })
+      if (r.student || r.parent) absentNotified += 1
+    } catch (err) {
+      console.warn("[attendance] absent notify failed", e.reg, err)
+    }
+  }
+
   const row = rows[0]
   return Response.json({
     ok: true,
+    absent_notified: absentNotified,
     attendance: {
       id: row.id,
       class_id: row.class_id,

@@ -7883,7 +7883,29 @@ setInterval(function () {
     if (!batchField) return null;
     var sel = batchField.querySelector('select');
     if (sel && !sel.id) sel.id = 'attBatch';
+    sel = document.getElementById('attBatch') || sel;
+    if (sel) {
+      // Batch 1–2 primary; 3–4 optional for extra practical groups
+      var prev = sel.value || '';
+      sel.innerHTML =
+        '<option value="Batch 1">Batch 1</option>' +
+        '<option value="Batch 2">Batch 2</option>' +
+        '<option value="Batch 3">Batch 3 (optional)</option>' +
+        '<option value="Batch 4">Batch 4 (optional)</option>';
+      if (prev) {
+        // map old values
+        if (/3/.test(prev)) sel.value = 'Batch 3';
+        else if (/4/.test(prev)) sel.value = 'Batch 4';
+        else if (/2/.test(prev)) sel.value = 'Batch 2';
+        else sel.value = 'Batch 1';
+      }
+    }
     return document.getElementById('attBatch');
+  }
+
+  function attBatchNumber(batchLabel) {
+    var m = String(batchLabel || '').match(/([1-4])/);
+    return m ? Number(m[1]) : null;
   }
 
   function attTodayISO() {
@@ -7980,6 +8002,173 @@ setInterval(function () {
 
     // Load recent sessions for this branch
     loadAttendanceHistory();
+    ensureBatchAssignPanel();
+  };
+
+  /** Staff: assign Batch 1–4 + parent mobile (for practical periods + absent alerts) */
+  function ensureBatchAssignPanel() {
+    var step1 = document.getElementById('attStep1');
+    if (!step1) return;
+    var host = document.getElementById('attBatchAssignHost');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'attBatchAssignHost';
+      host.style.marginTop = '14px';
+      step1.appendChild(host);
+    }
+    host.innerHTML =
+      '<div class="card" style="padding:16px;">' +
+      '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">👥 Assign Practical Batch & Parent Contact</h3>' +
+      '<p style="font-size:0.8rem;opacity:.8;margin:0 0 12px;">Batch 1 &amp; 2 for normal lab splits. <strong>Batch 3 &amp; 4 are optional</strong>. ' +
+      'Parent mobile is used for absent alerts in the Parent app view (same login as student).</p>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">' +
+      '<button type="button" class="btn pr" id="attBatchLoadBtn">Load branch students</button>' +
+      '<button type="button" class="btn go" id="attBatchSaveBtn">💾 Save batch / parent</button>' +
+      '</div>' +
+      '<div id="attBatchAssignMeta" style="font-size:0.78rem;opacity:.75;margin-bottom:8px;"></div>' +
+      '<div style="overflow:auto;max-height:320px;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+      '<thead><tr>' +
+      '<th style="text-align:left;padding:6px;">Reg No</th>' +
+      '<th style="text-align:left;padding:6px;">Name</th>' +
+      '<th style="text-align:left;padding:6px;">Batch</th>' +
+      '<th style="text-align:left;padding:6px;">Parent name</th>' +
+      '<th style="text-align:left;padding:6px;">Parent mobile</th>' +
+      '</tr></thead>' +
+      '<tbody id="attBatchAssignBody"><tr><td colspan="5" style="padding:16px;opacity:.7;">Click “Load branch students”.</td></tr></tbody>' +
+      '</table></div></div>';
+
+    var loadBtn = document.getElementById('attBatchLoadBtn');
+    var saveBtn = document.getElementById('attBatchSaveBtn');
+    if (loadBtn && !loadBtn.__bound) {
+      loadBtn.__bound = true;
+      loadBtn.onclick = function () { window.loadAttendanceBatchAssign && window.loadAttendanceBatchAssign(); };
+    }
+    if (saveBtn && !saveBtn.__bound) {
+      saveBtn.__bound = true;
+      saveBtn.onclick = function () { window.saveAttendanceBatchAssign && window.saveAttendanceBatchAssign(); };
+    }
+  }
+
+  window.loadAttendanceBatchAssign = async function loadAttendanceBatchAssign() {
+    var user = window.currentUser;
+    var branch =
+      (document.getElementById('attBranch') && document.getElementById('attBranch').value) ||
+      (user && user.role === 'hod' ? attHodBranch(user) : '') ||
+      '';
+    branch = attNormalizeBranch(branch);
+    var body = document.getElementById('attBatchAssignBody');
+    var meta = document.getElementById('attBatchAssignMeta');
+    if (!branch) {
+      alert('Branch is required');
+      return;
+    }
+    if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;">Loading…</td></tr>';
+    try {
+      var r = await fetch(
+        '/api/students/batch?branch=' + encodeURIComponent(branch) + '&_ts=' + Date.now(),
+        { credentials: 'same-origin', cache: 'no-store' },
+      );
+      var data = await r.json().catch(function () { return null; });
+      if (!r.ok || !data || !Array.isArray(data.students)) {
+        if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#991b1b;">Failed to load.</td></tr>';
+        return;
+      }
+      window._attBatchAssignList = data.students;
+      if (meta) meta.textContent = data.students.length + ' active students · ' + branch;
+      if (!data.students.length) {
+        if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;">No active students.</td></tr>';
+        return;
+      }
+      body.innerHTML = data.students
+        .map(function (s, i) {
+          var b = s.attendance_batch;
+          var opts = [1, 2, 3, 4]
+            .map(function (n) {
+              return (
+                '<option value="' +
+                n +
+                '"' +
+                (Number(b) === n ? ' selected' : '') +
+                '>Batch ' +
+                n +
+                (n >= 3 ? ' (opt.)' : '') +
+                '</option>'
+              );
+            })
+            .join('');
+          return (
+            '<tr data-batch-i="' +
+            i +
+            '">' +
+            '<td style="padding:6px;font-family:monospace;font-size:0.75rem;">' +
+            attEsc(s.reg_no) +
+            '</td>' +
+            '<td style="padding:6px;">' +
+            attEsc(s.name) +
+            '</td>' +
+            '<td style="padding:6px;"><select class="att-batch-sel" data-reg="' +
+            attEsc(s.reg_no) +
+            '" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);">' +
+            '<option value="">—</option>' +
+            opts +
+            '</select></td>' +
+            '<td style="padding:6px;"><input type="text" class="att-parent-name" data-reg="' +
+            attEsc(s.reg_no) +
+            '" value="' +
+            attEsc(s.parent_name || '') +
+            '" placeholder="Parent name" style="width:100%;min-width:100px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);" /></td>' +
+            '<td style="padding:6px;"><input type="text" class="att-parent-mobile" data-reg="' +
+            attEsc(s.reg_no) +
+            '" value="' +
+            attEsc(s.parent_mobile || '') +
+            '" placeholder="10-digit mobile" style="width:100%;min-width:110px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);" /></td>' +
+            '</tr>'
+          );
+        })
+        .join('');
+    } catch (e) {
+      if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#991b1b;">Network error.</td></tr>';
+    }
+  };
+
+  window.saveAttendanceBatchAssign = async function saveAttendanceBatchAssign() {
+    var root = document.getElementById('attBatchAssignHost');
+    if (!root) return;
+    var updates = [];
+    root.querySelectorAll('.att-batch-sel').forEach(function (sel) {
+      var reg = sel.getAttribute('data-reg');
+      if (!reg) return;
+      var nameInp = root.querySelector('.att-parent-name[data-reg="' + reg + '"]');
+      var mobInp = root.querySelector('.att-parent-mobile[data-reg="' + reg + '"]');
+      var batchVal = sel.value ? Number(sel.value) : null;
+      updates.push({
+        reg_no: reg,
+        attendance_batch: batchVal,
+        parent_name: nameInp ? nameInp.value : '',
+        parent_mobile: mobInp ? mobInp.value : '',
+      });
+    });
+    if (!updates.length) {
+      alert('Load students first.');
+      return;
+    }
+    try {
+      var r = await fetch('/api/students/batch', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ updates: updates }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Save failed');
+        return;
+      }
+      alert('Saved batch & parent details for ' + (data.updated || 0) + ' student(s).');
+    } catch (e) {
+      alert('Network error');
+    }
   };
 
   async function loadAttendanceHistory() {
@@ -8250,10 +8439,17 @@ setInterval(function () {
     else if (year === 'II' || year === '2') yearQ = '&year=2';
     else if (year === 'III' || year === '3') yearQ = '&year=3';
 
+    var batchQ = '';
+    if (classType && String(classType).toLowerCase().indexOf('batch') >= 0) {
+      var bn = attBatchNumber(batch);
+      if (bn) batchQ = '&batch=' + bn;
+    }
+
     var rosterUrl =
       '/api/attendance/roster?branch=' +
       encodeURIComponent(branch) +
       yearQ +
+      batchQ +
       '&_ts=' +
       Date.now();
 
@@ -8546,7 +8742,8 @@ setInterval(function () {
         '\n\nAbsent: ' +
         absList.slice(0, 12).join(', ') +
         (absList.length > 12 ? '…' : '') +
-        '\n(Parent WhatsApp alerts can be connected later.)';
+        '\n📲 In-app notifications sent to student & parent views' +
+        (res.absent_notified != null ? ' (' + res.absent_notified + ' accounts).' : '.');
     }
     alert(msg);
 
