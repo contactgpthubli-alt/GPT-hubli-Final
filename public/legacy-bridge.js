@@ -1735,6 +1735,13 @@ function __initGptBridge() {
       if (secId === 'facAttendance' && typeof window.setupAttendancePanel === 'function') {
         window.setupAttendancePanel();
       }
+      // Timetable upload (staff) + student view — live, branch-scoped
+      if (secId === 'facTimetable' && typeof window.setupTimetableUploadPanel === 'function') {
+        window.setupTimetableUploadPanel();
+      }
+      if (secId === 'stuTimetable' && typeof window.setupStudentTimetablePanel === 'function') {
+        window.setupStudentTimetablePanel();
+      }
       // Academic year control (admin / principal)
       if ((secId === 'adAcademicYear' || secId === 'priAcademicYear') &&
           typeof window.loadAcademicYearPanel === 'function') {
@@ -2561,6 +2568,11 @@ function __initGptBridge() {
     if (user && (user.role === 'hod' || user.role === 'faculty' || user.role === 'admin' || user.role === 'principal') &&
         typeof window.setupAttendancePanel === 'function') {
       try { window.setupAttendancePanel(); } catch (e) { console.warn('[bridge] attendance setup', e); }
+    }
+    // Prefetch timetable panel shell for staff (branch filter applied when opened)
+    if (user && (user.role === 'hod' || user.role === 'faculty' || user.role === 'admin' || user.role === 'principal') &&
+        typeof window.setupTimetableUploadPanel === 'function') {
+      try { window.setupTimetableUploadPanel(); } catch (e) { console.warn('[bridge] timetable setup', e); }
     }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
@@ -9216,5 +9228,629 @@ setInterval(function () {
   window.submitAtt = submitAttLive;
   window.setupAttendancePanel = window.setupAttendancePanel;
   console.log('[bridge] attendance live handlers installed');
+})();
+
+/* ============================================================
+ * TIMETABLE UPLOAD — live, branch-scoped (HOD/faculty own branch)
+ * Separate from Attendance Management. Students see own branch only.
+ * ============================================================ */
+;(function () {
+  'use strict';
+
+  var TT_BRANCHES = [
+    'Civil Engineering',
+    'Computer Science and Engineering',
+    'Electronics and Communication Engineering',
+    'Mechanical Engineering',
+  ];
+  var TT_YEARS = [1, 2, 3];
+  var TT_SHORT = {
+    'Civil Engineering': 'Civil Engg.',
+    'Computer Science and Engineering': 'CSE',
+    'Electronics and Communication Engineering': 'ECE',
+    'Mechanical Engineering': 'Mechanical',
+  };
+  var TT_PANEL_ID = {
+    'Civil Engineering': 'ftCivil',
+    'Computer Science and Engineering': 'ftCSE',
+    'Electronics and Communication Engineering': 'ftECE',
+    'Mechanical Engineering': 'ftMech',
+  };
+
+  function ttEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function ttNormBranch(input) {
+    if (!input) return '';
+    var raw = String(input).replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    var lower = raw.toLowerCase();
+    if (TT_BRANCHES.indexOf(raw) >= 0) return raw;
+    if (lower.indexOf('civil') >= 0) return 'Civil Engineering';
+    if (lower.indexOf('electron') >= 0 || lower.indexOf('ece') >= 0 || lower.indexOf('e&c') >= 0) {
+      return 'Electronics and Communication Engineering';
+    }
+    if (lower.indexOf('computer') >= 0 || lower === 'cse' || lower.indexOf('cs and') >= 0) {
+      return 'Computer Science and Engineering';
+    }
+    if (lower.indexOf('mech') >= 0) return 'Mechanical Engineering';
+    return raw;
+  }
+
+  function ttUserBranch(user) {
+    if (!user) return '';
+    var role = String(user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'principal') return ''; // all
+    var b = ttNormBranch(user.branch);
+    if (b && TT_BRANCHES.indexOf(b) >= 0) return b;
+    var key = String(user.reg_no || user.display_name || user.email || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+    if (key.indexOf('HODCE') >= 0 || key.indexOf('HODCIVIL') >= 0) return 'Civil Engineering';
+    if (key.indexOf('HODCS') >= 0 || key.indexOf('HODCSE') >= 0) return 'Computer Science and Engineering';
+    if (key.indexOf('HODEC') >= 0 || key.indexOf('HODECE') >= 0) {
+      return 'Electronics and Communication Engineering';
+    }
+    if (key.indexOf('HODME') >= 0 || key.indexOf('HODMECH') >= 0) return 'Mechanical Engineering';
+    return b || '';
+  }
+
+  function ttFmtDate(iso) {
+    if (!iso) return '';
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+      var day = String(d.getDate()).padStart(2, '0');
+      var mon = d.toLocaleString('en-GB', { month: 'short' });
+      var yr = d.getFullYear();
+      return day + ' ' + mon + ' ' + yr;
+    } catch (e) {
+      return String(iso).slice(0, 10);
+    }
+  }
+
+  function ttYearLabel(y) {
+    if (y === 1) return '1st Year';
+    if (y === 2) return '2nd Year';
+    if (y === 3) return '3rd Year';
+    return 'Year ' + y;
+  }
+
+  function ttFileToDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { reject(new Error('Could not read file')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function ttOpenFile(dataUrl, mime, fileName) {
+    try {
+      var raw = String(dataUrl || '');
+      var m = raw.match(/^data:([^;]+);base64,(.+)$/i);
+      var b64 = m ? m[2] : raw;
+      var mt = (m && m[1]) || mime || 'application/pdf';
+      var bin = atob(b64);
+      var arr = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      var blob = new Blob([arr], { type: mt });
+      var url = URL.createObjectURL(blob);
+      var w = window.open(url, '_blank');
+      if (!w) {
+        // popup blocked — force download link
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || 'timetable';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(function () {
+        try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+      }, 120000);
+    } catch (e) {
+      console.warn('[tt] open file', e);
+      alert('Could not open file. Try downloading again.');
+    }
+  }
+
+  function ttFindRow(list, branch, year) {
+    if (!Array.isArray(list)) return null;
+    var nb = ttNormBranch(branch);
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      if (ttNormBranch(r.branch) === nb && Number(r.study_year) === Number(year)) return r;
+    }
+    return null;
+  }
+
+  function ttCardHtml(branch, year, row, canWrite) {
+    var has = !!row;
+    var status = has
+      ? '<div class="tt-status" style="color:var(--green);">✅ Uploaded — ' +
+        ttEsc(ttFmtDate(row.updated_at || row.created_at)) +
+        (row.uploaded_by_name ? ' · ' + ttEsc(row.uploaded_by_name) : '') +
+        '</div>'
+      : '<div class="tt-status" style="color:var(--orange);">⚠ Not Uploaded</div>';
+    var zoneLabel = has ? 'Upload / Replace' : 'Upload';
+    var viewBtn = has
+      ? '<button type="button" class="btn pr" style="width:100%;margin-top:8px;" data-tt-view="' +
+        ttEsc(branch) +
+        '" data-tt-year="' +
+        year +
+        '" data-tt-id="' +
+        ttEsc(row.id) +
+        '">👁️ View Current</button>'
+      : '<button type="button" class="btn ol" style="width:100%;margin-top:8px;" disabled>👁️ Not Yet Uploaded</button>';
+    var delBtn =
+      has && canWrite
+        ? '<button type="button" class="btn re" style="width:100%;margin-top:6px;font-size:0.78rem;" data-tt-del="' +
+          ttEsc(branch) +
+          '" data-tt-year="' +
+          year +
+          '">🗑 Remove</button>'
+        : '';
+    var uploadZone = canWrite
+      ? '<div class="upload-zone" data-tt-upload="' +
+        ttEsc(branch) +
+        '" data-tt-year="' +
+        year +
+        '" style="cursor:pointer;">' +
+        '<div class="uzi">📄</div>' +
+        '<p><strong>' +
+        zoneLabel +
+        '</strong></p>' +
+        '<p>PDF, JPG, PNG accepted (max ~3.5 MB)</p></div>'
+      : '<div class="upload-zone" style="opacity:.7;cursor:default;"><div class="uzi">📄</div><p>View only</p></div>';
+
+    return (
+      '<div class="tt-card" data-tt-branch="' +
+      ttEsc(branch) +
+      '" data-tt-year="' +
+      year +
+      '">' +
+      '<h4>📅 ' +
+      ttEsc(ttYearLabel(year)) +
+      ' Timetable</h4>' +
+      status +
+      uploadZone +
+      viewBtn +
+      delBtn +
+      '</div>'
+    );
+  }
+
+  function ttBindPanel(root, list, branches, canWrite) {
+    if (!root) return;
+    root.querySelectorAll('[data-tt-upload]').forEach(function (zone) {
+      zone.onclick = function () {
+        var branch = zone.getAttribute('data-tt-upload');
+        var year = Number(zone.getAttribute('data-tt-year'));
+        var input = document.getElementById('ttFileInput');
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'file';
+          input.id = 'ttFileInput';
+          input.accept = '.pdf,image/png,image/jpeg,image/jpg,image/webp,application/pdf';
+          input.style.display = 'none';
+          document.body.appendChild(input);
+        }
+        input.value = '';
+        input.onchange = async function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          if (file.size > 3.5 * 1024 * 1024) {
+            alert('File too large (max ~3.5 MB). Compress the PDF or use a smaller image.');
+            return;
+          }
+          try {
+            zone.style.opacity = '0.55';
+            var dataUrl = await ttFileToDataUrl(file);
+            var res = await fetch('/api/timetables', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                branch: branch,
+                year: year,
+                file_name: file.name,
+                mime_type: file.type || '',
+                file_data: dataUrl,
+              }),
+            });
+            var data = await res.json().catch(function () { return null; });
+            if (!res.ok) {
+              alert((data && data.error) || 'Upload failed');
+              zone.style.opacity = '1';
+              return;
+            }
+            alert('✅ ' + ttYearLabel(year) + ' timetable uploaded for ' + (TT_SHORT[branch] || branch));
+            window.setupTimetableUploadPanel();
+          } catch (e) {
+            console.warn('[tt] upload', e);
+            alert('Upload failed. Check connection and try again.');
+            zone.style.opacity = '1';
+          }
+        };
+        input.click();
+      };
+    });
+
+    root.querySelectorAll('[data-tt-view]').forEach(function (btn) {
+      btn.onclick = async function () {
+        var id = btn.getAttribute('data-tt-id');
+        var branch = btn.getAttribute('data-tt-view');
+        var year = btn.getAttribute('data-tt-year');
+        btn.disabled = true;
+        try {
+          var q = id
+            ? '/api/timetables?id=' + encodeURIComponent(id) + '&include_data=1'
+            : '/api/timetables?branch=' +
+              encodeURIComponent(branch) +
+              '&year=' +
+              encodeURIComponent(year) +
+              '&include_data=1';
+          var res = await fetch(q, { credentials: 'same-origin', cache: 'no-store' });
+          var data = await res.json().catch(function () { return null; });
+          if (!res.ok) {
+            alert((data && data.error) || 'Could not open timetable');
+            return;
+          }
+          var row = data.timetable || (data.timetables && data.timetables[0]);
+          if (!row || !row.file_data) {
+            alert('No file found for this year.');
+            return;
+          }
+          ttOpenFile(row.file_data, row.mime_type, row.file_name);
+        } catch (e) {
+          alert('Could not open timetable');
+        } finally {
+          btn.disabled = false;
+        }
+      };
+    });
+
+    root.querySelectorAll('[data-tt-del]').forEach(function (btn) {
+      btn.onclick = async function () {
+        var branch = btn.getAttribute('data-tt-del');
+        var year = btn.getAttribute('data-tt-year');
+        if (!confirm('Remove ' + ttYearLabel(Number(year)) + ' timetable for ' + (TT_SHORT[branch] || branch) + '?')) {
+          return;
+        }
+        try {
+          var res = await fetch(
+            '/api/timetables?branch=' +
+              encodeURIComponent(branch) +
+              '&year=' +
+              encodeURIComponent(year),
+            { method: 'DELETE', credentials: 'same-origin' },
+          );
+          var data = await res.json().catch(function () { return null; });
+          if (!res.ok) {
+            alert((data && data.error) || 'Delete failed');
+            return;
+          }
+          window.setupTimetableUploadPanel();
+        } catch (e) {
+          alert('Delete failed');
+        }
+      };
+    });
+  }
+
+  window.showFacTTBranch = function showFacTTBranch(tabId, btn) {
+    TT_BRANCHES.forEach(function (b) {
+      var id = TT_PANEL_ID[b];
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    var el = document.getElementById(tabId);
+    if (el) el.style.display = 'block';
+    if (btn && btn.closest) {
+      var tabs = btn.closest('.tabs');
+      if (tabs) {
+        tabs.querySelectorAll('.tab').forEach(function (t) {
+          t.classList.remove('act');
+        });
+        btn.classList.add('act');
+      }
+    }
+  };
+
+  window.setupTimetableUploadPanel = async function setupTimetableUploadPanel() {
+    var root = document.getElementById('facTimetable');
+    if (!root) return;
+
+    var user = window.currentUser;
+    var role = user && user.role ? String(user.role).toLowerCase() : '';
+    var canWrite = role === 'admin' || role === 'principal' || role === 'hod' || role === 'faculty';
+    var myBranch = ttUserBranch(user); // empty for admin/principal = all branches
+
+    root.innerHTML =
+      '<div class="info-box">📅 <strong>Timetable Upload</strong> — Upload year-wise timetables for your department. ' +
+      'Students only see their branch timetable. This is separate from Attendance Management.</div>' +
+      '<div class="warn-box" id="ttWarnBox">Loading…</div>' +
+      '<div id="ttUploadHost"><div style="padding:18px;opacity:.7;">Loading timetables…</div></div>' +
+      '<input type="file" id="ttFileInput" accept=".pdf,image/png,image/jpeg,image/jpg,image/webp,application/pdf" style="display:none" />';
+
+    var warn = document.getElementById('ttWarnBox');
+    var host = document.getElementById('ttUploadHost');
+
+    try {
+      var q = '/api/timetables';
+      if (myBranch) q += '?branch=' + encodeURIComponent(myBranch);
+      var res = await fetch(q + (q.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok || !data) {
+        if (warn) {
+          warn.innerHTML =
+            '⚠️ Could not load timetables. ' + ((data && data.error) || 'Please refresh and try again.');
+        }
+        if (host) host.innerHTML = '';
+        return;
+      }
+
+      var list = Array.isArray(data.timetables) ? data.timetables : [];
+      var branches =
+        myBranch
+          ? [myBranch]
+          : Array.isArray(data.branches) && data.branches.length
+            ? data.branches.map(ttNormBranch).filter(Boolean)
+            : TT_BRANCHES.slice();
+
+      // Deduplicate + keep official order
+      branches = TT_BRANCHES.filter(function (b) {
+        return branches.some(function (x) {
+          return ttNormBranch(x) === b;
+        });
+      });
+      if (!branches.length && myBranch) branches = [myBranch];
+      if (!branches.length) branches = TT_BRANCHES.slice();
+
+      if (warn) {
+        if (myBranch) {
+          warn.innerHTML =
+            '🎓 <strong>' +
+            (role === 'hod' ? 'HOD' : 'Faculty') +
+            ' — ' +
+            ttEsc(myBranch) +
+            '</strong> — You can upload / replace timetables only for your branch. ' +
+            'Students of other branches will not see these files.';
+        } else {
+          warn.innerHTML =
+            '⚠️ <strong>All branches</strong> — As Admin/Principal you can manage every department timetable. ' +
+            'Students only see their own branch.';
+        }
+      }
+
+      var html = '';
+      if (branches.length > 1) {
+        html += '<div class="tabs" style="margin-bottom:18px;" id="ttBranchTabs">';
+        branches.forEach(function (b, i) {
+          var pid = TT_PANEL_ID[b] || 'ft_' + i;
+          html +=
+            '<button type="button" class="tab' +
+            (i === 0 ? ' act' : '') +
+            '" data-tt-tab="' +
+            ttEsc(pid) +
+            '">' +
+            ttEsc(TT_SHORT[b] || b) +
+            '</button>';
+        });
+        html += '</div>';
+      } else if (branches.length === 1) {
+        html +=
+          '<div style="margin-bottom:14px;font-weight:600;color:var(--navy);font-size:0.95rem;">' +
+          '📁 ' +
+          ttEsc(branches[0]) +
+          '</div>';
+      }
+
+      branches.forEach(function (b, i) {
+        var pid = TT_PANEL_ID[b] || 'ft_' + i;
+        html +=
+          '<div id="' +
+          ttEsc(pid) +
+          '" class="tt-branch-panel" style="' +
+          (i === 0 ? '' : 'display:none;') +
+          '">' +
+          '<div class="tt-upload-grid">';
+        TT_YEARS.forEach(function (y) {
+          html += ttCardHtml(b, y, ttFindRow(list, b, y), canWrite);
+        });
+        html += '</div></div>';
+      });
+
+      if (host) host.innerHTML = html;
+
+      // Tab clicks
+      var tabs = document.getElementById('ttBranchTabs');
+      if (tabs) {
+        tabs.querySelectorAll('[data-tt-tab]').forEach(function (btn) {
+          btn.onclick = function () {
+            window.showFacTTBranch(btn.getAttribute('data-tt-tab'), btn);
+          };
+        });
+      }
+
+      ttBindPanel(root, list, branches, canWrite);
+    } catch (e) {
+      console.warn('[tt] setup', e);
+      if (warn) warn.innerHTML = '⚠️ Failed to load timetable panel.';
+    }
+  };
+
+  function ttParseStudyYear(v) {
+    if (v === 1 || v === 2 || v === 3) return Number(v);
+    var n = Number(v);
+    if (n === 1 || n === 2 || n === 3) return n;
+    var s = String(v == null ? '' : v).toLowerCase();
+    if (!s) return null;
+    if (/alumni|pass/.test(s)) return null;
+    if (/\b3\b|iii|third|3rd/.test(s)) return 3;
+    if (/\b2\b|ii|second|2nd/.test(s)) return 2;
+    if (/\b1\b|\bi\b|first|1st/.test(s)) return 1;
+    return null;
+  }
+
+  /** Resolve logged-in student's study year (1/2/3) from session + live student row. */
+  async function ttResolveStudentStudyYear(user) {
+    var y = null;
+    try {
+      if (user && user.academic) {
+        y = ttParseStudyYear(user.academic.current_study_year);
+        if (!y) y = ttParseStudyYear(user.academic.year_label);
+      }
+    } catch (e) { /* ignore */ }
+    if (y) return y;
+
+    // Live students API (has current_study_year / year)
+    try {
+      var res = await fetch('/api/students?_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await res.json().catch(function () { return null; });
+      var list = data && Array.isArray(data.students) ? data.students : [];
+      var mine = list[0] || null;
+      if (mine) {
+        y = ttParseStudyYear(mine.current_study_year);
+        if (!y) y = ttParseStudyYear(mine.year);
+        if (!y && mine.academic) {
+          y = ttParseStudyYear(mine.academic.current_study_year || mine.academic.year_label);
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return y;
+  }
+
+  window.setupStudentTimetablePanel = async function setupStudentTimetablePanel() {
+    var root = document.getElementById('stuTimetable');
+    if (!root) return;
+    var user = window.currentUser;
+    var branch = ttUserBranch(user) || ttNormBranch(user && user.branch);
+
+    try {
+      if (!branch && typeof window.STU_BRANCH !== 'undefined') branch = ttNormBranch(window.STU_BRANCH);
+    } catch (e) { /* ignore */ }
+
+    root.innerHTML =
+      '<div class="info-box">📅 <strong>Time Table</strong> — You only see the timetable for <strong>your branch and study year</strong> ' +
+      '(1st year students see 1st year only, 2nd year see 2nd year only, etc.).</div>' +
+      '<div id="stuTtHost"><div style="padding:16px;opacity:.7;">Loading…</div></div>';
+
+    var host = document.getElementById('stuTtHost');
+    try {
+      var myYear = await ttResolveStudentStudyYear(user);
+
+      // API also enforces branch + year for students
+      var url = '/api/timetables?_ts=' + Date.now();
+      if (branch) url += '&branch=' + encodeURIComponent(branch);
+      if (myYear) url += '&year=' + encodeURIComponent(myYear);
+      var res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+      var data = await res.json().catch(function () { return null; });
+      if (!res.ok || !data) {
+        if (host) {
+          host.innerHTML =
+            '<div class="warn-box">Could not load timetable. ' +
+            ((data && data.error) || 'Please try again.') +
+            '</div>';
+        }
+        return;
+      }
+      branch = ttNormBranch(data.branch || branch) || branch;
+      var list = Array.isArray(data.timetables) ? data.timetables : [];
+
+      // Server study year wins (enforced for students)
+      var studyYear = ttParseStudyYear(data.study_year) || myYear;
+      if (!studyYear && list.length === 1) {
+        studyYear = ttParseStudyYear(list[0].study_year);
+      }
+
+      if (!studyYear) {
+        if (host) {
+          host.innerHTML =
+            '<div class="warn-box">⚠ Your study year is not set on your student record yet. ' +
+            'Contact HOD / Admin so your year (1st / 2nd / 3rd) is assigned — then your timetable will appear here.</div>';
+        }
+        return;
+      }
+
+      var row = ttFindRow(list, branch, studyYear) || (list.length === 1 ? list[0] : null);
+
+      var html =
+        '<div style="margin-bottom:12px;font-weight:600;color:var(--navy);">' +
+        '📁 ' +
+        ttEsc(branch || 'Your branch') +
+        ' · ' +
+        ttEsc(ttYearLabel(studyYear)) +
+        ' only' +
+        '</div>' +
+        '<div class="card" style="padding:16px;">' +
+        '<div class="card-hd" style="border:none;padding:0 0 10px 0;"><h3 style="margin:0;">📅 ' +
+        ttEsc(TT_SHORT[branch] || branch || 'Branch') +
+        ' — ' +
+        ttEsc(ttYearLabel(studyYear)) +
+        ' Timetable</h3></div>';
+
+      if (row) {
+        html +=
+          '<p style="font-size:0.8rem;opacity:.75;margin:0 0 12px;">Last updated: ' +
+          ttEsc(ttFmtDate(row.updated_at || row.created_at)) +
+          (row.uploaded_by_name ? ' · ' + ttEsc(row.uploaded_by_name) : '') +
+          '</p>' +
+          '<button type="button" class="btn pr" data-stu-tt-view="' +
+          ttEsc(row.id) +
+          '">👁️ View / Download Timetable</button>';
+      } else {
+        html +=
+          '<div class="warn-box" style="margin:0;">⚠ Your ' +
+          ttEsc(ttYearLabel(studyYear)) +
+          ' timetable has not been uploaded yet. Contact your department faculty / HOD.</div>';
+      }
+      html += '</div>';
+
+      if (host) host.innerHTML = html;
+
+      root.querySelectorAll('[data-stu-tt-view]').forEach(function (btn) {
+        btn.onclick = async function () {
+          var id = btn.getAttribute('data-stu-tt-view');
+          btn.disabled = true;
+          try {
+            var r = await fetch(
+              '/api/timetables?id=' + encodeURIComponent(id) + '&include_data=1',
+              { credentials: 'same-origin', cache: 'no-store' },
+            );
+            var d = await r.json().catch(function () { return null; });
+            var fileRow = d && d.timetable;
+            if (!r.ok || !fileRow || !fileRow.file_data) {
+              alert((d && d.error) || 'Could not open timetable');
+              return;
+            }
+            ttOpenFile(fileRow.file_data, fileRow.mime_type, fileRow.file_name);
+          } catch (e) {
+            alert('Could not open timetable');
+          } finally {
+            btn.disabled = false;
+          }
+        };
+      });
+    } catch (e) {
+      console.warn('[tt] student', e);
+      if (host) host.innerHTML = '<div class="warn-box">Failed to load timetable.</div>';
+    }
+  };
+
+  console.log('[bridge] timetable live handlers installed');
 })();
 
