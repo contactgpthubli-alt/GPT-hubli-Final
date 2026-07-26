@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.4.4"
+export const STUDENT_APP_VERSION = "1.5.0"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.5.0",
+    date: "2026-07-26",
+    title: "System notification bar + PDF Share (new APK)",
+    items: [
+      "Absent alerts appear in the Android notification bar with the default notification ringtone.",
+      "Parent view asks for notification permission (Android 13+).",
+      "PDF Download opens native Share / Save sheet (Drive, Files, WhatsApp).",
+      "Install the new APK (v1.5.0) for status-bar tone and reliable PDF save.",
+    ],
+  },
   {
     version: "1.4.4",
     date: "2026-07-26",

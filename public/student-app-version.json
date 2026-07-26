@@ -1,5 +1,5 @@
 {
-  "version": "1.4.4",
-  "minShell": "1.0.0",
-  "message": "Latest-first notifications, parent alert sound/vibrate, and improved PDF Share/Save on Android. Use More → Update / refresh app."
+  "version": "1.5.0",
+  "minShell": "1.5.0",
+  "message": "Install APK v1.5.0 for status-bar notifications with default ringtone and reliable PDF Share/Save. Web list still updates on refresh."
 }

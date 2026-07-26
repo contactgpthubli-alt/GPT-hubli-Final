@@ -14,6 +14,11 @@ import {
   shouldShowWhatsNew,
 } from "@/lib/student-app-version"
 import { ensureLatestWebApp, forceWebAppReload } from "@/lib/student-web-update"
+import {
+  ensureNativeNotificationChannel,
+  isNativeAndroid,
+  showNativeNotification,
+} from "@/lib/native-android"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
@@ -577,7 +582,7 @@ export default function StudentApp() {
     }
   }
 
-  /** Short double-beep + vibrate for new absent alerts (parent-priority). */
+  /** Short double-beep + vibrate for new absent alerts (in-app fallback). */
   function playAbsentNotifySound() {
     try {
       if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
@@ -621,6 +626,23 @@ export default function StudentApp() {
     } catch {
       /* autoplay / unsupported — ignore */
     }
+  }
+
+  /** System notification bar + default Android notification ringtone (APK). */
+  async function fireSystemAbsentAlert(n: AppNotif) {
+    const title = n.title || "Your ward is Absent"
+    const body = (n.desc || "Absent mark recorded. Open GPT Hubli Student app.").slice(0, 240)
+    const idMatch = String(n.id || "").match(/(\d+)/)
+    const nid = idMatch ? Number(idMatch[1]) : undefined
+    const ok = await showNativeNotification({
+      title,
+      body,
+      id: nid,
+      channelId: "gpth_attendance",
+    })
+    // Always also play in-app sound as backup when app is foreground
+    playAbsentNotifySound()
+    return ok
   }
 
   const flash = (msg: string) => {
@@ -832,29 +854,42 @@ export default function StudentApp() {
     } catch {
       /* ignore */
     }
-    flash(mode === "parent" ? "Parent view (read-only)" : "Student view")
+    flash(
+      mode === "parent"
+        ? isNativeAndroid()
+          ? "Parent view — allow notifications when asked"
+          : "Parent view (read-only)"
+        : "Student view",
+    )
+    // Request system notification permission (Android 13+) + default ringtone channel
+    if (mode === "parent") {
+      void ensureNativeNotificationChannel()
+    }
     // Refresh notifications so parent sees latest absent alerts
     void loadDashboard().then(async () => {
       if (mode !== "parent") return
-      // Soft confirm beep after unlocking audio; also plays if unread absents exist
       try {
         const res = await api<{ notifications?: AppNotif[] }>("/api/notifications")
         const list = res.ok && Array.isArray(res.data?.notifications) ? res.data.notifications : []
-        const hasUnreadAbsent = list.some(
-          (n) =>
-            n.unread &&
-            (n.kind === "attendance_absent_parent" ||
-              n.kind === "attendance_absent" ||
-              (n.title || "").toLowerCase().includes("absent")),
-        )
-        if (hasUnreadAbsent) playAbsentNotifySound()
+        const unreadAbsent = list
+          .filter(
+            (n) =>
+              n.unread &&
+              (n.kind === "attendance_absent_parent" ||
+                n.kind === "attendance_absent" ||
+                (n.title || "").toLowerCase().includes("absent")),
+          )
+          .sort((a, b) => notifSortTs(b) - notifSortTs(a))
+        if (unreadAbsent[0]) {
+          await fireSystemAbsentAlert(unreadAbsent[0])
+        }
       } catch {
         /* ignore */
       }
     })
   }
 
-  // Play sound when parent view sees a NEW absent alert (by sort_ts / id)
+  // System notification bar + tone when parent view sees a NEW absent alert
   useEffect(() => {
     if (portalMode !== "parent" || !user) return
     const unreadAbsent = [...appNotifs]
@@ -874,15 +909,16 @@ export default function StudentApp() {
       const prev = sessionStorage.getItem(key)
       if (prev === latestKey) return
       sessionStorage.setItem(key, latestKey)
-      playAbsentNotifySound()
+      void fireSystemAbsentAlert(latest)
     } catch {
-      playAbsentNotifySound()
+      void fireSystemAbsentAlert(latest)
     }
   }, [portalMode, appNotifs, user])
 
-  // Poll for new absent notifications while Parent view is open (sound on new arrivals)
+  // Poll for new absent notifications (status bar + default ringtone on new arrivals)
   useEffect(() => {
     if (portalMode !== "parent" || !user) return
+    void ensureNativeNotificationChannel()
     const tick = () => {
       void (async () => {
         try {
@@ -890,19 +926,20 @@ export default function StudentApp() {
           if (!res.ok || !Array.isArray(res.data?.notifications)) return
           const next = res.data.notifications
           setAppNotifs((prev) => {
+            const prevIds = new Set(prev.map((p) => p.id))
             const prevMax = prev.reduce((m, n) => Math.max(m, notifSortTs(n)), 0)
-            const nextMax = next.reduce((m, n) => Math.max(m, notifSortTs(n)), 0)
-            const hasNewUnreadAbsent = next.some((n) => {
+            const newcomers = next.filter((n) => {
               if (!n.unread) return false
               const isAbs =
                 n.kind === "attendance_absent_parent" ||
                 n.kind === "attendance_absent" ||
                 (n.title || "").toLowerCase().includes("absent")
               if (!isAbs) return false
-              return notifSortTs(n) > prevMax || !prev.some((p) => p.id === n.id)
+              return !prevIds.has(n.id) || notifSortTs(n) > prevMax
             })
-            if (hasNewUnreadAbsent && nextMax >= prevMax) {
-              playAbsentNotifySound()
+            if (newcomers.length) {
+              const newest = [...newcomers].sort((a, b) => notifSortTs(b) - notifSortTs(a))[0]
+              void fireSystemAbsentAlert(newest)
             }
             return next
           })
@@ -911,8 +948,16 @@ export default function StudentApp() {
         }
       })()
     }
-    const id = window.setInterval(tick, 25000)
-    return () => window.clearInterval(id)
+    const id = window.setInterval(tick, 20000)
+    // Also poll when app returns to foreground
+    const onVis = () => {
+      if (document.visibilityState === "visible") tick()
+    }
+    document.addEventListener("visibilitychange", onVis)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener("visibilitychange", onVis)
+    }
   }, [portalMode, user])
 
   async function doRegister() {
@@ -1846,11 +1891,21 @@ export default function StudentApp() {
                     className="stu-btn stu-btn-ghost stu-btn-sm"
                     onClick={() => {
                       unlockNotifyAudio()
-                      playAbsentNotifySound()
-                      void loadDashboard()
+                      void (async () => {
+                        await ensureNativeNotificationChannel()
+                        await showNativeNotification({
+                          title: "Test: Your ward is Absent",
+                          body: "This is a test alert with the default notification tone.",
+                          id: 900001,
+                          channelId: "gpth_attendance",
+                        })
+                        playAbsentNotifySound()
+                        flash("Test notification sent — check status bar")
+                        void loadDashboard()
+                      })()
                     }}
                   >
-                    Refresh / test sound
+                    Refresh / test alert
                   </button>
                 </div>
               </div>

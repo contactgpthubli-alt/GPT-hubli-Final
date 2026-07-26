@@ -3,9 +3,14 @@
  * Uses html2canvas + jsPDF — no system print dialog.
  *
  * Android WebView often blocks `pdf.save()` (no download listener / storage
- * permission). We try: Share sheet → <a download> → open blob in viewer →
- * data-URL open so the user can Save/Share from the system UI.
+ * permission). Order:
+ * 1) Capacitor Filesystem + Share (native APK)
+ * 2) Web Share API
+ * 3) <a download>
+ * 4) Open / in-app viewer
  */
+
+import { isNativeAndroid, saveAndSharePdfNative, blobToBase64Raw } from "./native-android"
 
 export type DownloadPdfOptions = {
   filename?: string
@@ -55,14 +60,25 @@ async function blobToBase64(blob: Blob): Promise<string> {
 export async function deliverPdfBlob(
   blob: Blob,
   filename: string,
-): Promise<"share" | "download" | "open" | "viewer"> {
+): Promise<"share" | "download" | "open" | "viewer" | "native"> {
+  // 0) Capacitor Filesystem + Share (new APK) — most reliable on Android
+  if (isNativeAndroid()) {
+    try {
+      const b64 = await blobToBase64Raw(blob)
+      const native = await saveAndSharePdfNative(b64, filename)
+      if (native) return "native"
+    } catch (e) {
+      console.warn("[pdf] native save failed", e)
+    }
+  }
+
   const file = new File([blob], filename, { type: "application/pdf" })
   const nav = navigator as Navigator & {
     canShare?: (d?: ShareData) => boolean
     share?: (d: ShareData) => Promise<void>
   }
 
-  // 1) Native share sheet (best on Android — no storage permission)
+  // 1) Web Share API with file
   try {
     if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
       await nav.share({ files: [file], title: filename, text: filename })
