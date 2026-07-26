@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.4.2"
+export const STUDENT_APP_VERSION = "1.4.3"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.4.3",
+    date: "2026-07-26",
+    title: "Parent attendance alerts",
+    items: [
+      "Parent login prioritizes ward attendance and absent alerts on Home.",
+      "Absent notifications use correct date & time (e.g. 26-07-2026 at 3:32 PM).",
+      "Short sound when a new absent alert arrives in Parent view.",
+      "More → Notifications lists all absent alerts; student vs parent wording is separated.",
+    ],
+  },
   {
     version: "1.4.2",
     date: "2026-07-21",
