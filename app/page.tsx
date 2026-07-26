@@ -27,15 +27,15 @@ export default function Page() {
       {/* Cache-bust static legacy scripts so HOD/Admin always get attendance/academic fixes */}
       {/* Shared print preview (mobile WebView + desktop) — load before cert/TC printers */}
       <Script src="/gpth-print.js?v=20260726c" strategy="afterInteractive" />
-      <Script src="/legacy-app.js?v=20260726c" strategy="afterInteractive" />
+      <Script src="/legacy-app.js?v=20260726e" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order).
           afterInteractive — not lazyOnload — so auth is wired before the user clicks Login. */}
-      <Script src="/legacy-bridge.js?v=20260726d" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260726e" strategy="afterInteractive" />
       {/* Transfer Certificate (ACM Issue TC / Register / Template) */}
-      <Script src="/legacy-tc.js?v=20260726c" strategy="afterInteractive" />
+      <Script src="/legacy-tc.js?v=20260726e" strategy="afterInteractive" />
       {/* Study + Studying Certificates (ACM) */}
-      <Script src="/legacy-acm-study.js?v=20260726c" strategy="afterInteractive" />
+      <Script src="/legacy-acm-study.js?v=20260726e" strategy="afterInteractive" />
     </>
   )
 }

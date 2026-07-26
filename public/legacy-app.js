@@ -205,6 +205,9 @@ function markAtt(reg, status) {
 }
 function submitAtt() {
   // Live persistence is installed by legacy-bridge.js
+  if (typeof window.__gpthSubmitAtt === 'function') {
+    return window.__gpthSubmitAtt();
+  }
   if (window.submitAtt && window.submitAtt !== submitAtt) {
     return window.submitAtt();
   }
@@ -213,9 +216,12 @@ function submitAtt() {
   const absent = Object.entries(attState).filter(([r,s]) => s === 'A').map(([r]) => r);
   const marked = Object.values(attState).filter(Boolean).length;
   if (marked < demoAtt.length) { if (!confirm(`${demoAtt.length - marked} students not marked. Submit anyway?`)) return; }
-  let msg = `Attendance submitted for ${marked} students.\n`;
-  if (absent.length > 0) msg += `\n📱 WhatsApp alerts sent to parents of absent students:\n${absent.join(', ')}\n\n📊 Monthly attendance report will be auto-sent to all parents at month end.\n⚠ HOD notified of this attendance session.`;
-  else msg += '\nAll students marked present. No WhatsApp alerts sent.';
+  let msg = `Attendance saved for ${marked} students.\n`;
+  if (absent.length > 0) {
+    msg += `\nAbsent: ${absent.join(', ')}\n\n📲 In-app notifications are sent to the student app (Student + Parent views). WhatsApp is not sent.`;
+  } else {
+    msg += '\nAll students marked present.';
+  }
   alert(msg);
   document.getElementById('attMarkUI').style.display = 'none';
   document.getElementById('attStep1').style.display = 'block';

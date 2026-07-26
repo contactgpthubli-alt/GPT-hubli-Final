@@ -8659,7 +8659,7 @@ setInterval(function () {
     }
   };
 
-  window.submitAtt = async function submitAttLive() {
+  async function submitAttLive() {
     var meta = window._attSessionMeta;
     var roster = window._attRoster || [];
     if (!meta || !roster.length) {
@@ -8743,14 +8743,18 @@ setInterval(function () {
       ' · ' +
       meta.branch +
       ' · ' +
-      meta.date;
+      meta.date +
+      (meta.time ? ' · ' + meta.time : '');
     if (absList.length) {
       msg +=
         '\n\nAbsent: ' +
         absList.slice(0, 12).join(', ') +
         (absList.length > 12 ? '…' : '') +
-        '\n📲 In-app notifications sent to student & parent views' +
-        (res.absent_notified != null ? ' (' + res.absent_notified + ' accounts).' : '.');
+        '\n\n📲 In-app notifications sent to Student & Parent app views' +
+        (res.absent_notified != null ? ' (' + res.absent_notified + ').' : '.') +
+        '\n(No WhatsApp messages are sent.)';
+    } else {
+      msg += '\n\nAll present — no absent notifications.';
     }
     alert(msg);
 
@@ -8771,6 +8775,8 @@ setInterval(function () {
   // Expose for onclick + legacy-app proxy (must not rely on bare currentUser)
   window.__gpthStartAttendance = startAttendanceLive;
   window.startAttendance = startAttendanceLive;
+  window.__gpthSubmitAtt = submitAttLive;
+  window.submitAtt = submitAttLive;
   window.setupAttendancePanel = window.setupAttendancePanel;
   console.log('[bridge] attendance live handlers installed');
 })();
