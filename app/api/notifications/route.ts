@@ -9,6 +9,20 @@ export type AppNotification = {
   time: string
   unread: boolean
   kind: string
+  /** ISO timestamp for client-side newest-first sorting */
+  created_at?: string | null
+  /** ms epoch for reliable sort (newest first) */
+  sort_ts?: number
+}
+
+function toSortTs(iso: string | Date | null | undefined): number {
+  if (!iso) return 0
+  try {
+    const t = new Date(iso).getTime()
+    return Number.isFinite(t) ? t : 0
+  } catch {
+    return 0
+  }
 }
 
 function fmtTime(iso: string | Date | null | undefined): string {
@@ -24,6 +38,24 @@ function fmtTime(iso: string | Date | null | undefined): string {
   } catch {
     return String(iso)
   }
+}
+
+function pushItem(
+  items: AppNotification[],
+  item: Omit<AppNotification, "sort_ts"> & { created_at?: string | Date | null },
+) {
+  const created =
+    item.created_at != null
+      ? typeof item.created_at === "string"
+        ? item.created_at
+        : new Date(item.created_at).toISOString()
+      : null
+  items.push({
+    ...item,
+    created_at: created,
+    sort_ts: toSortTs(item.created_at ?? created),
+    time: item.time || fmtTime(item.created_at),
+  })
 }
 
 /**
@@ -47,13 +79,14 @@ export async function GET() {
         LIMIT 8`,
     )
     for (const n of notices) {
-      items.push({
+      pushItem(items, {
         id: `notice-${n.id}`,
         title: n.priority === "emergency" || n.priority === "important" ? `📢 ${n.title}` : `📌 ${n.title}`,
         desc: n.body || "New notice published.",
         time: fmtTime(n.created_at),
         unread: true,
         kind: "notice",
+        created_at: n.created_at,
       })
     }
   } catch {
@@ -191,13 +224,15 @@ export async function GET() {
             }
           }
         }
-        items.unshift({
+        // push (not unshift) so DESC list from DB stays newest-first
+        pushItem(items, {
           id: `un-${n.id}`,
           title: n.title,
           desc,
           time: fmtTime(n.created_at),
           unread: !n.read_at,
           kind: n.kind || "user",
+          created_at: n.created_at,
         })
       }
     } catch {
@@ -219,13 +254,14 @@ export async function GET() {
             ? String(a.approved_by_name) +
               (a.approved_by_role ? ` (${a.approved_by_role})` : "")
             : "the office"
-          items.unshift({
+          pushItem(items, {
             id: "account-approved-audit",
             title: "✅ Account Approved",
             desc: `Your student account was approved by ${who}. You can use the app and portal.`,
             time: fmtTime(a.approved_at),
             unread: true,
             kind: "account_approved",
+            created_at: a.approved_at,
           })
         }
       }
@@ -244,31 +280,34 @@ export async function GET() {
     )
     for (const r of mine) {
       if (r.status === "pending") {
-        items.unshift({
+        pushItem(items, {
           id: `my-pr-${r.id}`,
           title: "⏳ Profile Update Pending",
           desc: "Your profile update request is awaiting Admin/HOD approval.",
           time: fmtTime(r.created_at),
           unread: true,
           kind: "my_profile_pending",
+          created_at: r.created_at,
         })
       } else if (r.status === "approved") {
-        items.unshift({
+        pushItem(items, {
           id: `my-pr-${r.id}`,
           title: "✅ Profile Update Approved",
           desc: "Your profile changes were approved and saved." + (r.remarks ? ` Note: ${r.remarks}` : ""),
           time: fmtTime(r.reviewed_at || r.created_at),
           unread: false,
           kind: "my_profile_approved",
+          created_at: r.reviewed_at || r.created_at,
         })
       } else if (r.status === "rejected") {
-        items.unshift({
+        pushItem(items, {
           id: `my-pr-${r.id}`,
           title: "✕ Profile Update Rejected",
           desc: "Your profile update was rejected." + (r.remarks ? ` Note: ${r.remarks}` : " Contact the office."),
           time: fmtTime(r.reviewed_at || r.created_at),
           unread: true,
           kind: "my_profile_rejected",
+          created_at: r.reviewed_at || r.created_at,
         })
       }
     }
@@ -288,13 +327,14 @@ export async function GET() {
         [user.id],
       )
       for (const f of forms) {
-        items.push({
+        pushItem(items, {
           id: `form-${f.id}`,
           title: "📝 Form Open — Action Needed",
           desc: `"${f.title}" is open. Please submit before it closes.`,
           time: fmtTime(f.created_at),
           unread: true,
           kind: "form",
+          created_at: f.created_at,
         })
       }
     } catch {
@@ -313,7 +353,7 @@ export async function GET() {
       )
       for (const c of certs) {
         const st = String(c.status || "").toLowerCase()
-        items.push({
+        pushItem(items, {
           id: `cert-${c.id}`,
           title:
             st.includes("ready") || st.includes("issued") || st.includes("approved")
@@ -323,6 +363,7 @@ export async function GET() {
           time: fmtTime(c.created_at),
           unread: !(st.includes("ready") || st.includes("issued") || st.includes("approved")),
           kind: "certificate",
+          created_at: c.created_at,
         })
       }
     } catch {
@@ -331,13 +372,14 @@ export async function GET() {
 
     // Force password change
     if (user.force_password_change) {
-      items.unshift({
+      pushItem(items, {
         id: "force-pw",
         title: "🔐 Change Your Password",
         desc: "For security, please change your default password under Profile.",
         time: "Now",
         unread: true,
         kind: "security",
+        created_at: new Date().toISOString(),
       })
     }
   } else {
@@ -347,13 +389,14 @@ export async function GET() {
         `SELECT id, title, created_at FROM forms WHERE status = 'open' ORDER BY created_at DESC LIMIT 5`,
       )
       for (const f of forms) {
-        items.push({
+        pushItem(items, {
           id: `form-${f.id}`,
           title: "📝 Open Form",
           desc: `"${f.title}" is currently open.`,
           time: fmtTime(f.created_at),
           unread: false,
           kind: "form",
+          created_at: f.created_at,
         })
       }
     } catch {
@@ -361,13 +404,16 @@ export async function GET() {
     }
   }
 
-  // De-dupe by id, keep order, cap list
+  // De-dupe by id, then always newest first
   const seen = new Set<string>()
-  const unique = items.filter((it) => {
-    if (seen.has(it.id)) return false
-    seen.add(it.id)
-    return true
-  }).slice(0, 25)
+  const unique = items
+    .filter((it) => {
+      if (seen.has(it.id)) return false
+      seen.add(it.id)
+      return true
+    })
+    .sort((a, b) => (b.sort_ts || 0) - (a.sort_ts || 0))
+    .slice(0, 40)
 
   const unread = unique.filter((i) => i.unread).length
 

@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.4.3"
+export const STUDENT_APP_VERSION = "1.4.4"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.4.4",
+    date: "2026-07-26",
+    title: "Notifications order, sound & PDF on Android",
+    items: [
+      "Notifications list shows latest first (newest absent alert on top).",
+      "Parent alert sound + vibrate (unlocks on Parent view / Refresh; polls every 25s).",
+      "PDF download: Share / Save / in-app preview when Android blocks auto-download.",
+      "Use More → Update / refresh app to load this version without reinstalling APK.",
+    ],
+  },
   {
     version: "1.4.3",
     date: "2026-07-26",

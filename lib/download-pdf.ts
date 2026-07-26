@@ -1,6 +1,10 @@
 /**
  * Download HTML document as PDF (browser + Capacitor WebView).
  * Uses html2canvas + jsPDF — no system print dialog.
+ *
+ * Android WebView often blocks `pdf.save()` (no download listener / storage
+ * permission). We try: Share sheet → <a download> → open blob in viewer →
+ * data-URL open so the user can Save/Share from the system UI.
  */
 
 export type DownloadPdfOptions = {
@@ -18,8 +22,219 @@ function sanitizeFilename(name: string): string {
   )
 }
 
+function isLikelyAndroidWebView(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } })
+      .Capacitor
+    if (cap && typeof cap.isNativePlatform === "function" && cap.isNativePlatform()) return true
+  } catch {
+    /* ignore */
+  }
+  const ua = navigator.userAgent || ""
+  return /Android/i.test(ua) && (/wv\)/i.test(ua) || /Version\/\d+\.\d+/i.test(ua))
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const r = String(reader.result || "")
+      const i = r.indexOf(",")
+      resolve(i >= 0 ? r.slice(i + 1) : r)
+    }
+    reader.onerror = () => reject(new Error("Could not read PDF"))
+    reader.readAsDataURL(blob)
+  })
+}
+
 /**
- * Render a full HTML document string to a multi-page A4 PDF and trigger download.
+ * Deliver a PDF blob to the user on desktop + Android WebView.
+ * Returns which path succeeded for UI messaging.
+ */
+export async function deliverPdfBlob(
+  blob: Blob,
+  filename: string,
+): Promise<"share" | "download" | "open" | "viewer"> {
+  const file = new File([blob], filename, { type: "application/pdf" })
+  const nav = navigator as Navigator & {
+    canShare?: (d?: ShareData) => boolean
+    share?: (d: ShareData) => Promise<void>
+  }
+
+  // 1) Native share sheet (best on Android — no storage permission)
+  try {
+    if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
+      await nav.share({ files: [file], title: filename, text: filename })
+      return "share"
+    }
+  } catch (e) {
+    // User cancel should not fall through as error if AbortError
+    if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AbortError") {
+      return "share"
+    }
+  }
+
+  // 2) Share without canShare (some WebViews)
+  try {
+    if (typeof nav.share === "function") {
+      await nav.share({ files: [file], title: filename })
+      return "share"
+    }
+  } catch {
+    /* continue */
+  }
+
+  const url = URL.createObjectURL(blob)
+
+  // 3) Anchor download (Chrome desktop / some WebViews)
+  try {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.rel = "noopener"
+    a.style.display = "none"
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      try {
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch {
+        /* ignore */
+      }
+    }, 60_000)
+    // On Android WebView this often no-ops; still try open below if native
+    if (!isLikelyAndroidWebView()) return "download"
+  } catch {
+    /* continue */
+  }
+
+  // 4) Open blob URL — user can Save/Share from the system PDF viewer
+  try {
+    const w = window.open(url, "_blank")
+    if (w) {
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(url)
+        } catch {
+          /* ignore */
+        }
+      }, 120_000)
+      return "open"
+    }
+  } catch {
+    /* continue */
+  }
+
+  // 5) Full-screen in-app PDF viewer with Save/Share actions (WebView-safe)
+  try {
+    showInAppPdfViewer(url, filename, blob)
+    return "viewer"
+  } catch {
+    /* continue */
+  }
+
+  // 6) Data-URL navigation last resort
+  try {
+    const b64 = await blobToBase64(blob)
+    const dataUrl = `data:application/pdf;base64,${b64}`
+    window.location.href = dataUrl
+    return "open"
+  } catch {
+    URL.revokeObjectURL(url)
+    throw new Error("Could not save or open PDF on this device")
+  }
+}
+
+function showInAppPdfViewer(blobUrl: string, filename: string, blob: Blob) {
+  const existing = document.getElementById("gpth-pdf-viewer-shell")
+  if (existing) existing.remove()
+
+  const shell = document.createElement("div")
+  shell.id = "gpth-pdf-viewer-shell"
+  shell.setAttribute("role", "dialog")
+  shell.setAttribute("aria-label", "PDF preview")
+  shell.style.cssText =
+    "position:fixed;inset:0;z-index:2147483000;background:#0f172a;display:flex;flex-direction:column;font-family:system-ui,sans-serif;"
+
+  const bar = document.createElement("div")
+  bar.style.cssText =
+    "display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#1e293b;color:#fff;"
+  bar.innerHTML = `<strong style="flex:1;font-size:0.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${filename.replace(
+    /[<>&"]/g,
+    "",
+  )}</strong>`
+
+  const mkBtn = (label: string, primary?: boolean) => {
+    const b = document.createElement("button")
+    b.type = "button"
+    b.textContent = label
+    b.style.cssText = primary
+      ? "padding:8px 12px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;font-size:0.82rem;"
+      : "padding:8px 12px;border:1px solid #64748b;border-radius:8px;background:transparent;color:#fff;font-weight:600;font-size:0.82rem;"
+    return b
+  }
+
+  const shareBtn = mkBtn("Share / Save", true)
+  const openBtn = mkBtn("Open")
+  const closeBtn = mkBtn("Close")
+
+  shareBtn.onclick = async () => {
+    try {
+      const file = new File([blob], filename, { type: "application/pdf" })
+      const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> }
+      if (nav.share) {
+        await nav.share({ files: [file], title: filename })
+        return
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const a = document.createElement("a")
+      a.href = blobUrl
+      a.download = filename
+      a.click()
+    } catch {
+      window.open(blobUrl, "_blank")
+    }
+  }
+  openBtn.onclick = () => {
+    window.open(blobUrl, "_blank")
+  }
+  closeBtn.onclick = () => {
+    try {
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      /* ignore */
+    }
+    shell.remove()
+  }
+
+  bar.appendChild(shareBtn)
+  bar.appendChild(openBtn)
+  bar.appendChild(closeBtn)
+
+  const frame = document.createElement("iframe")
+  frame.src = blobUrl
+  frame.title = filename
+  frame.style.cssText = "flex:1;width:100%;border:0;background:#fff;"
+
+  const hint = document.createElement("div")
+  hint.style.cssText =
+    "padding:8px 12px;background:#334155;color:#e2e8f0;font-size:0.78rem;line-height:1.4;"
+  hint.textContent =
+    "On Android: tap Share / Save → Drive, Files, or WhatsApp. If the preview is blank, tap Open."
+
+  shell.appendChild(bar)
+  shell.appendChild(frame)
+  shell.appendChild(hint)
+  document.body.appendChild(shell)
+}
+
+/**
+ * Render a full HTML document string to a multi-page A4 PDF and deliver it.
  */
 export async function downloadHtmlAsPdf(
   html: string,
@@ -134,21 +349,6 @@ export async function downloadHtmlAsPdf(
     heightLeft -= pageH
   }
 
-  // Prefer share on mobile WebView if available
-  try {
-    const blob = pdf.output("blob")
-    const file = new File([blob], filename, { type: "application/pdf" })
-    const nav = navigator as Navigator & {
-      canShare?: (d?: ShareData) => boolean
-      share?: (d: ShareData) => Promise<void>
-    }
-    if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
-      await nav.share({ files: [file], title: filename })
-      return
-    }
-  } catch {
-    /* fall through to save */
-  }
-
-  pdf.save(filename)
+  const blob = pdf.output("blob")
+  await deliverPdfBlob(blob, filename)
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildStudyCertPrintHtml, formFromAcmCert, downloadStudyCertPdf } from "@/lib/study-cert-print"
 import {
   buildStudentProfilePrintHtml,
@@ -126,6 +126,8 @@ type AppNotif = {
   time?: string
   unread?: boolean
   kind?: string
+  created_at?: string | null
+  sort_ts?: number
 }
 
 type NoticeRow = {
@@ -493,7 +495,20 @@ export default function StudentApp() {
       ) || null,
     [appNotifs],
   )
-  /** Absent alerts — always surfaced (parent prefers parent-kind). */
+  /** Newest-first sort key for notifications */
+  const notifSortTs = (n: AppNotif): number => {
+    if (typeof n.sort_ts === "number" && Number.isFinite(n.sort_ts) && n.sort_ts > 0) return n.sort_ts
+    if (n.created_at) {
+      const t = new Date(n.created_at).getTime()
+      if (Number.isFinite(t)) return t
+    }
+    // id like un-123 — higher id is usually newer
+    const m = String(n.id || "").match(/(\d+)/)
+    if (m) return Number(m[1])
+    return 0
+  }
+
+  /** Absent alerts — always newest first (parent prefers parent-kind). */
   const absentNotifs = useMemo(() => {
     const isAbsent = (n: AppNotif) =>
       n.kind === "attendance_absent" ||
@@ -501,27 +516,33 @@ export default function StudentApp() {
       (n.title || "").toLowerCase().includes("absent")
     let list = appNotifs.filter(isAbsent)
     if (portalMode === "parent") {
-      // Parent view: prefer ward-absent wording; still show student-kind as fallback
-      const parentFirst = list.filter((n) => n.kind === "attendance_absent_parent" || (n.title || "").toLowerCase().includes("ward"))
-      const rest = list.filter((n) => !parentFirst.includes(n))
-      list = [...parentFirst, ...rest]
+      // Prefer ward/parent wording; drop pure student-kind when parent row exists
+      const parentRows = list.filter(
+        (n) =>
+          n.kind === "attendance_absent_parent" ||
+          (n.title || "").toLowerCase().includes("ward"),
+      )
+      if (parentRows.length) list = parentRows
     } else if (portalMode === "student") {
       list = list.filter((n) => n.kind !== "attendance_absent_parent")
     }
-    return list.slice(0, 10)
+    return [...list].sort((a, b) => notifSortTs(b) - notifSortTs(a)).slice(0, 20)
   }, [appNotifs, portalMode])
-  const unreadAppNotifs = useMemo(() => {
-    // Don't let "account approved" hide everything else — exclude only if already shown separately is handled in UI
-    return appNotifs
-      .filter((n) => n.unread)
+
+  /** All notifications for the list — newest first, mode-filtered */
+  const sortedAppNotifs = useMemo(() => {
+    return [...appNotifs]
       .filter((n) => {
-        // Parent mode: hide pure student-only noise if needed later; show absent + general
         if (portalMode === "parent" && n.kind === "attendance_absent") return false
         if (portalMode === "student" && n.kind === "attendance_absent_parent") return false
         return true
       })
-      .slice(0, 8)
+      .sort((a, b) => notifSortTs(b) - notifSortTs(a))
   }, [appNotifs, portalMode])
+
+  const unreadAppNotifs = useMemo(() => {
+    return sortedAppNotifs.filter((n) => n.unread).slice(0, 8)
+  }, [sortedAppNotifs])
   const profileLocked = useMemo(() => {
     const extra = student?.extra || {}
     return extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
@@ -532,38 +553,71 @@ export default function StudentApp() {
   )
   const pendingForms = openForms.filter((f) => !f.submitted_by_me)
 
-  /** Short beep for new absent alerts (parent-priority). */
-  function playAbsentNotifySound() {
+  /** Shared AudioContext — must be resumed after a user gesture on Android WebView. */
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
+  function unlockNotifyAudio() {
     try {
       const AC =
         typeof window !== "undefined"
           ? window.AudioContext ||
             (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
           : null
-      if (!AC) return
-      const ctx = new AC()
-      const beep = (freq: number, start: number, dur: number) => {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
-        o.type = "sine"
-        o.frequency.value = freq
-        g.gain.value = 0.0001
-        o.connect(g)
-        g.connect(ctx.destination)
-        g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + start + 0.02)
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur)
-        o.start(ctx.currentTime + start)
-        o.stop(ctx.currentTime + start + dur + 0.02)
+      if (!AC) return null
+      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+        audioCtxRef.current = new AC()
       }
-      beep(880, 0, 0.15)
-      beep(1175, 0.18, 0.18)
-      setTimeout(() => {
+      const ctx = audioCtxRef.current
+      if (ctx.state === "suspended") {
+        void ctx.resume()
+      }
+      return ctx
+    } catch {
+      return null
+    }
+  }
+
+  /** Short double-beep + vibrate for new absent alerts (parent-priority). */
+  function playAbsentNotifySound() {
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
         try {
-          void ctx.close()
+          navigator.vibrate([120, 60, 180])
         } catch {
           /* ignore */
         }
-      }, 600)
+      }
+      const ctx = unlockNotifyAudio()
+      if (!ctx) return
+      const play = () => {
+        try {
+          const beep = (freq: number, start: number, dur: number, gain = 0.22) => {
+            const o = ctx.createOscillator()
+            const g = ctx.createGain()
+            o.type = "sine"
+            o.frequency.value = freq
+            g.gain.value = 0.0001
+            o.connect(g)
+            g.connect(ctx.destination)
+            const t0 = ctx.currentTime + start
+            g.gain.exponentialRampToValueAtTime(gain, t0 + 0.02)
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+            o.start(t0)
+            o.stop(t0 + dur + 0.03)
+          }
+          // Louder triple chime so parents notice on phone speakers
+          beep(880, 0, 0.16, 0.28)
+          beep(1175, 0.2, 0.18, 0.28)
+          beep(1319, 0.42, 0.22, 0.24)
+        } catch {
+          /* ignore */
+        }
+      }
+      if (ctx.state === "suspended") {
+        void ctx.resume().then(play).catch(play)
+      } else {
+        play()
+      }
     } catch {
       /* autoplay / unsupported — ignore */
     }
@@ -769,6 +823,8 @@ export default function StudentApp() {
   }
 
   function choosePortalMode(mode: PortalMode) {
+    // Unlock WebView audio on this user tap (required on Android)
+    unlockNotifyAudio()
     setPortalMode(mode)
     setNeedPortalChoice(false)
     try {
@@ -778,10 +834,13 @@ export default function StudentApp() {
     }
     flash(mode === "parent" ? "Parent view (read-only)" : "Student view")
     // Refresh notifications so parent sees latest absent alerts
-    void loadDashboard().then(() => {
-      if (mode === "parent") {
-        // Sound when parent opens and there are unread absent alerts
-        const hasUnreadAbsent = appNotifs.some(
+    void loadDashboard().then(async () => {
+      if (mode !== "parent") return
+      // Soft confirm beep after unlocking audio; also plays if unread absents exist
+      try {
+        const res = await api<{ notifications?: AppNotif[] }>("/api/notifications")
+        const list = res.ok && Array.isArray(res.data?.notifications) ? res.data.notifications : []
+        const hasUnreadAbsent = list.some(
           (n) =>
             n.unread &&
             (n.kind === "attendance_absent_parent" ||
@@ -789,33 +848,72 @@ export default function StudentApp() {
               (n.title || "").toLowerCase().includes("absent")),
         )
         if (hasUnreadAbsent) playAbsentNotifySound()
+      } catch {
+        /* ignore */
       }
     })
   }
 
-  // Play sound once when parent view loads new unread absent notifications
+  // Play sound when parent view sees a NEW absent alert (by sort_ts / id)
   useEffect(() => {
     if (portalMode !== "parent" || !user) return
-    const unreadAbsent = appNotifs.filter(
-      (n) =>
-        n.unread &&
-        (n.kind === "attendance_absent_parent" ||
-          (n.title || "").toLowerCase().includes("ward") ||
-          (n.title || "").toLowerCase().includes("absent")),
-    )
+    const unreadAbsent = [...appNotifs]
+      .filter(
+        (n) =>
+          n.unread &&
+          (n.kind === "attendance_absent_parent" ||
+            (n.title || "").toLowerCase().includes("ward") ||
+            (n.title || "").toLowerCase().includes("absent")),
+      )
+      .sort((a, b) => notifSortTs(b) - notifSortTs(a))
     if (!unreadAbsent.length) return
-    const latestId = unreadAbsent[0]?.id
-    if (!latestId) return
+    const latest = unreadAbsent[0]
+    const latestKey = `${latest.id}:${notifSortTs(latest)}`
     try {
       const key = `gpth_parent_absent_sound_${user.id}`
       const prev = sessionStorage.getItem(key)
-      if (prev === latestId) return
-      sessionStorage.setItem(key, latestId)
+      if (prev === latestKey) return
+      sessionStorage.setItem(key, latestKey)
       playAbsentNotifySound()
     } catch {
       playAbsentNotifySound()
     }
   }, [portalMode, appNotifs, user])
+
+  // Poll for new absent notifications while Parent view is open (sound on new arrivals)
+  useEffect(() => {
+    if (portalMode !== "parent" || !user) return
+    const tick = () => {
+      void (async () => {
+        try {
+          const res = await api<{ notifications?: AppNotif[] }>("/api/notifications")
+          if (!res.ok || !Array.isArray(res.data?.notifications)) return
+          const next = res.data.notifications
+          setAppNotifs((prev) => {
+            const prevMax = prev.reduce((m, n) => Math.max(m, notifSortTs(n)), 0)
+            const nextMax = next.reduce((m, n) => Math.max(m, notifSortTs(n)), 0)
+            const hasNewUnreadAbsent = next.some((n) => {
+              if (!n.unread) return false
+              const isAbs =
+                n.kind === "attendance_absent_parent" ||
+                n.kind === "attendance_absent" ||
+                (n.title || "").toLowerCase().includes("absent")
+              if (!isAbs) return false
+              return notifSortTs(n) > prevMax || !prev.some((p) => p.id === n.id)
+            })
+            if (hasNewUnreadAbsent && nextMax >= prevMax) {
+              playAbsentNotifySound()
+            }
+            return next
+          })
+        } catch {
+          /* ignore poll errors */
+        }
+      })()
+    }
+    const id = window.setInterval(tick, 25000)
+    return () => window.clearInterval(id)
+  }, [portalMode, user])
 
   async function doRegister() {
     setRegErr("")
@@ -1134,9 +1232,9 @@ export default function StudentApp() {
       const html = buildStudyCertPrintHtml(kind, form)
       flash("Preparing PDF…")
       await downloadStudyCertPdf(html, form.reg_no)
-      flash("PDF ready — saved or shared")
+      flash("PDF ready — use Share / Save if the file did not auto-download")
     } catch {
-      flash("Could not create PDF. Try again.")
+      flash("Could not create PDF. Try again, or use Share from the preview.")
     } finally {
       setTimeout(() => setPrintBusyId(null), 400)
     }
@@ -1173,9 +1271,9 @@ export default function StudentApp() {
     try {
       flash("Preparing PDF…")
       await downloadStudentProfilePdf(html, reg)
-      flash("Profile PDF ready — saved or shared")
+      flash("Profile PDF ready — use Share / Save if needed")
     } catch {
-      flash("Could not create profile PDF. Try again.")
+      flash("Could not create profile PDF. Try again, or use Share from the preview.")
     }
   }
 
@@ -1747,11 +1845,12 @@ export default function StudentApp() {
                     type="button"
                     className="stu-btn stu-btn-ghost stu-btn-sm"
                     onClick={() => {
+                      unlockNotifyAudio()
                       playAbsentNotifySound()
                       void loadDashboard()
                     }}
                   >
-                    Refresh
+                    Refresh / test sound
                   </button>
                 </div>
               </div>
@@ -2645,17 +2744,11 @@ export default function StudentApp() {
             ) : (
               <p style={{ opacity: 0.75 }}>No absent alerts yet.</p>
             )}
-            <h4 style={{ margin: "16px 0 8px" }}>All notifications</h4>
-            {appNotifs.length === 0 ? (
+            <h4 style={{ margin: "16px 0 8px" }}>All notifications (latest first)</h4>
+            {sortedAppNotifs.length === 0 ? (
               <p style={{ opacity: 0.75 }}>No notifications yet.</p>
             ) : (
-              appNotifs
-                .filter((n) => {
-                  if (portalMode === "parent" && n.kind === "attendance_absent") return false
-                  if (portalMode === "student" && n.kind === "attendance_absent_parent") return false
-                  return true
-                })
-                .map((n) => (
+              sortedAppNotifs.map((n) => (
                   <div
                     key={n.id}
                     className="stu-row"
