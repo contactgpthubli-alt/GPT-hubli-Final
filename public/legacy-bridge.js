@@ -866,8 +866,213 @@ function __initGptBridge() {
   window.ensurePrincipalHodDesk = ensurePrincipalHodDesk;
 
   /**
+   * Desk staff profile (Principal / HOD / ACM / Exam).
+   * Static seat accounts need "who is using this account" info:
+   * Name, Qualification, Designation (required); Mobile, KGID, Home address (optional).
+   */
+  function ensureStaffDeskProfile(user) {
+    if (!user) user = window.currentUser;
+    if (!user) return;
+    var role = user.role;
+    if (['principal', 'hod', 'acm', 'exam'].indexOf(role) === -1) return;
+
+    var shellId = role === 'principal' ? 'dbPrincipal' : (role === 'hod' ? 'dbFaculty' : 'dbAdmin');
+    var root = document.getElementById(shellId);
+    if (!root) return;
+
+    var navId = 'staffDeskProfileNav_' + role;
+    var secId = 'staffDeskProfileSec_' + role;
+    var content = root.querySelector('.db-content') || root;
+
+    // Sidebar link
+    var nav = document.getElementById(navId);
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.id = navId;
+      nav.className = 'sl';
+      nav.setAttribute('data-staff-profile', '1');
+      if (role === 'hod') nav.setAttribute('data-fac', 'staffprofile');
+      nav.innerHTML = '<span class="sli">👤</span>My Profile';
+      nav.onclick = function () {
+        // Hide other panels in this shell
+        content.querySelectorAll(':scope > div[id]').forEach(function (p) {
+          if (p.id !== secId) p.style.display = 'none';
+        });
+        var panel = document.getElementById(secId);
+        if (panel) panel.style.display = '';
+        root.querySelectorAll('.sb .sl').forEach(function (sl) { sl.classList.remove('act'); });
+        nav.classList.add('act');
+        window.loadStaffDeskProfile && window.loadStaffDeskProfile();
+      };
+      var sb = root.querySelector('.sb');
+      if (sb) {
+        // Prefer insert before Logout
+        var logout = null;
+        sb.querySelectorAll('.sl').forEach(function (sl) {
+          var t = (sl.textContent || '').toLowerCase();
+          var oc = sl.getAttribute('onclick') || '';
+          if (t.indexOf('logout') >= 0 || oc.indexOf('logout') >= 0) logout = sl;
+        });
+        if (logout) sb.insertBefore(nav, logout);
+        else sb.appendChild(nav);
+      }
+    }
+    nav.style.display = '';
+
+    // For ACM/Exam scoped shells, allow this nav even when others are hidden
+    if (role === 'acm' || role === 'exam') {
+      nav.style.display = '';
+    }
+
+    var panel = document.getElementById(secId);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = secId;
+      panel.style.display = 'none';
+      panel.innerHTML =
+        '<div class="page-title" style="margin-bottom:12px;">' +
+        '<h2 style="margin:0;font-family:\'Libre Baskerville\',serif;color:var(--navy);">Staff Profile</h2>' +
+        '<p style="margin:6px 0 0;font-size:0.85rem;opacity:.8;">Who is currently using this ' +
+        (role === 'hod' ? 'HOD' : role === 'acm' ? 'ACM' : role === 'exam' ? 'Exam Cell' : 'Principal') +
+        ' seat account. Transfers keep the login; update the person details here.</p></div>' +
+        '<div class="card" style="padding:18px;max-width:640px;">' +
+        '<div class="info-box" style="margin:0 0 14px;font-size:0.82rem;">' +
+        '<strong>Required:</strong> Name, Qualification, Designation &nbsp;·&nbsp; <strong>Optional:</strong> Mobile, KGID, Home address' +
+        '</div>' +
+        '<div style="display:grid;gap:12px;">' +
+        '<div class="fg" style="margin:0;"><label>Name of the staff *</label>' +
+        '<input type="text" id="spf_name" class="pf-field" placeholder="Full name" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;" /></div>' +
+        '<div class="fg" style="margin:0;"><label>Qualification *</label>' +
+        '<input type="text" id="spf_qualification" class="pf-field" placeholder="e.g. B.E., M.Tech" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;" /></div>' +
+        '<div class="fg" style="margin:0;"><label>Designation *</label>' +
+        '<input type="text" id="spf_designation" class="pf-field" placeholder="e.g. HOD / Lecturer / ACM Officer" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;" /></div>' +
+        '<div class="fg" style="margin:0;"><label>Mobile number <span style="opacity:.6;font-weight:400;">(optional)</span></label>' +
+        '<input type="text" id="spf_mobile" class="pf-field" placeholder="10-digit mobile" maxlength="15" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;" /></div>' +
+        '<div class="fg" style="margin:0;"><label>KGID number <span style="opacity:.6;font-weight:400;">(optional)</span></label>' +
+        '<input type="text" id="spf_kgid" class="pf-field" placeholder="KGID" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;" /></div>' +
+        '<div class="fg" style="margin:0;"><label>Home address <span style="opacity:.6;font-weight:400;">(optional)</span></label>' +
+        '<textarea id="spf_address" class="pf-field" rows="3" placeholder="Residential address" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;"></textarea></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px;">' +
+        '<button type="button" class="btn go" id="spf_saveBtn">💾 Save profile</button>' +
+        '<span id="spf_msg" style="font-size:0.82rem;"></span></div>' +
+        '<p style="margin:12px 0 0;font-size:0.75rem;opacity:.65;">Seat login stays the same. Only the person occupying this desk changes.</p>' +
+        '</div>';
+      content.appendChild(panel);
+      var saveBtn = panel.querySelector('#spf_saveBtn');
+      if (saveBtn) {
+        saveBtn.onclick = function () { window.saveStaffDeskProfile && window.saveStaffDeskProfile(); };
+      }
+    }
+
+    // Patch ACM/Exam allow-list so Profile nav is not hidden
+    if (role === 'acm' || role === 'exam') {
+      nav.style.display = '';
+    }
+  }
+  window.ensureStaffDeskProfile = ensureStaffDeskProfile;
+
+  window.loadStaffDeskProfile = async function loadStaffDeskProfile() {
+    var msg = document.getElementById('spf_msg');
+    function setMsg(t, err) {
+      if (!msg) return;
+      msg.textContent = t || '';
+      msg.style.color = err ? '#991b1b' : '#065f46';
+    }
+    setMsg('Loading…', false);
+    try {
+      var r = await fetch('/api/auth/staff-profile?_ts=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      var data = await r.json().catch(function () { return null; });
+      if (!r.ok || !data || !data.profile) {
+        setMsg((data && data.error) || 'Failed to load profile', true);
+        return;
+      }
+      var p = data.profile;
+      var nameEl = document.getElementById('spf_name');
+      var qEl = document.getElementById('spf_qualification');
+      var dEl = document.getElementById('spf_designation');
+      var mEl = document.getElementById('spf_mobile');
+      var kEl = document.getElementById('spf_kgid');
+      var aEl = document.getElementById('spf_address');
+      if (nameEl) nameEl.value = p.display_name || '';
+      if (qEl) qEl.value = p.qualification || '';
+      if (dEl) dEl.value = p.designation || '';
+      if (mEl) mEl.value = p.mobile || '';
+      if (kEl) kEl.value = p.kgid || '';
+      if (aEl) aEl.value = p.home_address || '';
+      setMsg('', false);
+    } catch (e) {
+      setMsg('Network error', true);
+    }
+  };
+
+  window.saveStaffDeskProfile = async function saveStaffDeskProfile() {
+    var msg = document.getElementById('spf_msg');
+    function setMsg(t, err) {
+      if (!msg) return;
+      msg.textContent = t || '';
+      msg.style.color = err ? '#991b1b' : '#065f46';
+    }
+    var body = {
+      display_name: (document.getElementById('spf_name') || {}).value || '',
+      qualification: (document.getElementById('spf_qualification') || {}).value || '',
+      designation: (document.getElementById('spf_designation') || {}).value || '',
+      mobile: (document.getElementById('spf_mobile') || {}).value || '',
+      kgid: (document.getElementById('spf_kgid') || {}).value || '',
+      home_address: (document.getElementById('spf_address') || {}).value || '',
+    };
+    body.display_name = String(body.display_name).trim();
+    body.qualification = String(body.qualification).trim();
+    body.designation = String(body.designation).trim();
+    if (!body.display_name || !body.qualification || !body.designation) {
+      setMsg('Name, Qualification and Designation are required.', true);
+      return;
+    }
+    setMsg('Saving…', false);
+    try {
+      var r = await fetch('/api/auth/staff-profile', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setMsg(data.error || 'Save failed', true);
+        return;
+      }
+      // Refresh header name chips
+      if (data.profile && window.currentUser) {
+        window.currentUser.display_name = data.profile.display_name;
+        document.querySelectorAll('.db-uname').forEach(function (el) {
+          // Only update the active shell chips that belong to this session
+          if (el.offsetParent !== null || el.closest('#dbAdmin, #dbFaculty, #dbPrincipal')) {
+            el.textContent = data.profile.display_name;
+          }
+        });
+        document.querySelectorAll('#adAva, #facAva, #priAva').forEach(function (ava) {
+          if (ava && !ava.querySelector('img')) {
+            var n = data.profile.display_name || '';
+            var parts = n.trim().split(/\s+/);
+            ava.textContent = parts.length >= 2
+              ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+              : n.slice(0, 2).toUpperCase();
+          }
+        });
+      }
+      setMsg('Profile saved.', false);
+    } catch (e) {
+      setMsg('Network error', true);
+    }
+  };
+
+  /**
    * Hide Teaching Staff Profile (facMyProfile) and OTHER clutter from HOD.
    * Staff / Activities are faculty modules — Student Data is already on the main desk.
+   * (Desk "My Profile" for seat occupant is injected separately.)
    */
   function hideHodTeachingStaffProfile() {
     ;['myprofile', 'staff', 'activities'].forEach(function (key) {
@@ -1586,11 +1791,14 @@ function __initGptBridge() {
     if (!root) return;
     window._acmScopedAdmin = true;
     window._examScopedAdmin = false;
+    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
+    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
     var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adACM: 1 };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
       var keep = false;
       if (oc.indexOf('logout') !== -1) keep = true;
+      if (sl.getAttribute('data-staff-profile') === '1') keep = true;
       Object.keys(allowedSecs).forEach(function (sec) {
         if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
       });
@@ -1906,11 +2114,14 @@ function __initGptBridge() {
     if (!root) return;
     window._examScopedAdmin = true;
     window._acmScopedAdmin = false;
+    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
+    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
     var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adExam: 1 };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
       var keep = false;
       if (oc.indexOf('logout') !== -1) keep = true;
+      if (sl.getAttribute('data-staff-profile') === '1') keep = true;
       Object.keys(allowedSecs).forEach(function (sec) {
         if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
       });
@@ -1953,11 +2164,58 @@ function __initGptBridge() {
   window.applyExamAdminScope = applyExamAdminScope;
   window.clearExamAdminScope = clearExamAdminScope;
 
+  /** Fix sticky "VIEWING AS …" badge so it always matches the real logged-in role. */
+  function updateViewingAsBadge(user) {
+    try {
+      var existing = document.getElementById('_demoRoleBadge');
+      if (!user || !user.role || user.role === 'student') {
+        if (existing) existing.remove();
+        return;
+      }
+      var roleLabels = {
+        faculty: 'Teaching Staff', hod: 'HOD', teaching: 'Teaching Staff',
+        registrar: 'Registrar', acm: 'ACM', exam: 'Exam Cell', est: 'EST',
+        library: 'Library Staff', placement: 'Placement Officer', nss: 'NSS Officer',
+        yrc: 'Youth Red Cross', alumni: 'Alumni Officer', sports: 'Sports Officer',
+        welfare: 'Student Welfare Officer', cash: 'Cash Officer', accounts: 'Accounts',
+        stores: 'Stores', studentassoc: 'Student Association',
+        principal: 'Principal', admin: 'Root Admin',
+      };
+      var roleColors = {
+        faculty: '#d4600a', hod: '#b45309', teaching: '#d4600a',
+        registrar: '#0e7490', acm: '#1d4ed8', exam: '#be185d', est: '#15803d',
+        library: '#78350f', placement: '#0f4c75', nss: '#166534',
+        yrc: '#991b1b', alumni: '#3730a3', sports: '#065f46',
+        welfare: '#7e22ce', cash: '#713f12', accounts: '#1e3a5f',
+        stores: '#44403c', studentassoc: '#4a044e',
+        principal: '#0f4c75', admin: '#1e3a5f',
+      };
+      var role = user.role;
+      if (existing) existing.remove();
+      var badge = document.createElement('div');
+      badge.id = '_demoRoleBadge';
+      badge.style.cssText =
+        'position:fixed;bottom:18px;right:18px;z-index:9999;background:' +
+        (roleColors[role] || '#333') +
+        ";color:white;padding:8px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.78rem;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;";
+      badge.innerHTML =
+        '<span style="opacity:0.7;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Viewing as</span>&nbsp;' +
+        (roleLabels[role] || role) +
+        '&nbsp;<button type="button" onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:0.7rem;margin-left:4px;">✕</button>';
+      document.body.appendChild(badge);
+    } catch (e) {
+      console.warn('[bridge] viewing-as badge', e);
+    }
+  }
+  window.updateViewingAsBadge = updateViewingAsBadge;
+
   function openDashboardFor(user) {
     var role = user.role;
     if (user.reg_no) { window.STU_REG_NO = user.reg_no; } // keep student modules pointed at the real logged-in student
     clearAcmAdminScope();
     try { clearExamAdminScope(); } catch (e) { /* ignore */ }
+    // Always sync role badge to the actual account (fixes ACM showing "VIEWING AS HOD")
+    try { updateViewingAsBadge(user); } catch (e) { /* ignore */ }
     // Create Account Approvals panels before role shell opens them
     if (role === 'admin' || role === 'principal' || role === 'hod') {
       try { ensureAccountApprovalPanels(); } catch (e) { /* ignore */ }
@@ -2250,10 +2508,16 @@ function __initGptBridge() {
 
   async function afterAuth(user) {
     setCurrentUser(user);
+    // Correct sticky role badge immediately (before any deferred UI)
+    try { updateViewingAsBadge(user); } catch (e) { /* ignore */ }
     await hydratePrivate();
     await paintStudentDashboard(user);
     // Strip static demo content from Principal / HOD shells first
     try { stripDummyDashboards(user); } catch (e) { console.warn('[bridge] stripDummy', e); }
+    // Staff desk profile (Principal / HOD / ACM / Exam) — who is using the static seat
+    if (user && (user.role === 'principal' || user.role === 'hod' || user.role === 'acm' || user.role === 'exam')) {
+      try { ensureStaffDeskProfile(user); } catch (e) { console.warn('[bridge] staff profile', e); }
+    }
     // Profile edit requests: Admin, Principal, HOD, ACM
     if (user && (user.role === 'admin' || user.role === 'hod' || user.role === 'acm' || user.role === 'principal' || user.role === 'exam') &&
         typeof window.renderProfileRequestApprovals === 'function') {
@@ -2273,6 +2537,7 @@ function __initGptBridge() {
           el.style.display = '';
         });
         hideHodTeachingStaffProfile();
+        try { ensureStaffDeskProfile(user); } catch (e) { /* ignore */ }
       }
       try { renderAccountApprovals(); } catch (e) { console.warn('[bridge] account approvals', e); }
       try { upgradeStudentDbFilters(); } catch (e) { /* ignore */ }
@@ -3209,17 +3474,31 @@ function __initGptBridge() {
     var searchEl = root.querySelector('[data-acm-search="1"]');
     var statusEl = root.querySelector('[data-acm-status="1"]');
     var typeEl = root.querySelector('[data-acm-type="1"]');
+    var statusVal = statusEl ? statusEl.value : 'active';
+    if (statusVal === '__all__') statusVal = ''; // empty → paint treats as active unless we special-case
+    // When user explicitly wants all archive rows:
+    if (statusEl && statusEl.value === '__all__') statusVal = '__all__';
     return {
       q: searchEl ? searchEl.value.trim().toLowerCase() : '',
-      status: statusEl ? statusEl.value : '',
+      status: statusVal || 'active',
       type: typeEl ? typeEl.value : '',
     };
   }
 
   function acmPaintTables(list) {
     var f = acmReadFilters();
+    // Default: only active work (pending / processing / ready). Fulfilled purpose
+    // (collected) and rejected leave the desk queue unless staff picks that status.
+    var statusF = (f.status || 'active').toLowerCase();
     var filtered = (list || []).filter(function (r) {
-      if (f.status && r.status !== f.status) return false;
+      var st = String(r.status || '').toLowerCase();
+      if (statusF === '__all__') {
+        /* show everything */
+      } else if (statusF === 'active' || !statusF) {
+        if (st === 'collected' || st === 'rejected') return false;
+      } else if (st !== statusF) {
+        return false;
+      }
       if (f.type && String(r.cert_type || '').toLowerCase().indexOf(f.type.toLowerCase()) === -1) return false;
       if (f.q) {
         var hay = [r.req_code, r.student_name, r.reg_no, r.branch, r.cert_type].join(' ').toLowerCase();
@@ -3230,7 +3509,7 @@ function __initGptBridge() {
 
     var rowsHtml;
     if (!filtered.length) {
-      rowsHtml = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">No ACM certificate requests match.</td></tr>';
+      rowsHtml = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">No pending ACM requests. Fulfilled (collected) items are hidden from this desk.</td></tr>';
     } else {
       rowsHtml = filtered.map(function (r) {
         var actions = '';
@@ -3303,9 +3582,40 @@ function __initGptBridge() {
     });
   }
 
+  function acmEnsureStatusFilterOptions() {
+    // Prefer Active desk queue; keep explicit options for archive lookup
+    acmActiveRoots().forEach(function (root) {
+      root.querySelectorAll('[data-acm-status="1"]').forEach(function (sel) {
+        if (sel.getAttribute('data-acm-status-ready') === '1') return;
+        sel.setAttribute('data-acm-status-ready', '1');
+        var cur = sel.value || '';
+        sel.innerHTML =
+          '<option value="active">Active (pending / processing / ready)</option>' +
+          '<option value="pending">Pending only</option>' +
+          '<option value="processing">Processing</option>' +
+          '<option value="ready">Ready</option>' +
+          '<option value="collected">Collected (archive)</option>' +
+          '<option value="rejected">Rejected (archive)</option>' +
+          '<option value="__all__">Show all statuses</option>';
+        // Map old "all"/empty to active
+        if (!cur || cur === 'all' || cur === '') sel.value = 'active';
+        else if (['pending', 'processing', 'ready', 'collected', 'rejected'].indexOf(cur) >= 0) sel.value = cur;
+        else sel.value = 'active';
+        if (!sel.__acmBound) {
+          sel.__acmBound = true;
+          sel.addEventListener('change', function () {
+            if (typeof window.filterAcmRequests === 'function') window.filterAcmRequests();
+          });
+        }
+      });
+    });
+  }
+
   async function renderAcmModule() {
     var roots = acmActiveRoots();
     if (!roots.length) return;
+
+    acmEnsureStatusFilterOptions();
 
     roots.forEach(function (root) {
       root.querySelectorAll('[data-acm-tbody="1"]').forEach(function (tb) {
@@ -8032,7 +8342,7 @@ setInterval(function () {
     ensureBatchAssignPanel();
   };
 
-  /** Staff: assign Batch 1–4 + parent mobile (for practical periods + absent alerts) */
+  /** Staff: assign practical Batch 1–4 only (parent contact is not managed here). */
   function ensureBatchAssignPanel() {
     var step1 = document.getElementById('attStep1');
     if (!step1) return;
@@ -8045,12 +8355,12 @@ setInterval(function () {
     }
     host.innerHTML =
       '<div class="card" style="padding:16px;">' +
-      '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">👥 Assign Practical Batch & Parent Contact</h3>' +
-      '<p style="font-size:0.8rem;opacity:.8;margin:0 0 12px;">Batch 1 &amp; 2 for normal lab splits. <strong>Batch 3 &amp; 4 are optional</strong>. ' +
-      'Parent mobile is used for absent alerts in the Parent app view (same login as student).</p>' +
+      '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">👥 Assign Practical Batch</h3>' +
+      '<p style="font-size:0.8rem;opacity:.8;margin:0 0 12px;">Batch 1 &amp; 2 for normal lab splits. <strong>Batch 3 &amp; 4 are optional</strong> extra groups. ' +
+      'Only batch assignment — parent contact is not collected here.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">' +
       '<button type="button" class="btn pr" id="attBatchLoadBtn">Load branch students</button>' +
-      '<button type="button" class="btn go" id="attBatchSaveBtn">💾 Save batch / parent</button>' +
+      '<button type="button" class="btn go" id="attBatchSaveBtn">💾 Save batches</button>' +
       '</div>' +
       '<div id="attBatchAssignMeta" style="font-size:0.78rem;opacity:.75;margin-bottom:8px;"></div>' +
       '<div style="overflow:auto;max-height:320px;">' +
@@ -8059,10 +8369,8 @@ setInterval(function () {
       '<th style="text-align:left;padding:6px;">Reg No</th>' +
       '<th style="text-align:left;padding:6px;">Name</th>' +
       '<th style="text-align:left;padding:6px;">Batch</th>' +
-      '<th style="text-align:left;padding:6px;">Parent name</th>' +
-      '<th style="text-align:left;padding:6px;">Parent mobile</th>' +
       '</tr></thead>' +
-      '<tbody id="attBatchAssignBody"><tr><td colspan="5" style="padding:16px;opacity:.7;">Click “Load branch students”.</td></tr></tbody>' +
+      '<tbody id="attBatchAssignBody"><tr><td colspan="3" style="padding:16px;opacity:.7;">Click “Load branch students”.</td></tr></tbody>' +
       '</table></div></div>';
 
     var loadBtn = document.getElementById('attBatchLoadBtn');
@@ -8090,7 +8398,7 @@ setInterval(function () {
       alert('Branch is required');
       return;
     }
-    if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;">Loading…</td></tr>';
+    if (body) body.innerHTML = '<tr><td colspan="3" style="padding:16px;">Loading…</td></tr>';
     try {
       var r = await fetch(
         '/api/students/batch?branch=' + encodeURIComponent(branch) + '&_ts=' + Date.now(),
@@ -8098,13 +8406,13 @@ setInterval(function () {
       );
       var data = await r.json().catch(function () { return null; });
       if (!r.ok || !data || !Array.isArray(data.students)) {
-        if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#991b1b;">Failed to load.</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="3" style="padding:16px;color:#991b1b;">Failed to load.</td></tr>';
         return;
       }
       window._attBatchAssignList = data.students;
       if (meta) meta.textContent = data.students.length + ' active students · ' + branch;
       if (!data.students.length) {
-        if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;">No active students.</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="3" style="padding:16px;">No active students.</td></tr>';
         return;
       }
       body.innerHTML = data.students
@@ -8140,22 +8448,12 @@ setInterval(function () {
             '<option value="">—</option>' +
             opts +
             '</select></td>' +
-            '<td style="padding:6px;"><input type="text" class="att-parent-name" data-reg="' +
-            attEsc(s.reg_no) +
-            '" value="' +
-            attEsc(s.parent_name || '') +
-            '" placeholder="Parent name" style="width:100%;min-width:100px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);" /></td>' +
-            '<td style="padding:6px;"><input type="text" class="att-parent-mobile" data-reg="' +
-            attEsc(s.reg_no) +
-            '" value="' +
-            attEsc(s.parent_mobile || '') +
-            '" placeholder="10-digit mobile" style="width:100%;min-width:110px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);" /></td>' +
             '</tr>'
           );
         })
         .join('');
     } catch (e) {
-      if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#991b1b;">Network error.</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="3" style="padding:16px;color:#991b1b;">Network error.</td></tr>';
     }
   };
 
@@ -8166,14 +8464,10 @@ setInterval(function () {
     root.querySelectorAll('.att-batch-sel').forEach(function (sel) {
       var reg = sel.getAttribute('data-reg');
       if (!reg) return;
-      var nameInp = root.querySelector('.att-parent-name[data-reg="' + reg + '"]');
-      var mobInp = root.querySelector('.att-parent-mobile[data-reg="' + reg + '"]');
       var batchVal = sel.value ? Number(sel.value) : null;
       updates.push({
         reg_no: reg,
         attendance_batch: batchVal,
-        parent_name: nameInp ? nameInp.value : '',
-        parent_mobile: mobInp ? mobInp.value : '',
       });
     });
     if (!updates.length) {
@@ -8192,7 +8486,7 @@ setInterval(function () {
         alert(data.error || 'Save failed');
         return;
       }
-      alert('Saved batch & parent details for ' + (data.updated || 0) + ' student(s).');
+      alert('Saved practical batch for ' + (data.updated || 0) + ' student(s).');
     } catch (e) {
       alert('Network error');
     }
@@ -8237,8 +8531,33 @@ setInterval(function () {
         var d = s.att_date
           ? String(s.att_date).slice(0, 10)
           : '—';
+        var cancelled = s.session_status === 'cancelled' || s.cancelled;
+        var statusBadge = cancelled
+          ? '<span class="badge" style="background:#fef3c7;color:#92400e;">Cancelled</span>'
+          : '<span class="badge active">Active</span>';
+        var rowStyle = cancelled ? ' style="opacity:0.72;background:#fffbeb;"' : '';
+        var openBtn = cancelled
+          ? ''
+          : '<button type="button" class="btn ol" style="padding:4px 10px;font-size:0.72rem;" data-att-reload="' +
+            attEsc(s.class_id) +
+            '" data-att-date="' +
+            attEsc(d) +
+            '">Open</button>';
+        var cancelBtn = cancelled
+          ? '<button type="button" class="btn ol" style="padding:4px 10px;font-size:0.72rem;" data-att-restore="' +
+            attEsc(String(s.id)) +
+            '">Restore</button>'
+          : '<button type="button" class="btn" style="padding:4px 10px;font-size:0.72rem;background:#f59e0b;color:#fff;" data-att-cancel="' +
+            attEsc(String(s.id)) +
+            '" title="Cancel this class (kept in register, not counted in %)">Cancel class</button>';
+        var delBtn =
+          '<button type="button" class="btn re" style="padding:4px 10px;font-size:0.72rem;" data-att-delete="' +
+          attEsc(String(s.id)) +
+          '" title="Permanently delete if created by mistake">Delete</button>';
         return (
-          '<tr>' +
+          '<tr' +
+          rowStyle +
+          '>' +
           '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;">' +
           attEsc(d) +
           '</td>' +
@@ -8257,22 +8576,29 @@ setInterval(function () {
           '<span class="badge" style="background:#fee2e2;color:#991b1b;">' +
           (st.absent != null ? st.absent : '—') +
           ' A</span></td>' +
-          '<td><button type="button" class="btn ol" style="padding:4px 10px;font-size:0.72rem;" data-att-reload="' +
-          attEsc(s.class_id) +
-          '" data-att-date="' +
-          attEsc(d) +
-          '">Open</button></td>' +
+          '<td>' +
+          statusBadge +
+          '</td>' +
+          '<td style="white-space:nowrap;">' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+          openBtn +
+          cancelBtn +
+          delBtn +
+          '</div></td>' +
           '</tr>'
         );
       })
       .join('');
     host.innerHTML =
       '<div class="card" style="padding:0;overflow:hidden;">' +
-      '<div class="card-hd" style="padding:12px 16px;"><h3 style="margin:0;font-size:0.92rem;">📋 Recent sessions' +
+      '<div class="card-hd" style="padding:12px 16px;">' +
+      '<h3 style="margin:0;font-size:0.92rem;">📋 Attendance register' +
       (branch ? ' · ' + attEsc(branch) : '') +
-      '</h3></div>' +
+      '</h3>' +
+      '<p style="margin:6px 0 0;font-size:0.75rem;opacity:.75;">Cancel class keeps the row (not counted in student %). Delete permanently removes an accidental session.</p>' +
+      '</div>' +
       '<div style="overflow:auto;"><table class="data-table" style="width:100%;font-size:0.82rem;">' +
-      '<thead><tr><th>Date</th><th>Subject</th><th>Year</th><th>Batch</th><th>Summary</th><th></th></tr></thead>' +
+      '<thead><tr><th>Date</th><th>Subject</th><th>Year</th><th>Batch</th><th>Summary</th><th>Status</th><th>Actions</th></tr></thead>' +
       '<tbody>' +
       rows +
       '</tbody></table></div></div>';
@@ -8308,7 +8634,91 @@ setInterval(function () {
         window.startAttendance();
       });
     });
+
+    host.querySelectorAll('[data-att-cancel]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-att-cancel');
+        window.cancelAttendanceSession && window.cancelAttendanceSession(id);
+      });
+    });
+    host.querySelectorAll('[data-att-restore]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-att-restore');
+        window.restoreAttendanceSession && window.restoreAttendanceSession(id);
+      });
+    });
+    host.querySelectorAll('[data-att-delete]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-att-delete');
+        window.deleteAttendanceSession && window.deleteAttendanceSession(id);
+      });
+    });
   }
+
+  window.cancelAttendanceSession = async function cancelAttendanceSession(id) {
+    if (!id) return;
+    if (!confirm('Cancel this class?\n\nThe session stays in the attendance register but will NOT count toward student attendance %.')) return;
+    try {
+      var r = await fetch('/api/attendance', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), action: 'cancel' }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Could not cancel session');
+        return;
+      }
+      alert('Class cancelled. It remains in the register but is excluded from attendance %.');
+      loadAttendanceHistory();
+    } catch (e) {
+      alert('Network error');
+    }
+  };
+
+  window.restoreAttendanceSession = async function restoreAttendanceSession(id) {
+    if (!id) return;
+    if (!confirm('Restore this cancelled class so it counts in attendance % again?')) return;
+    try {
+      var r = await fetch('/api/attendance', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: Number(id), action: 'restore' }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Could not restore session');
+        return;
+      }
+      alert('Class restored.');
+      loadAttendanceHistory();
+    } catch (e) {
+      alert('Network error');
+    }
+  };
+
+  window.deleteAttendanceSession = async function deleteAttendanceSession(id) {
+    if (!id) return;
+    if (!confirm('Permanently DELETE this attendance session?\n\nUse this only if the session was created by mistake. This cannot be undone.')) return;
+    try {
+      var r = await fetch('/api/attendance?id=' + encodeURIComponent(String(id)), {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert(data.error || 'Could not delete session');
+        return;
+      }
+      alert('Session deleted from the register.');
+      loadAttendanceHistory();
+    } catch (e) {
+      alert('Network error');
+    }
+  };
 
   function attYearMatch(studentYear, filterYear) {
     if (!filterYear) return true;

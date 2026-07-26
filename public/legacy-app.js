@@ -2229,14 +2229,20 @@ function demoLogin(role) {
       }
     }
 
-    // Role badge
-    const existingBadge = document.getElementById('_demoRoleBadge');
-    if (existingBadge) existingBadge.remove();
-    const badge = document.createElement('div');
-    badge.id = '_demoRoleBadge';
-    badge.style.cssText = `position:fixed;bottom:18px;right:18px;z-index:9999;background:${roleColors[role]||'#333'};color:white;padding:8px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.78rem;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;`;
-    badge.innerHTML = `<span style="opacity:0.7;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Viewing as</span>&nbsp;${roleLabels[role]||role}&nbsp;<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:0.7rem;margin-left:4px;">✕</button>`;
-    document.body.appendChild(badge);
+    // Role badge — prefer live account role (bridge) over demo selector when logged in
+    const liveUser = window.currentUser;
+    const badgeRole = (liveUser && liveUser.role) ? liveUser.role : role;
+    if (typeof window.updateViewingAsBadge === 'function' && liveUser) {
+      window.updateViewingAsBadge(liveUser);
+    } else {
+      const existingBadge = document.getElementById('_demoRoleBadge');
+      if (existingBadge) existingBadge.remove();
+      const badge = document.createElement('div');
+      badge.id = '_demoRoleBadge';
+      badge.style.cssText = `position:fixed;bottom:18px;right:18px;z-index:9999;background:${roleColors[badgeRole]||roleColors[role]||'#333'};color:white;padding:8px 16px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.78rem;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;align-items:center;gap:8px;`;
+      badge.innerHTML = `<span style="opacity:0.7;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Viewing as</span>&nbsp;${roleLabels[badgeRole]||roleLabels[role]||badgeRole}&nbsp;<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:0.7rem;margin-left:4px;">✕</button>`;
+      document.body.appendChild(badge);
+    }
   }, 350);
 }
 

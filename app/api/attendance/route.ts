@@ -30,6 +30,10 @@ async function ensureAttendanceSchema() {
   await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS class_type TEXT`)
   await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS batch TEXT`)
   await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`)
+  // active | cancelled — cancelled classes stay in register but don't count for %
+  await query(
+    `ALTER TABLE attendance ADD COLUMN IF NOT EXISTS session_status TEXT NOT NULL DEFAULT 'active'`,
+  )
   await query(
     `CREATE INDEX IF NOT EXISTS idx_attendance_branch_date ON attendance (branch, att_date DESC)`,
   )
@@ -88,7 +92,7 @@ function normalizeEntries(raw: unknown): AttEntry[] {
     .filter(Boolean) as AttEntry[]
 }
 
-/** Recompute students.att % from all attendance rows for the given regs. */
+/** Recompute students.att % from all active attendance rows for the given regs. */
 async function recomputeStudentAttendance(regs: string[]) {
   const unique = [...new Set(regs.map((r) => r.toUpperCase()).filter(Boolean))]
   if (!unique.length) return
@@ -96,8 +100,8 @@ async function recomputeStudentAttendance(regs: string[]) {
   for (const reg of unique) {
     const { rows } = await query(
       `SELECT entries FROM attendance
-        WHERE entries @> $1::jsonb
-           OR entries::text ILIKE $2`,
+        WHERE COALESCE(session_status, 'active') = 'active'
+          AND (entries @> $1::jsonb OR entries::text ILIKE $2)`,
       [JSON.stringify([{ reg }]), `%"reg":"${reg}"%`],
     )
     let present = 0
@@ -111,14 +115,30 @@ async function recomputeStudentAttendance(regs: string[]) {
       total += 1
       if (hit.status === "P") present += 1
     }
-    if (total === 0) continue
-    const pct = Math.round((present / total) * 1000) / 10
-    const label = `${pct}%`
+    // Zero sessions → clear % rather than leaving a stale value
+    const label = total === 0 ? null : `${Math.round((present / total) * 1000) / 10}%`
     await query(
       `UPDATE students SET att = $2 WHERE UPPER(reg_no) = $1`,
       [reg, label],
     )
   }
+}
+
+async function assertCanManageSession(
+  user: { role: string; branch?: string | null },
+  row: { branch?: string | null },
+): Promise<string | null> {
+  if (user.role === "admin" || user.role === "principal") return null
+  if (user.role === "hod") {
+    const hodBranch = hodBranchOf(user as { role: string; branch?: string | null })
+    if (!hodBranch) return "HOD account has no branch assigned"
+    if (row.branch && !branchesMatch(row.branch, hodBranch)) {
+      return `You can only manage attendance for your branch (${hodBranch}).`
+    }
+    return null
+  }
+  if (user.role === "faculty") return null
+  return "Not authorized"
 }
 
 export async function GET(req: Request) {
@@ -133,7 +153,8 @@ export async function GET(req: Request) {
     const { rows } = await query(
       `SELECT id, class_id, att_date, branch, subject, year_label, class_type, batch, entries, marked_by, created_at
          FROM attendance
-        WHERE entries::text ILIKE $1
+        WHERE COALESCE(session_status, 'active') = 'active'
+          AND entries::text ILIKE $1
         ORDER BY att_date DESC
         LIMIT 60`,
       [`%"reg":"${reg}"%`],
@@ -207,7 +228,8 @@ export async function GET(req: Request) {
   params.push(limit)
   const sql = `
     SELECT id, class_id, att_date, branch, subject, year_label, class_type, batch,
-           entries, marked_by, created_at, updated_at
+           entries, marked_by, created_at, updated_at,
+           COALESCE(session_status, 'active') AS session_status
       FROM attendance
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY att_date DESC, id DESC
@@ -220,6 +242,7 @@ export async function GET(req: Request) {
     const present = entries.filter((e) => e.status === "P").length
     const absent = entries.filter((e) => e.status === "A").length
     const wait = entries.filter((e) => e.status === "W").length
+    const sessionStatus = String(r.session_status || "active")
     return {
       id: r.id,
       class_id: r.class_id,
@@ -233,6 +256,8 @@ export async function GET(req: Request) {
       marked_by: r.marked_by,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      session_status: sessionStatus,
+      cancelled: sessionStatus === "cancelled",
       stats: { total: entries.length, present, absent, wait },
     }
   })
@@ -319,6 +344,7 @@ export async function POST(req: Request) {
        year_label = EXCLUDED.year_label,
        class_type = EXCLUDED.class_type,
        batch = EXCLUDED.batch,
+       session_status = 'active',
        updated_at = now()
      RETURNING *`,
     [
@@ -386,6 +412,107 @@ export async function POST(req: Request) {
       batch: row.batch,
       entries: normalizeEntries(row.entries),
       marked_by: row.marked_by,
+      session_status: row.session_status || "active",
     },
   })
+}
+
+/**
+ * PATCH — cancel a class (keeps register row) or restore to active.
+ * Body: { id, action: "cancel" | "restore" }
+ */
+export async function PATCH(req: Request) {
+  const user = await requireRole("admin", "principal", "hod", "faculty")
+  if (!user) return unauthorized()
+
+  await ensureAttendanceSchema()
+  const b = await req.json().catch(() => null)
+  if (!b) return badRequest("Invalid JSON body")
+
+  const id = Number(b.id)
+  if (!Number.isFinite(id) || id <= 0) return badRequest("Valid session id is required")
+
+  const action = String(b.action || "").toLowerCase()
+  if (action !== "cancel" && action !== "restore") {
+    return badRequest('action must be "cancel" or "restore"')
+  }
+
+  const { rows: found } = await query(
+    `SELECT id, branch, entries, COALESCE(session_status, 'active') AS session_status
+       FROM attendance WHERE id = $1`,
+    [id],
+  )
+  const row = found[0]
+  if (!row) return badRequest("Attendance session not found")
+
+  const deny = await assertCanManageSession(user, row)
+  if (deny) return badRequest(deny)
+
+  const nextStatus = action === "cancel" ? "cancelled" : "active"
+  const { rows: updated } = await query(
+    `UPDATE attendance
+        SET session_status = $2, updated_at = now()
+      WHERE id = $1
+      RETURNING id, class_id, att_date, branch, subject, year_label, class_type, batch,
+                entries, marked_by, session_status, updated_at`,
+    [id, nextStatus],
+  )
+
+  const entries = normalizeEntries(row.entries)
+  try {
+    await recomputeStudentAttendance(entries.map((e) => e.reg))
+  } catch (e) {
+    console.warn("[attendance] recompute after cancel/restore failed", e)
+  }
+
+  return Response.json({
+    ok: true,
+    action,
+    attendance: {
+      id: updated[0].id,
+      session_status: updated[0].session_status,
+      cancelled: updated[0].session_status === "cancelled",
+      subject: updated[0].subject,
+      att_date: updated[0].att_date,
+    },
+  })
+}
+
+/**
+ * DELETE — permanently remove an accidentally created session.
+ * Query: ?id=123  or body { id }
+ */
+export async function DELETE(req: Request) {
+  const user = await requireRole("admin", "principal", "hod", "faculty")
+  if (!user) return unauthorized()
+
+  await ensureAttendanceSchema()
+  const url = new URL(req.url)
+  let id = Number(url.searchParams.get("id") || 0)
+  if (!id) {
+    const b = await req.json().catch(() => null)
+    id = Number(b?.id || 0)
+  }
+  if (!Number.isFinite(id) || id <= 0) return badRequest("Valid session id is required")
+
+  const { rows: found } = await query(
+    `SELECT id, branch, entries FROM attendance WHERE id = $1`,
+    [id],
+  )
+  const row = found[0]
+  if (!row) return badRequest("Attendance session not found")
+
+  const deny = await assertCanManageSession(user, row)
+  if (deny) return badRequest(deny)
+
+  const entries = normalizeEntries(row.entries)
+  await query(`DELETE FROM attendance WHERE id = $1`, [id])
+
+  try {
+    await recomputeStudentAttendance(entries.map((e) => e.reg))
+  } catch (e) {
+    console.warn("[attendance] recompute after delete failed", e)
+  }
+
+  return Response.json({ ok: true, deleted: id })
 }
