@@ -7897,7 +7897,8 @@ setInterval(function () {
     var root = document.getElementById('facAttendance');
     if (!root) return;
 
-    var user = currentUser || window.currentUser;
+    // NOTE: this IIFE is outside __initGptBridge — never use bare currentUser (strict ReferenceError)
+    var user = window.currentUser;
     var role = user && user.role ? user.role : '';
     var hodBranch = role === 'hod' ? attHodBranch(user) : '';
 
@@ -7984,7 +7985,7 @@ setInterval(function () {
   async function loadAttendanceHistory() {
     var host = ensureAttHistoryHost();
     if (!host) return;
-    var user = currentUser || window.currentUser;
+    var user = window.currentUser;
     if (!user) {
       host.innerHTML = '';
       return;
@@ -8141,8 +8142,27 @@ setInterval(function () {
     }
   }
 
-  window.startAttendance = async function startAttendanceLive() {
-    var user = currentUser || window.currentUser;
+  async function startAttendanceLive() {
+    try {
+      return await startAttendanceLiveInner();
+    } catch (err) {
+      console.error('[attendance] start failed', err);
+      var gridE = document.getElementById('attGrid');
+      if (gridE) {
+        gridE.innerHTML =
+          '<div class="warn-box">Attendance error: ' +
+          attEsc(err && err.message ? err.message : String(err)) +
+          '</div>' +
+          '<div style="margin:12px;"><button type="button" class="btn pr" onclick="window.__gpthStartAttendance&&window.__gpthStartAttendance()">Retry</button></div>';
+      } else {
+        alert('Attendance failed: ' + (err && err.message ? err.message : String(err)));
+      }
+    }
+  }
+
+  async function startAttendanceLiveInner() {
+    // Must use window.currentUser — bare currentUser is not in this IIFE scope
+    var user = window.currentUser;
     if (!user) {
       alert('Please log in to mark attendance.');
       return;
@@ -8542,6 +8562,12 @@ setInterval(function () {
       /* ignore */
     }
     loadAttendanceHistory();
-  };
+  }
+
+  // Expose for onclick + legacy-app proxy (must not rely on bare currentUser)
+  window.__gpthStartAttendance = startAttendanceLive;
+  window.startAttendance = startAttendanceLive;
+  window.setupAttendancePanel = window.setupAttendancePanel;
+  console.log('[bridge] attendance live handlers installed');
 })();
 

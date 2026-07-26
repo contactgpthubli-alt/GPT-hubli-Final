@@ -136,6 +136,10 @@ function toggleBatch() {
 const waitTimers = {};
 function startAttendance() {
   // Live implementation is installed by legacy-bridge.js (HOD branch-scoped roster).
+  // Prefer explicit hook to avoid any global binding ambiguity.
+  if (typeof window.__gpthStartAttendance === 'function') {
+    return window.__gpthStartAttendance();
+  }
   if (window.startAttendance && window.startAttendance !== startAttendance) {
     return window.startAttendance();
   }

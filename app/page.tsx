@@ -24,17 +24,18 @@ export default function Page() {
       <Script id="bridge-config" strategy="afterInteractive">
         {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
+      {/* Cache-bust static legacy scripts so HOD/Admin always get attendance/academic fixes */}
       {/* Shared print preview (mobile WebView + desktop) — load before cert/TC printers */}
-      <Script src="/gpth-print.js" strategy="afterInteractive" />
-      <Script src="/legacy-app.js" strategy="afterInteractive" />
+      <Script src="/gpth-print.js?v=20260726b" strategy="afterInteractive" />
+      <Script src="/legacy-app.js?v=20260726b" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order).
           afterInteractive — not lazyOnload — so auth is wired before the user clicks Login. */}
-      <Script src="/legacy-bridge.js" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260726b" strategy="afterInteractive" />
       {/* Transfer Certificate (ACM Issue TC / Register / Template) */}
-      <Script src="/legacy-tc.js" strategy="afterInteractive" />
+      <Script src="/legacy-tc.js?v=20260726b" strategy="afterInteractive" />
       {/* Study + Studying Certificates (ACM) */}
-      <Script src="/legacy-acm-study.js" strategy="afterInteractive" />
+      <Script src="/legacy-acm-study.js?v=20260726b" strategy="afterInteractive" />
     </>
   )
 }
