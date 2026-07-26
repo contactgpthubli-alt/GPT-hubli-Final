@@ -390,7 +390,43 @@ function isLockedField(label: string) {
   return l.includes("register number") || l === "reg no" || l === "reg_no"
 }
 
+/** Persisted until logout — only asked once per login account. */
 const PORTAL_MODE_KEY = "gpth_portal_mode"
+const PORTAL_MODE_USER_KEY = "gpth_portal_mode_user"
+
+function readSavedPortalMode(userId?: number | null): PortalMode | null {
+  try {
+    const mode = localStorage.getItem(PORTAL_MODE_KEY)
+    const uid = localStorage.getItem(PORTAL_MODE_USER_KEY)
+    if ((mode === "student" || mode === "parent") && (!userId || !uid || String(userId) === uid)) {
+      // If user id stored and matches (or no id yet), restore
+      if (userId && uid && String(userId) !== uid) return null
+      return mode
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function savePortalMode(mode: PortalMode, userId?: number | null) {
+  try {
+    localStorage.setItem(PORTAL_MODE_KEY, mode)
+    if (userId) localStorage.setItem(PORTAL_MODE_USER_KEY, String(userId))
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearPortalMode() {
+  try {
+    localStorage.removeItem(PORTAL_MODE_KEY)
+    localStorage.removeItem(PORTAL_MODE_USER_KEY)
+    sessionStorage.removeItem(PORTAL_MODE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function StudentApp() {
   const [booting, setBooting] = useState(true)
@@ -766,16 +802,13 @@ export default function StudentApp() {
             ...u,
             requires_setup: !!(u.force_password_change || me.data.requires_setup || u.requires_setup),
           })
-          // Restore portal mode from session, or ask again
-          try {
-            const saved = sessionStorage.getItem(PORTAL_MODE_KEY) as PortalMode | null
-            if (saved === "student" || saved === "parent") {
-              setPortalMode(saved)
-              setNeedPortalChoice(false)
-            } else {
-              setNeedPortalChoice(true)
-            }
-          } catch {
+          // Restore Student/Parent choice (saved until logout). Ask only if never chosen.
+          const saved = readSavedPortalMode(u.id)
+          if (saved) {
+            setPortalMode(saved)
+            setNeedPortalChoice(false)
+          } else {
+            setPortalMode(null)
             setNeedPortalChoice(true)
           }
         }
@@ -833,14 +866,16 @@ export default function StudentApp() {
       ...u,
       requires_setup: !!(u.force_password_change || res.data.requires_setup || u.requires_setup),
     })
-    // Always ask Student vs Parent after password login
-    try {
-      sessionStorage.removeItem(PORTAL_MODE_KEY)
-    } catch {
-      /* ignore */
+    // First login only: ask Student vs Parent if not already saved for this account
+    const saved = readSavedPortalMode(u.id)
+    if (saved) {
+      setPortalMode(saved)
+      setNeedPortalChoice(false)
+      flash(saved === "parent" ? "Parent view (saved preference)" : "Student view (saved preference)")
+    } else {
+      setPortalMode(null)
+      setNeedPortalChoice(true)
     }
-    setPortalMode(null)
-    setNeedPortalChoice(true)
     setTab("home")
   }
 
@@ -849,17 +884,13 @@ export default function StudentApp() {
     unlockNotifyAudio()
     setPortalMode(mode)
     setNeedPortalChoice(false)
-    try {
-      sessionStorage.setItem(PORTAL_MODE_KEY, mode)
-    } catch {
-      /* ignore */
-    }
+    savePortalMode(mode, user?.id)
     flash(
       mode === "parent"
         ? isNativeAndroid()
-          ? "Parent view — allow notifications when asked"
-          : "Parent view (read-only)"
-        : "Student view",
+          ? "Parent view saved. Allow notifications when asked. Logout to switch role later."
+          : "Parent view saved. Logout and login again to switch to Student."
+        : "Student view saved. Logout and login again to switch to Parent.",
     )
     // Request system notification permission (Android 13+) + default ringtone channel
     if (mode === "parent") {
@@ -1061,13 +1092,18 @@ export default function StudentApp() {
 
   async function doLogout() {
     await api("/api/auth/logout", { method: "POST", body: "{}" })
+    // Clear portal mode so next login can choose Student or Parent again
+    clearPortalMode()
     setUser(null)
+    setPortalMode(null)
+    setNeedPortalChoice(false)
     setStudent(null)
     setResults([])
     setForms([])
     setCerts([])
     setAcmCerts([])
     setGrievances([])
+    setAppNotifs([])
     setProfileEditing(false)
     setActiveForm(null)
     setTab("home")
@@ -1656,7 +1692,8 @@ export default function StudentApp() {
         <div className="stu-auth-card">
           <h2>Who is using the app?</h2>
           <p className="sub">
-            Same login works for both. Parents get a read-only view and absent alerts when staff marks attendance.
+            Choose once for this account. Same login works for both. Parents get a read-only view and absent alerts.
+            To switch later, <strong>log out and log in again</strong>.
           </p>
           <div className="stu-actions" style={{ flexDirection: "column", gap: 12, marginTop: 16 }}>
             <button type="button" className="stu-btn stu-btn-primary" onClick={() => choosePortalMode("student")}>
@@ -1670,11 +1707,8 @@ export default function StudentApp() {
             <button
               type="button"
               className="stu-link-btn"
-              onClick={async () => {
-                await api("/api/auth/logout", { method: "POST", body: "{}" })
-                setUser(null)
-                setNeedPortalChoice(false)
-                setPortalMode(null)
+              onClick={() => {
+                void doLogout()
               }}
             >
               Sign out
@@ -1779,19 +1813,8 @@ export default function StudentApp() {
             <strong>👨‍👩‍👧 Parent / Guardian view (read-only)</strong>
             <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>
               Focus: your ward&apos;s <strong>attendance</strong> and absent alerts. Profile edits and form submissions
-              are disabled.
+              are disabled. To open as <strong>Student</strong>, log out and log in again, then choose Student.
             </p>
-            <button
-              type="button"
-              className="stu-btn stu-btn-ghost stu-btn-sm"
-              style={{ marginTop: 8 }}
-              onClick={() => {
-                setNeedPortalChoice(true)
-                setPortalMode(null)
-              }}
-            >
-              Switch to Student / Parent…
-            </button>
           </div>
         ) : null}
 
