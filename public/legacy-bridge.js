@@ -10414,27 +10414,47 @@ setInterval(function () {
 
   window.renderLiveFormManager = async function renderLiveFormManager() {
     window.ensureFormBuilderMeta();
-    // Rebuild entire list so demo View/Share rows never stick
+    // Prefer full #adForms rewrite so old static shell can never stick
+    var adForms = document.getElementById('adForms');
     var listView = document.getElementById('formListView');
-    if (listView) {
-      listView.innerHTML =
+    if (adForms) {
+      adForms.innerHTML =
+        '<div id="gpthLiveFormsStamp" data-live-forms="1" style="display:none;"></div>' +
+        '<div class="info-box">📝 <strong>Form Builder (live)</strong> — Create surveys, set <strong>who verifies</strong> (ACM / HOD / …), publish to students or staff. Delete removes all submissions.</div>' +
+        '<div id="formListView">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">' +
         '<div><h3 style="font-family:Libre Baskerville,serif;font-size:0.95rem;color:var(--navy);margin:0;">My Forms</h3>' +
-        '<div style="font-size:0.75rem;opacity:.75;margin-top:4px;">Set <strong>who verifies</strong> before publish. Delete erases form + all student data.</div></div>' +
+        '<div style="font-size:0.75rem;opacity:.75;margin-top:4px;">Verifier is required before publish. File fields support max size (MB).</div></div>' +
         '<button type="button" class="btn pr" id="liveCreateFormBtn">+ Create New Form</button></div>' +
-        '<div class="card"><div style="overflow:auto;"><table style="width:100%;"><thead><tr>' +
-        '<th>Form</th><th>Audience / Verifier</th><th>Status</th><th>Actions</th></tr></thead>' +
-        '<tbody id="formListBody"><tr><td colspan="4" style="padding:20px;opacity:.7;">Loading…</td></tr></tbody></table></div></div>' +
+        '<div class="card"><div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>' +
+        '<th style="text-align:left;padding:10px;">Form</th>' +
+        '<th style="text-align:left;padding:10px;">Audience / Verifier</th>' +
+        '<th style="text-align:left;padding:10px;">Status</th>' +
+        '<th style="text-align:left;padding:10px;">Actions</th></tr></thead>' +
+        '<tbody id="formListBody"><tr><td colspan="4" style="padding:20px;opacity:.7;">Loading forms from server…</td></tr></tbody></table></div></div>' +
+        '<div id="liveFormResponsesPanel" style="display:none;margin-top:16px;"></div></div>';
+      listView = document.getElementById('formListView');
+    } else if (listView) {
+      listView.innerHTML =
+        '<div id="gpthLiveFormsStamp" data-live-forms="1" style="display:none;"></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">' +
+        '<div><h3 style="margin:0;color:var(--navy);">My Forms (live)</h3></div>' +
+        '<button type="button" class="btn pr" id="liveCreateFormBtn">+ Create New Form</button></div>' +
+        '<div class="card"><table style="width:100%;"><thead><tr><th>Form</th><th>Audience / Verifier</th><th>Status</th><th>Actions</th></tr></thead>' +
+        '<tbody id="formListBody"><tr><td colspan="4">Loading…</td></tr></tbody></table></div>' +
         '<div id="liveFormResponsesPanel" style="display:none;margin-top:16px;"></div>';
-      var createBtn = document.getElementById('liveCreateFormBtn');
-      if (createBtn) {
-        createBtn.onclick = function () {
-          window.openLiveFormEditor(null);
-        };
-      }
+    }
+    var createBtn = document.getElementById('liveCreateFormBtn');
+    if (createBtn) {
+      createBtn.onclick = function () {
+        window.openLiveFormEditor(null);
+      };
     }
     var tbody = document.getElementById('formListBody');
-    if (!tbody) return;
+    if (!tbody) {
+      console.warn('[forms] formListBody missing — cannot render manager');
+      return;
+    }
     try {
       var res = await fetch('/api/forms?_ts=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' });
       var data = await res.json().catch(function () { return null; });
@@ -11624,6 +11644,88 @@ setInterval(function () {
     };
   }
 
-  console.log('[bridge] live forms handlers installed');
+  /**
+   * Bulletproof activation: do NOT rely only on showSec hook (can be overwritten
+   * or fail if __initGptBridge errors). Click + visibility + periodic check.
+   */
+  function activateLiveFormsIfVisible() {
+    try {
+      var ad = document.getElementById('adForms');
+      var fac = document.getElementById('facForms');
+      var visible =
+        (ad && ad.offsetParent !== null && ad.style.display !== 'none') ||
+        (fac && fac.offsetParent !== null && fac.style.display !== 'none');
+      // Also check computed style when display:block but parent hidden
+      if (ad) {
+        var cs = window.getComputedStyle(ad);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden') visible = true;
+      }
+      if (!visible) return;
+      // Detect old static empty shell still present (no live UI stamp)
+      var stamped = document.getElementById('gpthLiveFormsStamp');
+      if (!stamped && typeof window.renderLiveFormManager === 'function') {
+        window.renderLiveFormManager();
+      }
+    } catch (e) {
+      console.warn('[forms] activate', e);
+    }
+  }
+
+  // Capture clicks on Form Builder sidebar items
+  document.addEventListener(
+    'click',
+    function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      var sl = t.closest('.sl, button, a');
+      if (!sl) return;
+      var oc = (sl.getAttribute('onclick') || '') + ' ' + (sl.textContent || '');
+      if (
+        /adForms|facForms|Form Builder|Form Manager/i.test(oc) ||
+        (sl.textContent || '').trim() === 'Form Builder'
+      ) {
+        setTimeout(function () {
+          if (typeof window.renderLiveFormManager === 'function') {
+            window.renderLiveFormManager();
+          }
+        }, 80);
+        setTimeout(activateLiveFormsIfVisible, 250);
+      }
+    },
+    true,
+  );
+
+  // Re-wrap showSec after a delay (survives other wrappers)
+  function rehookShowSecForForms() {
+    try {
+      var prev = window.showSec;
+      if (typeof prev !== 'function') return;
+      if (prev.__gpthFormsHooked) return;
+      var wrapped = function (secId, linkEl) {
+        var r = prev.apply(this, arguments);
+        if (secId === 'adForms' || secId === 'facForms') {
+          setTimeout(function () {
+            if (typeof window.renderLiveFormManager === 'function') window.renderLiveFormManager();
+          }, 50);
+        }
+        if (secId === 'stuForms' && typeof window.renderStudentFormsPanel === 'function') {
+          setTimeout(function () {
+            window.renderStudentFormsPanel();
+          }, 50);
+        }
+        return r;
+      };
+      wrapped.__gpthFormsHooked = true;
+      window.showSec = wrapped;
+    } catch (e) {
+      console.warn('[forms] rehook showSec', e);
+    }
+  }
+  rehookShowSecForForms();
+  setTimeout(rehookShowSecForForms, 500);
+  setTimeout(rehookShowSecForForms, 2000);
+  setInterval(activateLiveFormsIfVisible, 2000);
+
+  console.log('[bridge] live forms handlers installed (v=forms-fix)');
 })();
 

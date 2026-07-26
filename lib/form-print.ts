@@ -2,7 +2,7 @@
  * A4 PDF for verified form responses.
  */
 
-import { fieldLabel, parseFormFields } from "@/lib/forms"
+import { fieldLabel, parseFormFields } from "@/lib/forms-shared"
 import { deliverPdfBlob } from "@/lib/download-pdf"
 import { blobToBase64Raw, isNativeAndroid, saveAndSharePdfNative } from "@/lib/native-android"
 

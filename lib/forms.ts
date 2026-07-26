@@ -1,10 +1,19 @@
 /**
- * College survey / forms — schema helpers + field parsing.
- * Workflow: Admin builds → audience fills → verifier approves → PDF.
+ * College survey / forms — server schema + audience/verify helpers.
+ * Pure field helpers live in forms-shared.ts (safe for client bundles).
  */
 
 import { query } from "@/lib/db"
 import { STAFF_ROLES } from "@/lib/roles"
+import type { FormField } from "@/lib/forms-shared"
+
+export type { FormField }
+export {
+  parseFormFields,
+  fieldLabel,
+  fieldMaxMb,
+  approxBase64Bytes,
+} from "@/lib/forms-shared"
 
 export const FORM_BUILDERS = ["admin", "principal"] as const
 export const FORM_VERIFIER_ROLES = [
@@ -21,20 +30,6 @@ export const FORM_VERIFIER_ROLES = [
 export type FormAudience = "students" | "staff" | "both"
 export type FormStatus = "draft" | "open" | "closed"
 export type ResponseStatus = "pending" | "verified" | "rejected"
-
-export type FormField = {
-  id?: string
-  type?: string
-  question?: string
-  label?: string
-  required?: boolean
-  options?: string[]
-  desc?: string
-  /** Max upload size in MB for type=file (admin setting). Default 2. */
-  max_mb?: number
-  /** Accept string for file input e.g. .pdf,.jpg,image/* */
-  accept?: string
-}
 
 let schemaReady = false
 
@@ -81,42 +76,11 @@ export async function ensureFormsSchema(): Promise<void> {
   await query(
     `CREATE INDEX IF NOT EXISTS idx_form_responses_status ON form_responses(status, form_id)`,
   )
-  // Owner/admin can edit a student's answers after submit
   await query(`ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS edited_by BIGINT`)
   await query(`ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS edited_by_name TEXT`)
   await query(`ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ`)
   await query(`ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS edit_note TEXT`)
   schemaReady = true
-}
-
-/** Default / clamp max file size MB for upload fields (serverless-friendly). */
-export function fieldMaxMb(f: FormField | null | undefined): number {
-  const n = Number(f?.max_mb)
-  if (!Number.isFinite(n) || n <= 0) return 2
-  return Math.min(15, Math.max(0.5, n))
-}
-
-export function approxBase64Bytes(b64: string): number {
-  const s = String(b64 || "").replace(/\s/g, "")
-  const pure = s.includes(",") ? s.split(",").pop() || "" : s
-  return Math.floor((pure.length * 3) / 4)
-}
-
-export function parseFormFields(raw: unknown): FormField[] {
-  if (Array.isArray(raw)) return raw as FormField[]
-  if (typeof raw === "string") {
-    try {
-      const j = JSON.parse(raw)
-      return Array.isArray(j) ? (j as FormField[]) : []
-    } catch {
-      return []
-    }
-  }
-  return []
-}
-
-export function fieldLabel(f: FormField): string {
-  return String(f.question || f.label || f.id || "Question").trim() || "Question"
 }
 
 export function normalizeAudience(v: unknown): FormAudience {
