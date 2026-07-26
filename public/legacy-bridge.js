@@ -1285,6 +1285,10 @@ function __initGptBridge() {
         try { ensureExamAdminDesk(); } catch (e) { /* ignore */ }
         window.renderExamModule();
       }
+      // Attendance Management (HOD / faculty) — live roster + branch lock
+      if (secId === 'facAttendance' && typeof window.setupAttendancePanel === 'function') {
+        window.setupAttendancePanel();
+      }
       // Student Certificates — prefill reg + load live My Requests status
       if (secId === 'stuCerts' && currentUser && currentUser.role === 'student') {
         if (typeof window.prefillStudentCertForms === 'function') window.prefillStudentCertForms();
@@ -2024,6 +2028,11 @@ function __initGptBridge() {
     if (user && user.role === 'exam') {
       applyExamAdminScope(user);
       if (typeof window.renderExamModule === 'function') window.renderExamModule();
+    }
+    // Attendance panel: lock HOD branch + prepare controls after login
+    if (user && (user.role === 'hod' || user.role === 'faculty' || user.role === 'admin' || user.role === 'principal') &&
+        typeof window.setupAttendancePanel === 'function') {
+      try { window.setupAttendancePanel(); } catch (e) { console.warn('[bridge] attendance setup', e); }
     }
     // Live notification panel + badge
     if (typeof window.renderLiveNotifications === 'function') {
@@ -7160,5 +7169,723 @@ setInterval(function () {
   }
 
   window.ensureStudentDataMenu = ensureStudentDataMenu;
+
+  /* ============================================================
+   * ATTENDANCE MANAGEMENT — live, HOD branch-scoped
+   * Replaces prototype demoAtt roster + fake submit.
+   * ============================================================ */
+  var OFFICIAL_ATT_BRANCHES = [
+    'Civil Engineering',
+    'Computer Science and Engineering',
+    'Electronics and Communication Engineering',
+    'Mechanical Engineering',
+  ];
+
+  function attEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function attNormalizeBranch(input) {
+    if (!input) return '';
+    var raw = String(input).replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    var lower = raw.toLowerCase();
+    if (OFFICIAL_ATT_BRANCHES.indexOf(raw) >= 0) return raw;
+    if (lower.indexOf('civil') >= 0) return 'Civil Engineering';
+    if (lower.indexOf('electron') >= 0 || lower.indexOf('ece') >= 0 || lower.indexOf('e&c') >= 0) {
+      return 'Electronics and Communication Engineering';
+    }
+    if (lower.indexOf('computer') >= 0 || lower === 'cse' || lower.indexOf('cs and') >= 0) {
+      return 'Computer Science and Engineering';
+    }
+    if (lower.indexOf('mech') >= 0) return 'Mechanical Engineering';
+    return raw;
+  }
+
+  function attHodBranch(user) {
+    if (!user) return '';
+    var b = attNormalizeBranch(user.branch);
+    if (b && OFFICIAL_ATT_BRANCHES.indexOf(b) >= 0) return b;
+    var key = String(user.reg_no || user.display_name || user.email || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+    if (key.indexOf('HODCE') >= 0 || key.indexOf('HODCIVIL') >= 0) return 'Civil Engineering';
+    if (key.indexOf('HODCS') >= 0 || key.indexOf('HODCSE') >= 0) return 'Computer Science and Engineering';
+    if (key.indexOf('HODEC') >= 0 || key.indexOf('HODECE') >= 0) return 'Electronics and Communication Engineering';
+    if (key.indexOf('HODME') >= 0 || key.indexOf('HODMECH') >= 0) return 'Mechanical Engineering';
+    return b || '';
+  }
+
+  function attBranchesMatch(a, b) {
+    var na = attNormalizeBranch(a);
+    var nb = attNormalizeBranch(b);
+    if (!na || !nb) return false;
+    return na.toLowerCase() === nb.toLowerCase();
+  }
+
+  function ensureAttYearSelect() {
+    var dateFg = document.getElementById('attDate');
+    if (!dateFg) return null;
+    var existing = document.getElementById('attYear');
+    if (existing) return existing;
+    var row = dateFg.closest('.form-row');
+    if (!row) return null;
+    var fg = document.createElement('div');
+    fg.className = 'fg';
+    fg.innerHTML =
+      '<label>Year / Class</label>' +
+      '<select id="attYear">' +
+      '<option value="">All years</option>' +
+      '<option value="I">I Year</option>' +
+      '<option value="II">II Year</option>' +
+      '<option value="III">III Year</option>' +
+      '</select>';
+    // Insert after date field's parent .fg
+    var dateParent = dateFg.closest('.fg');
+    if (dateParent && dateParent.parentNode === row) {
+      if (dateParent.nextSibling) row.insertBefore(fg, dateParent.nextSibling);
+      else row.appendChild(fg);
+    } else {
+      row.appendChild(fg);
+    }
+    return document.getElementById('attYear');
+  }
+
+  function ensureAttHistoryHost() {
+    var step1 = document.getElementById('attStep1');
+    if (!step1) return null;
+    var host = document.getElementById('attHistoryHost');
+    if (host) return host;
+    host = document.createElement('div');
+    host.id = 'attHistoryHost';
+    host.style.marginTop = '14px';
+    step1.appendChild(host);
+    return host;
+  }
+
+  function ensureAttSubjectInput() {
+    var sel = document.getElementById('attSubject');
+    if (!sel) return null;
+    // Convert select → text input so Civil/ME/EC can enter real subjects
+    if (sel.tagName === 'INPUT') return sel;
+    var fg = sel.parentNode;
+    var val = sel.value || '';
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.id = 'attSubject';
+    inp.placeholder = 'e.g. Strength of Materials / Data Structures';
+    inp.value = val;
+    inp.setAttribute('list', 'attSubjectSuggestions');
+    var dl = document.getElementById('attSubjectSuggestions');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'attSubjectSuggestions';
+      dl.innerHTML =
+        '<option value="Engineering Mathematics"></option>' +
+        '<option value="Communication Skills"></option>' +
+        '<option value="Applied Science"></option>' +
+        '<option value="Computer Fundamentals"></option>' +
+        '<option value="Strength of Materials"></option>' +
+        '<option value="Surveying"></option>' +
+        '<option value="Data Structures"></option>' +
+        '<option value="Database Systems"></option>' +
+        '<option value="Computer Networks"></option>' +
+        '<option value="Digital Electronics"></option>' +
+        '<option value="Microcontrollers"></option>' +
+        '<option value="Thermodynamics"></option>' +
+        '<option value="Manufacturing Technology"></option>' +
+        '<option value="Workshop Practice"></option>';
+      (fg || document.body).appendChild(dl);
+    }
+    if (fg) fg.replaceChild(inp, sel);
+    else sel.parentNode.replaceChild(inp, sel);
+    return inp;
+  }
+
+  function ensureAttBatchSelectId() {
+    var batchField = document.getElementById('batchField');
+    if (!batchField) return null;
+    var sel = batchField.querySelector('select');
+    if (sel && !sel.id) sel.id = 'attBatch';
+    return document.getElementById('attBatch');
+  }
+
+  function attTodayISO() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  window.setupAttendancePanel = function setupAttendancePanel() {
+    var root = document.getElementById('facAttendance');
+    if (!root) return;
+
+    var user = currentUser || window.currentUser;
+    var role = user && user.role ? user.role : '';
+    var hodBranch = role === 'hod' ? attHodBranch(user) : '';
+
+    // Banner text
+    var warn = root.querySelector('.warn-box');
+    if (warn && !warn.getAttribute('data-att-live')) {
+      warn.setAttribute('data-att-live', '1');
+    }
+    if (warn) {
+      if (role === 'hod') {
+        warn.innerHTML =
+          '🎓 <strong>HOD Attendance</strong> — You can mark and review attendance only for your branch' +
+          (hodBranch ? ' (<strong>' + attEsc(hodBranch) + '</strong>)' : '') +
+          '. Roster is loaded from live student accounts.';
+      } else {
+        warn.innerHTML =
+          '🗓️ <strong>Attendance Management</strong> — Select branch, subject and date, then mark Present / Absent / Wait. ' +
+          'Saved sessions update student attendance %. HOD is notified of department sessions.';
+      }
+    }
+
+    // Branch select — official names; HOD locked to own branch only
+    var branchSel = document.getElementById('attBranch');
+    if (branchSel) {
+      if (role === 'hod') {
+        if (!hodBranch) {
+          branchSel.innerHTML =
+            '<option value="">No branch on your HOD account — contact Root Admin</option>';
+          branchSel.disabled = true;
+        } else {
+          branchSel.innerHTML =
+            '<option value="' + attEsc(hodBranch) + '" selected>' + attEsc(hodBranch) + '</option>';
+          branchSel.disabled = true;
+          // Keep value even if form reset
+          branchSel.value = hodBranch;
+        }
+      } else {
+        var prev = branchSel.value || '';
+        var html = '<option value="">Select Branch</option>';
+        OFFICIAL_ATT_BRANCHES.forEach(function (b) {
+          html +=
+            '<option value="' +
+            attEsc(b) +
+            '"' +
+            (prev === b ? ' selected' : '') +
+            '>' +
+            attEsc(b) +
+            '</option>';
+        });
+        branchSel.innerHTML = html;
+        branchSel.disabled = false;
+      }
+    }
+
+    ensureAttSubjectInput();
+    ensureAttYearSelect();
+    ensureAttBatchSelectId();
+
+    var dateEl = document.getElementById('attDate');
+    if (dateEl && !dateEl.value) dateEl.value = attTodayISO();
+    var timeEl = document.getElementById('attTime');
+    if (timeEl && !timeEl.value) {
+      var now = new Date();
+      timeEl.value =
+        String(now.getHours()).padStart(2, '0') +
+        ':' +
+        String(now.getMinutes()).padStart(2, '0');
+    }
+
+    // Hide prototype-only end semester button spam or rewire lightly
+    root.querySelectorAll('button').forEach(function (btn) {
+      var t = (btn.textContent || '').trim();
+      if (t.indexOf('End Semester') >= 0) {
+        btn.onclick = function () {
+          alert('Semester archive will lock this subject roster. Contact Exam Cell / Admin if you need a formal close.');
+        };
+      }
+    });
+
+    // Load recent sessions for this branch
+    loadAttendanceHistory();
+  };
+
+  async function loadAttendanceHistory() {
+    var host = ensureAttHistoryHost();
+    if (!host) return;
+    var user = currentUser || window.currentUser;
+    if (!user) {
+      host.innerHTML = '';
+      return;
+    }
+    var branchSel = document.getElementById('attBranch');
+    var branch =
+      (branchSel && branchSel.value) ||
+      (user.role === 'hod' ? attHodBranch(user) : '') ||
+      '';
+    host.innerHTML =
+      '<div class="card" style="padding:14px 16px;"><div style="font-size:0.85rem;color:var(--text-muted);">Loading recent sessions…</div></div>';
+    var q = '/api/attendance?limit=12&_ts=' + Date.now();
+    if (branch) q += '&branch=' + encodeURIComponent(branch);
+    var data = await apiReqQuiet(q);
+    if (!data) {
+      host.innerHTML =
+        '<div class="info-box">Could not load attendance history. Check your login session.</div>';
+      return;
+    }
+    var sessions = data.sessions || data.attendance || [];
+    if (!sessions.length) {
+      host.innerHTML =
+        '<div class="card" style="padding:16px;">' +
+        '<h3 style="font-family:\'Libre Baskerville\',serif;font-size:0.92rem;color:var(--navy);margin:0 0 8px;">📋 Recent sessions</h3>' +
+        '<div class="info-box" style="margin:0;">No attendance marked yet' +
+        (branch ? ' for <strong>' + attEsc(branch) + '</strong>' : '') +
+        '. Start a session above.</div></div>';
+      return;
+    }
+    var rows = sessions
+      .map(function (s) {
+        var st = s.stats || {};
+        var d = s.att_date
+          ? String(s.att_date).slice(0, 10)
+          : '—';
+        return (
+          '<tr>' +
+          '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;">' +
+          attEsc(d) +
+          '</td>' +
+          '<td>' +
+          attEsc(s.subject || '—') +
+          '</td>' +
+          '<td>' +
+          attEsc(s.year || 'All') +
+          '</td>' +
+          '<td>' +
+          attEsc(s.batch || '—') +
+          '</td>' +
+          '<td><span class="badge active">' +
+          (st.present != null ? st.present : '—') +
+          ' P</span> ' +
+          '<span class="badge" style="background:#fee2e2;color:#991b1b;">' +
+          (st.absent != null ? st.absent : '—') +
+          ' A</span></td>' +
+          '<td><button type="button" class="btn ol" style="padding:4px 10px;font-size:0.72rem;" data-att-reload="' +
+          attEsc(s.class_id) +
+          '" data-att-date="' +
+          attEsc(d) +
+          '">Open</button></td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+    host.innerHTML =
+      '<div class="card" style="padding:0;overflow:hidden;">' +
+      '<div class="card-hd" style="padding:12px 16px;"><h3 style="margin:0;font-size:0.92rem;">📋 Recent sessions' +
+      (branch ? ' · ' + attEsc(branch) : '') +
+      '</h3></div>' +
+      '<div style="overflow:auto;"><table class="data-table" style="width:100%;font-size:0.82rem;">' +
+      '<thead><tr><th>Date</th><th>Subject</th><th>Year</th><th>Batch</th><th>Summary</th><th></th></tr></thead>' +
+      '<tbody>' +
+      rows +
+      '</tbody></table></div></div>';
+
+    host.querySelectorAll('[data-att-reload]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var classId = btn.getAttribute('data-att-reload');
+        var date = btn.getAttribute('data-att-date');
+        // Prefill form from session row if possible
+        var match = sessions.find(function (x) {
+          return String(x.class_id) === String(classId) && String(x.att_date).slice(0, 10) === String(date).slice(0, 10);
+        });
+        if (match) {
+          var subjEl = document.getElementById('attSubject');
+          if (subjEl) subjEl.value = match.subject || '';
+          var yearEl = document.getElementById('attYear');
+          if (yearEl && match.year) yearEl.value = match.year;
+          var dateEl2 = document.getElementById('attDate');
+          if (dateEl2) dateEl2.value = String(match.att_date).slice(0, 10);
+          var br = document.getElementById('attBranch');
+          if (br && match.branch && !br.disabled) br.value = match.branch;
+          if (match.batch) {
+            var ct = document.getElementById('attClassType');
+            if (ct) {
+              ct.value = 'Batch-wise Class';
+              if (typeof window.toggleBatch === 'function') window.toggleBatch();
+            }
+            var bat = document.getElementById('attBatch');
+            if (bat) bat.value = match.batch;
+          }
+          window._attPrefillEntries = match.entries || [];
+        }
+        window.startAttendance();
+      });
+    });
+  }
+
+  function attYearMatch(studentYear, filterYear) {
+    if (!filterYear) return true;
+    var y = String(studentYear || '')
+      .toUpperCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    var f = String(filterYear).toUpperCase();
+    if (!y || y === '—' || y === '-') return true; // include unknown years when filtering
+    // Normalize roman / digit / word forms — check longest first so III ≠ I
+    function yearBucket(v) {
+      var s = String(v || '').toUpperCase();
+      if (/\bIII\b/.test(s) || s === 'III' || s.indexOf('3') >= 0 || s.indexOf('THIRD') >= 0) return 'III';
+      if (/\bII\b/.test(s) || s === 'II' || s.indexOf('2') >= 0 || s.indexOf('SECOND') >= 0) return 'II';
+      if (/\bI\b/.test(s) || s === 'I' || s.indexOf('1') >= 0 || s.indexOf('FIRST') >= 0) return 'I';
+      if (s.indexOf('III') >= 0) return 'III';
+      if (s.indexOf('II') >= 0) return 'II';
+      if (s.indexOf('I') >= 0) return 'I';
+      return '';
+    }
+    var sy = yearBucket(y);
+    var fy = yearBucket(f);
+    if (!sy || !fy) return sy === fy;
+    return sy === fy;
+  }
+
+  window.startAttendance = async function startAttendanceLive() {
+    var user = currentUser || window.currentUser;
+    if (!user) {
+      alert('Please log in to mark attendance.');
+      return;
+    }
+
+    window.setupAttendancePanel();
+
+    var branchSel = document.getElementById('attBranch');
+    var subjEl = document.getElementById('attSubject');
+    var yearEl = document.getElementById('attYear');
+    var dateEl = document.getElementById('attDate');
+    var classTypeEl = document.getElementById('attClassType');
+    var batchEl = document.getElementById('attBatch') || document.querySelector('#batchField select');
+
+    var branch = branchSel ? String(branchSel.value || '').trim() : '';
+    if (user.role === 'hod') {
+      branch = attHodBranch(user) || branch;
+    }
+    branch = attNormalizeBranch(branch);
+    var subj = subjEl ? String(subjEl.value || '').trim() : '';
+    var year = yearEl ? String(yearEl.value || '').trim() : '';
+    var attDate = dateEl && dateEl.value ? dateEl.value : attTodayISO();
+    var classType = classTypeEl ? classTypeEl.value : 'Regular Class';
+    var batch =
+      classType && String(classType).toLowerCase().indexOf('batch') >= 0 && batchEl
+        ? String(batchEl.value || '').trim()
+        : '';
+
+    if (!branch) {
+      alert(
+        user.role === 'hod'
+          ? 'Your HOD account has no branch assigned. Contact Root Admin.'
+          : 'Please select Branch first.',
+      );
+      return;
+    }
+    if (!subj) {
+      alert('Please enter Subject first.');
+      return;
+    }
+
+    var grid = document.getElementById('attGrid');
+    var step1 = document.getElementById('attStep1');
+    var markUI = document.getElementById('attMarkUI');
+    if (grid) {
+      grid.innerHTML =
+        '<div style="padding:24px;text-align:center;color:var(--text-muted);">Loading students for ' +
+        attEsc(branch) +
+        '…</div>';
+    }
+    if (step1) step1.style.display = 'none';
+    if (markUI) markUI.style.display = 'block';
+
+    // Live students (API already HOD-scoped)
+    var data = await apiReqQuiet('/api/students?_ts=' + Date.now());
+    if (!data || !Array.isArray(data.students)) {
+      if (grid) {
+        grid.innerHTML =
+          '<div class="warn-box">Could not load student roster. Session may have expired — please log in again.</div>';
+      }
+      return;
+    }
+
+    var roster = data.students
+      .filter(function (s) {
+        var dept = attNormalizeBranch(s.dept || s.user_branch || '');
+        if (!attBranchesMatch(dept, branch)) return false;
+        if (!attYearMatch(s.year, year)) return false;
+        var reg = String(s.reg_no || '').trim();
+        if (!reg) return false;
+        return true;
+      })
+      .map(function (s) {
+        return {
+          reg: String(s.reg_no).trim().toUpperCase(),
+          name: s.name || s.display_name || '—',
+          year: s.year || '',
+          dept: attNormalizeBranch(s.dept) || branch,
+        };
+      })
+      .sort(function (a, b) {
+        return a.reg.localeCompare(b.reg);
+      });
+
+    // Merge with any existing session for same class/date
+    var existingEntries = window._attPrefillEntries || null;
+    window._attPrefillEntries = null;
+    if (!existingEntries) {
+      try {
+        var hist = await apiReqQuiet(
+          '/api/attendance?branch=' +
+            encodeURIComponent(branch) +
+            '&date=' +
+            encodeURIComponent(attDate) +
+            '&limit=30&_ts=' +
+            Date.now(),
+        );
+        var sessions = (hist && (hist.sessions || hist.attendance)) || [];
+        var subjLower = subj.toLowerCase();
+        var hit = sessions.find(function (x) {
+          return (
+            String(x.subject || '').toLowerCase() === subjLower &&
+            String(x.year || '') === String(year || '') &&
+            String(x.batch || '') === String(batch || '')
+          );
+        });
+        if (hit && Array.isArray(hit.entries)) existingEntries = hit.entries;
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    // Populate shared demoAtt so legacy markAtt still works
+    try {
+      if (typeof demoAtt !== 'undefined') {
+        demoAtt.length = 0;
+        roster.forEach(function (s) {
+          demoAtt.push({ reg: s.reg, name: s.name });
+        });
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    window._attRoster = roster;
+    window._attSessionMeta = {
+      branch: branch,
+      subject: subj,
+      year: year || null,
+      date: attDate,
+      class_type: classType,
+      batch: batch || null,
+    };
+
+    // Clear attState
+    try {
+      Object.keys(attState).forEach(function (k) {
+        delete attState[k];
+      });
+    } catch (e) {
+      /* ignore */
+    }
+
+    var label = document.getElementById('attSessionLabel');
+    if (label) {
+      label.textContent =
+        'Attendance — ' +
+        subj +
+        ' · ' +
+        branch +
+        (year ? ' · ' + year + ' Yr' : '') +
+        (batch ? ' · ' + batch : '') +
+        ' · ' +
+        attDate;
+    }
+
+    if (!roster.length) {
+      if (grid) {
+        grid.innerHTML =
+          '<div class="warn-box" style="margin:16px;">No students found for <strong>' +
+          attEsc(branch) +
+          '</strong>' +
+          (year ? ' · Year ' + attEsc(year) : '') +
+          '. Approve student accounts for this branch or clear the year filter.</div>';
+      }
+      return;
+    }
+
+    var prefillMap = {};
+    if (Array.isArray(existingEntries)) {
+      existingEntries.forEach(function (e) {
+        var r = String(e.reg || '').toUpperCase();
+        if (r) prefillMap[r] = e.status || (e.present ? 'P' : 'A');
+      });
+    }
+
+    if (!grid) return;
+    grid.innerHTML = '';
+    roster.forEach(function (s) {
+      attState[s.reg] = prefillMap[s.reg] || null;
+      var div = document.createElement('div');
+      div.className = 'att-card';
+      div.innerHTML =
+        '<div class="reg">' +
+        attEsc(s.reg) +
+        '</div><div class="sname">' +
+        attEsc(s.name) +
+        (s.year && s.year !== '—'
+          ? ' <span style="font-size:0.68rem;color:var(--text-muted);">(' + attEsc(s.year) + ')</span>'
+          : '') +
+        '</div>' +
+        '<div class="att-btns">' +
+        '<button class="att-btn pres" id="p_' +
+        attEsc(s.reg) +
+        '" onclick="markAtt(\'' +
+        s.reg.replace(/'/g, '') +
+        '\',\'P\')">✓ Present</button>' +
+        '<button class="att-btn abs" id="a_' +
+        attEsc(s.reg) +
+        '" onclick="markAtt(\'' +
+        s.reg.replace(/'/g, '') +
+        '\',\'A\')">✗ Absent</button>' +
+        '<button class="att-btn wait" id="w_' +
+        attEsc(s.reg) +
+        '" onclick="markAtt(\'' +
+        s.reg.replace(/'/g, '') +
+        '\',\'W\')" title="Wait — mark later; auto-absent after 6PM">⏳ Wait</button>' +
+        '</div>' +
+        '<div id="wt_' +
+        attEsc(s.reg) +
+        '" style="font-size:0.65rem;color:var(--accent);font-family:\'JetBrains Mono\',monospace;margin-top:4px;display:none;">⏳ Wait — auto-absent if not updated by 6:00 PM</div>';
+      grid.appendChild(div);
+      if (prefillMap[s.reg] && typeof window.markAtt === 'function') {
+        window.markAtt(s.reg, prefillMap[s.reg]);
+      }
+    });
+
+    // Quick actions bar
+    var acts = document.querySelector('#attMarkUI .card-acts');
+    if (acts && !document.getElementById('attMarkAllPresent')) {
+      var allP = document.createElement('button');
+      allP.className = 'btn ol';
+      allP.id = 'attMarkAllPresent';
+      allP.type = 'button';
+      allP.textContent = 'All Present';
+      allP.onclick = function () {
+        roster.forEach(function (s) {
+          if (typeof window.markAtt === 'function') window.markAtt(s.reg, 'P');
+        });
+      };
+      acts.insertBefore(allP, acts.firstChild);
+    }
+  };
+
+  window.submitAtt = async function submitAttLive() {
+    var meta = window._attSessionMeta;
+    var roster = window._attRoster || [];
+    if (!meta || !roster.length) {
+      alert('No active attendance session. Start attendance first.');
+      return;
+    }
+
+    // Wait → Absent on submit (same as prototype)
+    try {
+      Object.keys(attState).forEach(function (r) {
+        if (attState[r] === 'W') attState[r] = 'A';
+      });
+    } catch (e) {
+      /* ignore */
+    }
+
+    var unmarked = roster.filter(function (s) {
+      return !attState[s.reg];
+    });
+    if (unmarked.length) {
+      if (
+        !confirm(
+          unmarked.length +
+            ' student(s) not marked. Mark them Absent and submit?',
+        )
+      ) {
+        return;
+      }
+      unmarked.forEach(function (s) {
+        attState[s.reg] = 'A';
+        if (typeof window.markAtt === 'function') window.markAtt(s.reg, 'A');
+      });
+    }
+
+    var entries = roster.map(function (s) {
+      var status = attState[s.reg] || 'A';
+      return {
+        reg: s.reg,
+        name: s.name,
+        status: status,
+        present: status === 'P',
+      };
+    });
+
+    var present = entries.filter(function (e) {
+      return e.status === 'P';
+    }).length;
+    var absent = entries.filter(function (e) {
+      return e.status === 'A';
+    }).length;
+
+    var res = await api.post('/api/attendance', {
+      branch: meta.branch,
+      subject: meta.subject,
+      year: meta.year,
+      date: meta.date,
+      class_type: meta.class_type,
+      batch: meta.batch,
+      entries: entries,
+    });
+    if (!res || !res.ok) return;
+
+    var absList = entries
+      .filter(function (e) {
+        return e.status === 'A';
+      })
+      .map(function (e) {
+        return e.reg;
+      });
+    var msg =
+      '✅ Attendance saved for ' +
+      entries.length +
+      ' students.\n' +
+      'Present: ' +
+      present +
+      ' · Absent: ' +
+      absent +
+      '\n' +
+      meta.subject +
+      ' · ' +
+      meta.branch +
+      ' · ' +
+      meta.date;
+    if (absList.length) {
+      msg +=
+        '\n\nAbsent: ' +
+        absList.slice(0, 12).join(', ') +
+        (absList.length > 12 ? '…' : '') +
+        '\n(Parent WhatsApp alerts can be connected later.)';
+    }
+    alert(msg);
+
+    var markUI = document.getElementById('attMarkUI');
+    var step1 = document.getElementById('attStep1');
+    if (markUI) markUI.style.display = 'none';
+    if (step1) step1.style.display = 'block';
+    window._attRoster = [];
+    window._attSessionMeta = null;
+    try {
+      if (typeof demoAtt !== 'undefined') demoAtt.length = 0;
+    } catch (e) {
+      /* ignore */
+    }
+    loadAttendanceHistory();
+  };
 })();
 

@@ -135,11 +135,15 @@ function toggleBatch() {
 }
 const waitTimers = {};
 function startAttendance() {
+  // Live implementation is installed by legacy-bridge.js (HOD branch-scoped roster).
+  if (window.startAttendance && window.startAttendance !== startAttendance) {
+    return window.startAttendance();
+  }
   const branch = document.getElementById('attBranch').value;
   const subj = document.getElementById('attSubject').value;
   if (!branch || !subj) { alert('Please select Branch and Subject first.'); return; }
   if (!demoAtt.length) {
-    alert('No attendance roster is available yet.');
+    alert('Attendance roster is loading from the server. Open Attendance Management after login, or refresh and try again.');
     return;
   }
   document.getElementById('attStep1').style.display = 'none';
@@ -196,6 +200,10 @@ function markAtt(reg, status) {
   }
 }
 function submitAtt() {
+  // Live persistence is installed by legacy-bridge.js
+  if (window.submitAtt && window.submitAtt !== submitAtt) {
+    return window.submitAtt();
+  }
   // Auto-absent any still on Wait
   Object.entries(attState).forEach(([r,s]) => { if (s === 'W') attState[r] = 'A'; });
   const absent = Object.entries(attState).filter(([r,s]) => s === 'A').map(([r]) => r);

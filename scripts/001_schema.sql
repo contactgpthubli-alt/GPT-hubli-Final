@@ -179,8 +179,15 @@ CREATE TABLE IF NOT EXISTS attendance (
   id        BIGSERIAL PRIMARY KEY,
   class_id  TEXT NOT NULL,
   att_date  DATE NOT NULL DEFAULT CURRENT_DATE,
-  entries   JSONB NOT NULL DEFAULT '[]'::jsonb, -- [{reg, name, present}]
+  entries   JSONB NOT NULL DEFAULT '[]'::jsonb, -- [{reg, name, status, present}]
   marked_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  branch    TEXT,
+  subject   TEXT,
+  year_label TEXT,
+  class_type TEXT,
+  batch     TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE (class_id, att_date)
 );
+CREATE INDEX IF NOT EXISTS idx_attendance_branch_date ON attendance (branch, att_date DESC);
