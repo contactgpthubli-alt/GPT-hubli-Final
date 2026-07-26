@@ -227,46 +227,66 @@ export async function createUserNotification(input: {
 
 /**
  * Notify student account (and parent-facing copy) that they were marked absent.
- * Same login is used for Student/Parent app modes — one user_id, two notification kinds optional.
+ * Same login is used for Student/Parent app modes — one user_id, two notification kinds.
  */
-/** Format time for notifications — accepts HH:mm, HH:mm:ss, or ISO; fallback now (en-IN). */
-function formatAttTime(input?: string | null): string {
+
+/** Normalize any date-ish value to YYYY-MM-DD (never rely on Date string slice). */
+export function toCanonicalDate(input?: string | Date | null): string {
+  if (input instanceof Date && !Number.isNaN(input.getTime())) {
+    // Use UTC for pg DATE (stored as UTC midnight)
+    const y = input.getUTCFullYear()
+    const m = String(input.getUTCMonth() + 1).padStart(2, "0")
+    const d = String(input.getUTCDate()).padStart(2, "0")
+    // Guard absurd years from bad parses
+    if (y >= 2015 && y <= 2040) return `${y}-${m}-${d}`
+  }
+  const s = String(input ?? "").trim()
+  // YYYY-MM-DD or ISO
+  let m = s.match(/^(20\d{2})-(\d{2})-(\d{2})/)
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`
+  // DD-MM-YYYY or DD/MM/YYYY
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](20\d{2})$/)
+  if (m) {
+    const da = m[1].padStart(2, "0")
+    const mo = m[2].padStart(2, "0")
+    return `${m[3]}-${mo}-${da}`
+  }
+  // Fallback: today (IST-ish via local)
+  const now = new Date()
+  const y = now.getFullYear()
+  const mo = String(now.getMonth() + 1).padStart(2, "0")
+  const da = String(now.getDate()).padStart(2, "0")
+  return `${y}-${mo}-${da}`
+}
+
+/** Format time for notifications — accepts HH:mm, HH:mm:ss; fallback now (en-IN 12h). */
+export function formatAttTime(input?: string | null): string {
   const raw = String(input || "").trim()
   if (raw) {
-    // HH:mm or HH:mm:ss
-    const m = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+    const m = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/)
     if (m) {
       let h = Number(m[1])
       const min = m[2]
-      const ampm = h >= 12 ? "PM" : "AM"
-      const h12 = h % 12 === 0 ? 12 : h % 12
-      return `${h12}:${min} ${ampm}`
-    }
-    // ISO / datetime
-    const d = new Date(raw)
-    if (!Number.isNaN(d.getTime())) {
-      return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
+      if (h >= 0 && h <= 23) {
+        const ampm = h >= 12 ? "PM" : "AM"
+        const h12 = h % 12 === 0 ? 12 : h % 12
+        return `${h12}:${min} ${ampm}`
+      }
     }
   }
-  return new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
+  const now = new Date()
+  let h = now.getHours()
+  const min = String(now.getMinutes()).padStart(2, "0")
+  const ampm = h >= 12 ? "PM" : "AM"
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}:${min} ${ampm}`
 }
 
-function formatAttDateLabel(input?: string | null): string {
-  const raw = String(input || "").trim().slice(0, 10)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const [y, mo, da] = raw.split("-")
-    // DD-MM-YYYY for India readability
-    return `${da}-${mo}-${y}`
-  }
-  try {
-    return new Date(input || Date.now()).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-  } catch {
-    return raw || "today"
-  }
+/** Display date DD-MM-YYYY for India (never ambiguous Date.parse). */
+export function formatAttDateLabel(input?: string | Date | null): string {
+  const iso = toCanonicalDate(input)
+  const [y, mo, da] = iso.split("-")
+  return `${da}-${mo}-${y}`
 }
 
 export async function notifyStudentAbsent(input: {
@@ -295,7 +315,8 @@ export async function notifyStudentAbsent(input: {
   if (!u) return { student: false, parent: false }
 
   const name = String(input.studentName || u.display_name || reg).trim()
-  const dateLabel = formatAttDateLabel(input.attDate)
+  const isoDate = toCanonicalDate(input.attDate)
+  const dateLabel = formatAttDateLabel(isoDate)
   const timeLabel = formatAttTime(input.attTime)
   const subj = String(input.subject || "Class").trim()
   const batchPart = input.batch ? ` · ${input.batch}` : ""
@@ -307,15 +328,15 @@ export async function notifyStudentAbsent(input: {
   const coreLine = `Absent: ${subj} on ${dateLabel} at ${timeLabel}${batchPart} · ${byStaff}`
 
   const studentTitle = "⚠️ Marked Absent"
-  const studentBody = `${coreLine}`
+  const studentBody = coreLine
 
   const parentTitle = "⚠️ Your ward is Absent"
-  const parentBody = `${name} (${reg}) — ${coreLine}. Open the app as Parent to view attendance (read-only).`
+  const parentBody = `${name} (${reg}) — ${coreLine}`
 
   const meta = {
     reg_no: reg,
     subject: subj,
-    att_date: String(input.attDate || "").slice(0, 10),
+    att_date: isoDate,
     att_time: timeLabel,
     branch: input.branch || null,
     batch: input.batch || null,

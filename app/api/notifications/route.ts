@@ -161,10 +161,40 @@ export async function GET() {
     try {
       const mineNotifs = await listUserNotifications(Number(user.id), 40)
       for (const n of mineNotifs) {
+        // Prefer canonical date/time from meta when body was written with a bad parse (old "2001" bug)
+        let desc = n.body || ""
+        const meta = (n.meta && typeof n.meta === "object" ? n.meta : {}) as Record<string, unknown>
+        if (
+          (n.kind === "attendance_absent" || n.kind === "attendance_absent_parent") &&
+          meta.att_date &&
+          meta.subject
+        ) {
+          const ad = String(meta.att_date)
+          const at = meta.att_time ? String(meta.att_time) : ""
+          const subj = String(meta.subject)
+          const by = meta.marked_by ? String(meta.marked_by) : "staff"
+          const batch = meta.batch ? ` · ${meta.batch}` : ""
+          // Rebuild line if body contains absurd year 2001 or missing canonical date
+          if (/2001/.test(desc) || !desc.includes(String(ad).slice(0, 4))) {
+            const [y, mo, da] =
+              /^\d{4}-\d{2}-\d{2}/.test(ad)
+                ? ad.slice(0, 10).split("-")
+                : ["", "", ""]
+            const dateLabel =
+              y && mo && da ? `${da}-${mo}-${y}` : ad
+            const core = `Absent: ${subj} on ${dateLabel}${at ? ` at ${at}` : ""}${batch} · marked by ${by}`
+            if (n.kind === "attendance_absent_parent") {
+              const reg = meta.reg_no ? String(meta.reg_no) : ""
+              desc = reg ? `${reg} — ${core}` : core
+            } else {
+              desc = core
+            }
+          }
+        }
         items.unshift({
           id: `un-${n.id}`,
           title: n.title,
-          desc: n.body || "",
+          desc,
           time: fmtTime(n.created_at),
           unread: !n.read_at,
           kind: n.kind || "user",

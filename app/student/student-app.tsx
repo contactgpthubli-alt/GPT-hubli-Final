@@ -532,6 +532,43 @@ export default function StudentApp() {
   )
   const pendingForms = openForms.filter((f) => !f.submitted_by_me)
 
+  /** Short beep for new absent alerts (parent-priority). */
+  function playAbsentNotifySound() {
+    try {
+      const AC =
+        typeof window !== "undefined"
+          ? window.AudioContext ||
+            (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+          : null
+      if (!AC) return
+      const ctx = new AC()
+      const beep = (freq: number, start: number, dur: number) => {
+        const o = ctx.createOscillator()
+        const g = ctx.createGain()
+        o.type = "sine"
+        o.frequency.value = freq
+        g.gain.value = 0.0001
+        o.connect(g)
+        g.connect(ctx.destination)
+        g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + start + 0.02)
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur)
+        o.start(ctx.currentTime + start)
+        o.stop(ctx.currentTime + start + dur + 0.02)
+      }
+      beep(880, 0, 0.15)
+      beep(1175, 0.18, 0.18)
+      setTimeout(() => {
+        try {
+          void ctx.close()
+        } catch {
+          /* ignore */
+        }
+      }, 600)
+    } catch {
+      /* autoplay / unsupported — ignore */
+    }
+  }
+
   const flash = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(""), 3200)
@@ -741,8 +778,44 @@ export default function StudentApp() {
     }
     flash(mode === "parent" ? "Parent view (read-only)" : "Student view")
     // Refresh notifications so parent sees latest absent alerts
-    void loadDashboard()
+    void loadDashboard().then(() => {
+      if (mode === "parent") {
+        // Sound when parent opens and there are unread absent alerts
+        const hasUnreadAbsent = appNotifs.some(
+          (n) =>
+            n.unread &&
+            (n.kind === "attendance_absent_parent" ||
+              n.kind === "attendance_absent" ||
+              (n.title || "").toLowerCase().includes("absent")),
+        )
+        if (hasUnreadAbsent) playAbsentNotifySound()
+      }
+    })
   }
+
+  // Play sound once when parent view loads new unread absent notifications
+  useEffect(() => {
+    if (portalMode !== "parent" || !user) return
+    const unreadAbsent = appNotifs.filter(
+      (n) =>
+        n.unread &&
+        (n.kind === "attendance_absent_parent" ||
+          (n.title || "").toLowerCase().includes("ward") ||
+          (n.title || "").toLowerCase().includes("absent")),
+    )
+    if (!unreadAbsent.length) return
+    const latestId = unreadAbsent[0]?.id
+    if (!latestId) return
+    try {
+      const key = `gpth_parent_absent_sound_${user.id}`
+      const prev = sessionStorage.getItem(key)
+      if (prev === latestId) return
+      sessionStorage.setItem(key, latestId)
+      playAbsentNotifySound()
+    } catch {
+      playAbsentNotifySound()
+    }
+  }, [portalMode, appNotifs, user])
 
   async function doRegister() {
     setRegErr("")
@@ -1559,8 +1632,8 @@ export default function StudentApp() {
           <div className="stu-msg stu-msg-info" role="status">
             <strong>👨‍👩‍👧 Parent / Guardian view (read-only)</strong>
             <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.45 }}>
-              You can view your ward&apos;s profile, results, attendance and notices. Editing and form submissions are
-              disabled. You will receive notifications when staff mark your ward absent.
+              Focus: your ward&apos;s <strong>attendance</strong> and absent alerts. Profile edits and form submissions
+              are disabled.
             </p>
             <button
               type="button"
@@ -1579,6 +1652,111 @@ export default function StudentApp() {
         {/* ---------- HOME ---------- */}
         {tab === "home" && (
           <>
+            {/* Parent: attendance is the primary panel */}
+            {isParentMode ? (
+              <div
+                className="stu-card"
+                style={{
+                  marginBottom: 14,
+                  border: "2px solid #1a4fa0",
+                  borderRadius: 14,
+                  padding: 16,
+                  background: "linear-gradient(180deg, #eff6ff 0%, #fff 55%)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#1a4fa0", letterSpacing: "0.04em" }}>
+                      PRIORITY · ATTENDANCE
+                    </div>
+                    <h3 style={{ margin: "4px 0 0", color: "#0f2d5c" }}>Ward attendance</h3>
+                    <p style={{ margin: "6px 0 0", fontSize: "0.84rem", color: "var(--stu-muted)" }}>
+                      {user.display_name}
+                      {user.reg_no ? ` · ${user.reg_no}` : ""}
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      minWidth: 72,
+                      textAlign: "center",
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                      border: "1px solid #bfdbfe",
+                    }}
+                  >
+                    <div style={{ fontSize: "0.65rem", color: "var(--stu-muted)", fontWeight: 700 }}>TODAY %</div>
+                    <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1a4fa0" }}>
+                      {student?.att || "—"}
+                    </div>
+                  </div>
+                </div>
+                {absentNotifs.length > 0 ? (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: 12,
+                      borderRadius: 10,
+                      background: "rgba(254,226,226,0.65)",
+                      border: "1px solid #fca5a5",
+                    }}
+                  >
+                    <strong style={{ color: "#991b1b" }}>
+                      ⚠️ {absentNotifs.filter((n) => n.unread).length || absentNotifs.length} absent alert
+                      {(absentNotifs.filter((n) => n.unread).length || absentNotifs.length) === 1 ? "" : "s"}
+                    </strong>
+                    <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: "0.86rem", lineHeight: 1.45 }}>
+                      {absentNotifs.slice(0, 4).map((n) => (
+                        <li key={n.id} style={{ marginBottom: 6 }}>
+                          <strong>{n.title}</strong>
+                          {n.desc ? <div style={{ marginTop: 2 }}>{n.desc}</div> : null}
+                          {n.time ? (
+                            <div style={{ fontSize: "0.72rem", opacity: 0.75, marginTop: 2 }}>{n.time}</div>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p style={{ margin: "12px 0 0", fontSize: "0.86rem", opacity: 0.8 }}>
+                    No recent absent marks. You will get an alert here when staff mark your ward absent.
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-primary stu-btn-sm"
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("attendance")
+                    }}
+                  >
+                    Open attendance
+                  </button>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-ghost stu-btn-sm"
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("notifications")
+                    }}
+                  >
+                    All notifications
+                  </button>
+                  <button
+                    type="button"
+                    className="stu-btn stu-btn-ghost stu-btn-sm"
+                    onClick={() => {
+                      playAbsentNotifySound()
+                      void loadDashboard()
+                    }}
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             {(user.is_alumni || user.read_only_portal || student?.is_alumni || student?.academic_status === "passed_out") && !isParentMode ? (
               <div className="stu-msg stu-msg-info" role="status">
                 <strong>🎓 Alumni / Pass-out portal (read-only)</strong>
@@ -1597,16 +1775,14 @@ export default function StudentApp() {
               </div>
             ) : null}
 
-            {/* Absent alerts always shown (parent + student) — not blocked by account-approved banner */}
-            {absentNotifs.length > 0 ? (
+            {/* Student home absent banner (parent has priority card above) */}
+            {!isParentMode && absentNotifs.length > 0 ? (
               <div
                 className="stu-alert-ready"
                 role="status"
                 style={{ borderColor: "#dc2626", background: "rgba(254,226,226,0.45)" }}
               >
-                <h3>
-                  {isParentMode ? "⚠️ Ward absent alerts" : "⚠️ Absent alerts"} ({absentNotifs.length})
-                </h3>
+                <h3>⚠️ Absent alerts ({absentNotifs.length})</h3>
                 <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: "0.88rem", lineHeight: 1.45 }}>
                   {absentNotifs.slice(0, 5).map((n) => (
                     <li key={n.id} style={{ marginBottom: 8 }}>
@@ -1764,22 +1940,77 @@ export default function StudentApp() {
             ) : null}
 
             <div className="stu-kpis">
-              <div className="stu-kpi">
-                <div className="label">CGPA</div>
-                <div className="value">{student?.cgpa || "—"}</div>
-              </div>
-              <div className="stu-kpi">
-                <div className="label">Attendance</div>
-                <div className="value">{student?.att || "—"}</div>
-              </div>
-              <div className="stu-kpi">
-                <div className="label">Open forms</div>
-                <div className="value">{pendingForms.length}</div>
-              </div>
-              <div className="stu-kpi">
-                <div className="label">Ready certs</div>
-                <div className="value">{readyCerts.length}</div>
-              </div>
+              {isParentMode ? (
+                <>
+                  <div
+                    className="stu-kpi"
+                    style={{ border: "2px solid #1a4fa0", cursor: "pointer" }}
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("attendance")
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setTab("more")
+                        setMoreView("attendance")
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="label">Attendance</div>
+                    <div className="value">{student?.att || "—"}</div>
+                  </div>
+                  <div
+                    className="stu-kpi"
+                    style={{ border: absentNotifs.length ? "2px solid #dc2626" : undefined, cursor: "pointer" }}
+                    onClick={() => {
+                      setTab("more")
+                      setMoreView("notifications")
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setTab("more")
+                        setMoreView("notifications")
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="label">Absent alerts</div>
+                    <div className="value" style={{ color: absentNotifs.length ? "#dc2626" : undefined }}>
+                      {absentNotifs.length}
+                    </div>
+                  </div>
+                  <div className="stu-kpi">
+                    <div className="label">CGPA</div>
+                    <div className="value">{student?.cgpa || "—"}</div>
+                  </div>
+                  <div className="stu-kpi">
+                    <div className="label">Results</div>
+                    <div className="value">{results.length}</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="stu-kpi">
+                    <div className="label">CGPA</div>
+                    <div className="value">{student?.cgpa || "—"}</div>
+                  </div>
+                  <div className="stu-kpi">
+                    <div className="label">Attendance</div>
+                    <div className="value">{student?.att || "—"}</div>
+                  </div>
+                  <div className="stu-kpi">
+                    <div className="label">Open forms</div>
+                    <div className="value">{pendingForms.length}</div>
+                  </div>
+                  <div className="stu-kpi">
+                    <div className="label">Ready certs</div>
+                    <div className="value">{readyCerts.length}</div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="stu-section-title">Do something</div>
@@ -2242,54 +2473,96 @@ export default function StudentApp() {
               </div>
             ) : null}
             <div className="stu-quick">
+              {isParentMode ? (
+                <>
+                  <button type="button" onClick={() => setMoreView("attendance")}>
+                    <span className="ico">📅</span>
+                    <span className="t">Attendance</span>
+                    <span className="d">{student?.att || "Ward summary"} · Priority</span>
+                  </button>
+                  <button type="button" onClick={() => setMoreView("notifications")}>
+                    <span className="ico">🔔</span>
+                    <span className="t">Absent alerts</span>
+                    <span className="d">
+                      {absentNotifs.length ? `${absentNotifs.length} alert(s)` : "No absents yet"}
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setTab("results")}>
+                    <span className="ico">📊</span>
+                    <span className="t">Results</span>
+                    <span className="d">View only</span>
+                  </button>
+                  <button type="button" onClick={() => setMoreView("notices")}>
+                    <span className="ico">📢</span>
+                    <span className="t">Notices</span>
+                    <span className="d">{notices.length} recent</span>
+                  </button>
+                </>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("certRequest")}>
                 <span className="ico">➕</span>
                 <span className="t">Request certificate</span>
                 <span className="d">New ACM / Exam request</span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("certs")}>
                 <span className="ico">📜</span>
                 <span className="t">My certificates</span>
                 <span className="d">{readyCerts.length ? `${readyCerts.length} ready` : `${certs.length} request(s)`}</span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("grievances")}>
                 <span className="ico">📨</span>
                 <span className="t">Grievances</span>
                 <span className="d">{grievances.length} filed</span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("attendance")}>
                 <span className="ico">📅</span>
                 <span className="t">Attendance</span>
                 <span className="d">{student?.att || "Summary"}</span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("notifications")}>
                 <span className="ico">🔔</span>
                 <span className="t">Notifications</span>
                 <span className="d">
-                  {isParentMode ? "Ward absent alerts" : "Absent alerts & updates"}
+                  Absent alerts & updates
                   {unreadAppNotifs.length ? ` · ${unreadAppNotifs.length} new` : ""}
                 </span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("notices")}>
                 <span className="ico">📢</span>
                 <span className="t">Notices</span>
                 <span className="d">{notices.length} recent</span>
               </button>
+              ) : null}
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("whatsNew")}>
                 <span className="ico">✨</span>
                 <span className="t">What&apos;s new</span>
                 <span className="d">App v{STUDENT_APP_VERSION}</span>
               </button>
+              ) : null}
               <button type="button" onClick={() => refreshAppUpdate()}>
                 <span className="ico">🔄</span>
                 <span className="t">Update / refresh app</span>
                 <span className="d">Get latest features (no reinstall)</span>
               </button>
+              {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("password")}>
                 <span className="ico">🔐</span>
                 <span className="t">Change password</span>
                 <span className="d">Account security</span>
               </button>
+              ) : null}
             </div>
             <div className="stu-card" style={{ marginTop: 12 }}>
               <h3>Account</h3>
