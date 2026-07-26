@@ -37,6 +37,11 @@ export async function GET(req: Request) {
   await ensureAcademicSchema().catch(() => null)
   const academicSettings = await getInstituteAcademicSettings().catch(() => null)
   const url = new URL(req.url)
+  // lite=1: list views (Student Data / Attendance) — no huge profile photos, no N+1 pending counts
+  const lite =
+    url.searchParams.get("lite") === "1" ||
+    url.searchParams.get("lite") === "true" ||
+    url.searchParams.get("mode") === "lite"
   const filterStudyYear = parseStudyYear(url.searchParams.get("study_year") || url.searchParams.get("year"))
   const filterStatusRaw = url.searchParams.get("academic_status") || url.searchParams.get("status")
   const filterStatus =
@@ -114,15 +119,51 @@ export async function GET(req: Request) {
   const params: unknown[] = []
   let branchSql = ""
   if (hodBranch) {
+    // Prefer exact official branch match (fast). Keep one loose pattern for legacy labels.
     params.push(hodBranch)
-    params.push(`%${hodBranch}%`)
+    const loose =
+      hodBranch.includes("Computer")
+        ? "%Computer%"
+        : hodBranch.includes("Civil")
+          ? "%Civil%"
+          : hodBranch.includes("Electron")
+            ? "%Electron%"
+            : hodBranch.includes("Mech")
+              ? "%Mech%"
+              : `%${hodBranch}%`
+    params.push(loose)
     branchSql = ` AND (
-      COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), '') ILIKE $1
+      COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), '') = $1
       OR COALESCE(NULLIF(s.dept, ''), NULLIF(u.branch, ''), '') ILIKE $2
-      OR COALESCE(s.extra->>'Branch', '') ILIKE $1
+      OR COALESCE(s.extra->>'Branch', '') = $1
       OR COALESCE(s.extra->>'Branch', '') ILIKE $2
     )`
   }
+
+  // lite: never load students.extra (profile photos make multi-MB responses)
+  // full list: still strip data:image values so View/list stays usable
+  const extraSelect = lite
+    ? `'{}'::jsonb AS extra`
+    : `COALESCE(
+         (SELECT jsonb_object_agg(e.key, e.value)
+            FROM jsonb_each(COALESCE(s.extra, '{}'::jsonb)) AS e
+           WHERE left(e.value::text, 11) <> '"data:image'),
+         '{}'::jsonb
+       ) AS extra`
+
+  // Avoid N+1 correlated COUNT — was a major cause of multi-minute loads
+  const pendingSelect = lite
+    ? `0::int AS pending_profile_requests`
+    : `COALESCE(pr.pending_count, 0)::int AS pending_profile_requests`
+
+  const pendingJoin = lite
+    ? ``
+    : `LEFT JOIN (
+         SELECT target_id, COUNT(*)::int AS pending_count
+           FROM profile_requests
+          WHERE target_type = 'student' AND status = 'pending'
+          GROUP BY target_id
+       ) pr ON pr.target_id = u.reg_no`
 
   const { rows } = await query(
     `SELECT
@@ -140,7 +181,7 @@ export async function GET(req: Request) {
         s.cgpa,
         s.att,
         s.father,
-        s.extra,
+        ${extraSelect},
         s.admission_academic_year,
         s.entry_type,
         s.entry_study_year,
@@ -149,15 +190,10 @@ export async function GET(req: Request) {
         s.progress_locked,
         s.pass_out_academic_year,
         s.needs_admission_year_review,
-        (
-          SELECT COUNT(*)::int
-            FROM profile_requests pr
-           WHERE pr.target_type = 'student'
-             AND pr.target_id = u.reg_no
-             AND pr.status = 'pending'
-        ) AS pending_profile_requests
+        ${pendingSelect}
        FROM users u
        LEFT JOIN students s ON s.reg_no = u.reg_no
+       ${pendingJoin}
       WHERE u.role = 'student'
         AND u.deleted_at IS NULL
         AND (u.status IS DISTINCT FROM 'deleted')

@@ -123,29 +123,109 @@ export function parseAcademicStatus(input: string | null | undefined): AcademicS
 }
 
 /**
- * Guess admission academic year from diploma reg no patterns used at GPT Hubli.
- * Examples: 171CE22001 → 2022-23 ; 171CS19002 → 2019-20
+ * GPT Hubli / DTE diploma register number:
+ *   171  + branch(2–4) + YY + roll
+ * Example: 171CS15003 → college 171, CS, admitted 2015-16, roll 003
+ *
+ * Lateral markers in roll (3-digit tail):
+ *   300–399  → ITI lateral entry (often 301…)
+ *   700–799  → PUC lateral entry (often 702…)
  */
-export function guessAdmissionYearFromReg(regNo: string | null | undefined): string | null {
+export type ParsedDiplomaReg = {
+  college_code: string
+  branch_code: string
+  admission_yy: number
+  admission_academic_year: string
+  roll: number
+  roll_raw: string
+  entry_type: EntryType
+  entry_study_year: StudyYear
+  entry_source: "regular" | "lateral_puc" | "lateral_iti" | "unknown"
+}
+
+const BRANCH_CODE_MAP: Record<string, string> = {
+  CE: "Civil Engineering",
+  CS: "Computer Science and Engineering",
+  CSE: "Computer Science and Engineering",
+  EC: "Electronics and Communication Engineering",
+  ECE: "Electronics and Communication Engineering",
+  ME: "Mechanical Engineering",
+  MECH: "Mechanical Engineering",
+}
+
+export function branchFromRegCode(code: string | null | undefined): string | null {
+  if (!code) return null
+  return BRANCH_CODE_MAP[String(code).toUpperCase()] || null
+}
+
+export function parseDiplomaReg(regNo: string | null | undefined): ParsedDiplomaReg | null {
   if (!regNo) return null
   const u = String(regNo).toUpperCase().replace(/[^A-Z0-9]/g, "")
-  // Institute code 171 + branch letters + 2-digit year + serial
-  let m = u.match(/^171[A-Z]{2,4}(\d{2})\d{3,4}$/)
-  if (m) {
-    const yy = Number(m[1])
-    if (yy >= 10 && yy <= 40) {
-      const start = 2000 + yy
-      return `${start}-${String((start + 1) % 100).padStart(2, "0")}`
-    }
+  // 171 + branch + YY + roll (roll usually 3 digits; allow 3–4)
+  const m = u.match(/^(171)([A-Z]{2,4})(\d{2})(\d{3,4})$/)
+  if (!m) return null
+  const college_code = m[1]
+  const branch_code = m[2]
+  const admission_yy = Number(m[3])
+  const roll_raw = m[4]
+  const roll = Number(roll_raw)
+  if (!Number.isFinite(admission_yy) || admission_yy < 10 || admission_yy > 40) return null
+  if (!Number.isFinite(roll)) return null
+
+  const start = 2000 + admission_yy
+  const admission_academic_year = `${start}-${String((start + 1) % 100).padStart(2, "0")}`
+
+  // Lateral by roll band (DTE practice at this polytechnic)
+  let entry_type: EntryType = "regular"
+  let entry_study_year: StudyYear = 1
+  let entry_source: ParsedDiplomaReg["entry_source"] = "regular"
+  if (roll >= 700 && roll <= 799) {
+    // PUC lateral — enter 2nd year
+    entry_type = "lateral"
+    entry_study_year = 2
+    entry_source = "lateral_puc"
+  } else if (roll >= 300 && roll <= 399) {
+    // ITI lateral — enter 2nd year
+    entry_type = "lateral"
+    entry_study_year = 2
+    entry_source = "lateral_iti"
   }
+
+  return {
+    college_code,
+    branch_code,
+    admission_yy,
+    admission_academic_year,
+    roll,
+    roll_raw,
+    entry_type,
+    entry_study_year,
+    entry_source,
+  }
+}
+
+/** Guess admission academic year from diploma reg no (see parseDiplomaReg). */
+export function guessAdmissionYearFromReg(regNo: string | null | undefined): string | null {
+  const parsed = parseDiplomaReg(regNo)
+  if (parsed) return parsed.admission_academic_year
+
   // Fallback: first 20xx in string
-  m = String(regNo).match(/(20\d{2})/)
+  const m = String(regNo || "").match(/(20\d{2})/)
   if (m) {
     const start = Number(m[1])
     if (start >= 2010 && start <= 2040) {
       return `${start}-${String((start + 1) % 100).padStart(2, "0")}`
     }
   }
+  return null
+}
+
+/** Force bare years / aliases to YYYY-YY only. */
+export function canonicalizeAcademicYearLabel(input: string | null | undefined): string | null {
+  const n = normalizeAcademicYear(input)
+  if (n) return n
+  if (!input) return null
+  // "2025" already handled by normalize; reject garbage
   return null
 }
 

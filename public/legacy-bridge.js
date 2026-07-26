@@ -5850,8 +5850,8 @@ async function renderAdminStudentDatabase() {
     if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading students…</td></tr>';
   });
 
-  // include_alumni=1 so client-side status filter can show alumni when selected
-  var data = await profileApiGet('/api/students?include_alumni=1&_ts=' + Date.now());
+  // include_alumni=1 + lite=1 (no photos / no N+1 counts) so list stays fast
+  var data = await profileApiGet('/api/students?include_alumni=1&lite=1&_ts=' + Date.now());
   if (!data || !Array.isArray(data.students)) {
     prefixes.forEach(function (pfx) {
       var tb = document.getElementById(pfx + 'TableBody');
@@ -7105,6 +7105,8 @@ setInterval(function () {
       current_study_year: s.current_study_year != null ? Number(s.current_study_year) : null,
       academic_status: st,
       progress_locked: !!s.progress_locked,
+      entry_type: s.entry_type === 'lateral' ? 'lateral' : 'regular',
+      entry_study_year: s.entry_study_year != null ? Number(s.entry_study_year) : 1,
       is_alumni: st === 'passed_out' || !!s.is_alumni,
       admission_year: sdAdmissionYear(Object.assign({}, s, { extra: extra })),
       admission_academic_year: s.admission_academic_year || sdAdmissionYear(Object.assign({}, s, { extra: extra })),
@@ -7445,9 +7447,12 @@ setInterval(function () {
           : st === 'year_back'
             ? ' <span class="badge" style="background:#ffedd5;color:#9a3412;font-size:0.65rem;">Year Back</span>'
             : '';
+      var latBadge = s.entry_type === 'lateral'
+        ? ' <span class="badge" style="background:#fef3c7;color:#92400e;font-size:0.65rem;">Lateral</span>'
+        : '';
       return '<tr style="border-bottom:1px solid var(--border);">' +
         '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + '</td>' +
-        '<td style="padding:10px 8px;"><strong>' + sdEsc(s.name) + '</strong></td>' +
+        '<td style="padding:10px 8px;"><strong>' + sdEsc(s.name) + '</strong>' + latBadge + '</td>' +
         '<td style="padding:10px 8px;">' + sdEsc(s.father || '—') + '</td>' +
         '<td style="padding:10px 8px;font-size:0.82rem;">' + sdEsc(s.dept || '—') +
         '<div style="font-size:0.68rem;opacity:.7;">' + sdEsc(s.year || '—') + stBadge +
@@ -7463,11 +7468,8 @@ setInterval(function () {
   }
 
   window.filterStudentDataList = function () {
+    // Only paint the visible panel (painting all three froze UI on large lists)
     paintTable(activePrefix());
-    // Keep panels in sync if they exist
-    if (document.getElementById('adSd_tbody')) paintTable('adSd');
-    if (document.getElementById('facSd_tbody')) paintTable('facSd');
-    if (document.getElementById('priSd_tbody')) paintTable('priSd');
   };
 
   window.renderStudentDataBrowser = async function (secId) {
@@ -7487,7 +7489,8 @@ setInterval(function () {
     }
     var data = null;
     try {
-      var r = await fetch('/api/students?include_alumni=1&_ts=' + Date.now(), {
+      // lite=1: no profile photos / no N+1 pending counts (was freezing browser 10+ min)
+      var r = await fetch('/api/students?include_alumni=1&lite=1&_ts=' + Date.now(), {
         credentials: 'same-origin',
         cache: 'no-store',
         headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
@@ -7508,11 +7511,18 @@ setInterval(function () {
     window._studentDataByKey = {};
     list.forEach(function (s) { window._studentDataByKey[s.key] = s; });
 
-    // Populate admission batch filter
+    // Populate admission batch filter — only canonical YYYY-YY labels (no bare 2019 / 2025)
     var years = {};
     list.forEach(function (s) {
-      var ay = s.admission_academic_year || s.admission_year;
-      if (ay) years[ay] = true;
+      var ay = String(s.admission_academic_year || s.admission_year || '').trim();
+      if (!ay) return;
+      // Normalize bare year → YYYY-YY
+      var bare = ay.match(/^(20\d{2})$/);
+      if (bare) {
+        var st = Number(bare[1]);
+        ay = st + '-' + String((st + 1) % 100).padStart(2, '0');
+      }
+      if (/^20\d{2}-\d{2}$/.test(ay)) years[ay] = true;
     });
     try { upgradeStudentDataFilters(); } catch (e) { /* ignore */ }
     ;['adSd', 'facSd', 'priSd'].forEach(function (px) {
@@ -7535,9 +7545,12 @@ setInterval(function () {
       }
     });
 
-    paintTable('adSd');
-    paintTable('facSd');
-    paintTable('priSd');
+    // Paint only panels that exist; prefer active first for speed
+    var activeP = activePrefix();
+    paintTable(activeP);
+    ;['adSd', 'facSd', 'priSd'].forEach(function (px) {
+      if (px !== activeP && document.getElementById(px + '_tbody')) paintTable(px);
+    });
   };
 
   window.viewStudentDataRow = function (key) {
@@ -8160,8 +8173,8 @@ setInterval(function () {
     if (step1) step1.style.display = 'none';
     if (markUI) markUI.style.display = 'block';
 
-    // Live students (API already HOD-scoped)
-    var data = await apiReqQuiet('/api/students?_ts=' + Date.now());
+    // Live students (API already HOD-scoped); lite skips photo blobs
+    var data = await apiReqQuiet('/api/students?lite=1&_ts=' + Date.now());
     if (!data || !Array.isArray(data.students)) {
       if (grid) {
         grid.innerHTML =

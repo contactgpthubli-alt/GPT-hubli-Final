@@ -8,6 +8,7 @@ import {
   guessAdmissionYearFromReg,
   normalizeAcademicYear,
   parseAcademicStatus,
+  parseDiplomaReg,
   parseStudyYear,
   studyYearLabel,
   type AcademicStatus,
@@ -175,14 +176,32 @@ function asExtra(v: unknown): Record<string, unknown> {
   return v as Record<string, unknown>
 }
 
-/** Ensure admission year exists (guess from reg / profile) without forcing progress. */
+/** Ensure admission year exists (prefer reg-no structure; then column; then profile). */
 export function resolveAdmissionYear(row: {
   reg_no?: string | null
   admission_academic_year?: string | null
   extra?: unknown
-}): { admission: string | null; needs_review: boolean } {
+}): {
+  admission: string | null
+  needs_review: boolean
+  entry_type?: EntryType
+  entry_study_year?: StudyYear
+  entry_source?: string
+} {
+  // Official structure from register number is authoritative for GPT Hubli
+  const parsed = parseDiplomaReg(row.reg_no || null)
+  if (parsed) {
+    return {
+      admission: parsed.admission_academic_year,
+      needs_review: false,
+      entry_type: parsed.entry_type,
+      entry_study_year: parsed.entry_study_year,
+      entry_source: parsed.entry_source,
+    }
+  }
+
   const fromCol = normalizeAcademicYear(row.admission_academic_year)
-  if (fromCol) return { admission: fromCol, needs_review: false }
+  if (fromCol) return { admission: fromCol, needs_review: true }
 
   const extra = asExtra(row.extra)
   const fromExtra =
@@ -190,7 +209,7 @@ export function resolveAdmissionYear(row: {
     normalizeAcademicYear(extra["Admission Year"] as string) ||
     normalizeAcademicYear(extra["Batch"] as string) ||
     normalizeAcademicYear(extra["Academic Year"] as string)
-  if (fromExtra) return { admission: fromExtra, needs_review: false }
+  if (fromExtra) return { admission: fromExtra, needs_review: true }
 
   const guessed = guessAdmissionYearFromReg(row.reg_no || null)
   if (guessed) return { admission: guessed, needs_review: true }
@@ -227,9 +246,16 @@ export async function applyProgressionToStudent(
   if (!rows[0]) return null
   const row = rows[0] as StudentAcademicRow
 
-  const { admission, needs_review } = resolveAdmissionYear(row)
-  const entryType: EntryType = row.entry_type === "lateral" ? "lateral" : "regular"
-  const entryYear = (parseStudyYear(row.entry_study_year) || 1) as StudyYear
+  const resolved = resolveAdmissionYear(row)
+  const admission = resolved.admission
+  const needs_review = resolved.needs_review
+  // Prefer lateral markers from reg no when present
+  const entryType: EntryType =
+    resolved.entry_type ||
+    (row.entry_type === "lateral" ? "lateral" : "regular")
+  const entryYear = (resolved.entry_study_year ||
+    parseStudyYear(row.entry_study_year) ||
+    1) as StudyYear
   const status = parseAcademicStatus(row.academic_status)
 
   const result = computeProgression(
@@ -248,8 +274,11 @@ export async function applyProgressionToStudent(
 
   const admissionChanged = admission && admission !== row.admission_academic_year
   const needsReviewChanged = needs_review !== !!row.needs_admission_year_review
+  const entryChanged =
+    entryType !== (row.entry_type === "lateral" ? "lateral" : "regular") ||
+    entryYear !== (parseStudyYear(row.entry_study_year) || 1)
 
-  if (!result.changed && !admissionChanged && !needsReviewChanged && !opts.force) {
+  if (!result.changed && !admissionChanged && !needsReviewChanged && !entryChanged && !opts.force) {
     return {
       ok: true,
       changed: false,
@@ -261,6 +290,8 @@ export async function applyProgressionToStudent(
   await query(
     `UPDATE students SET
         admission_academic_year = COALESCE($2, admission_academic_year),
+        entry_type = $9,
+        entry_study_year = $10,
         current_study_year = $3,
         academic_status = $4,
         progress_locked = $5,
@@ -271,7 +302,9 @@ export async function applyProgressionToStudent(
         extra = COALESCE(extra, '{}'::jsonb)
           || jsonb_build_object(
                'Current Year', $7::text,
-               'Admission Academic Year', COALESCE($2, admission_academic_year, '')
+               'Admission Academic Year', COALESCE($2, admission_academic_year, ''),
+               'Entry Type', $9::text,
+               'Entry Source', $11::text
              )
       WHERE reg_no = $1`,
     [
@@ -283,6 +316,9 @@ export async function applyProgressionToStudent(
       result.pass_out_academic_year,
       result.year_label,
       needs_review,
+      entryType,
+      entryYear,
+      resolved.entry_source || entryType,
     ],
   )
 
@@ -351,28 +387,59 @@ export async function applyProgressionBulk(actorUserId: number | null) {
     }
   }
 
-  // Fill missing admission years from reg pattern (flag for review)
+  // Rebuild admission + lateral from reg structure for all parseable rows
   await query(`
+    WITH parsed AS (
+      SELECT
+        reg_no,
+        substring(upper(regexp_replace(reg_no, '[^A-Za-z0-9]', '', 'g'))
+          from '^171[A-Z]{2,4}([0-9]{2})[0-9]{3,4}$') AS yy,
+        substring(upper(regexp_replace(reg_no, '[^A-Za-z0-9]', '', 'g'))
+          from '^171[A-Z]{2,4}[0-9]{2}([0-9]{3,4})$') AS roll_raw
+      FROM students
+      WHERE upper(regexp_replace(reg_no, '[^A-Za-z0-9]', '', 'g'))
+            ~ '^171[A-Z]{2,4}[0-9]{2}[0-9]{3,4}$'
+    ),
+    calc AS (
+      SELECT
+        reg_no,
+        ('20' || yy || '-' || lpad(((yy::int + 1) % 100)::text, 2, '0')) AS adm_ay,
+        CASE
+          WHEN roll_raw::int BETWEEN 700 AND 799 THEN 'lateral'
+          WHEN roll_raw::int BETWEEN 300 AND 399 THEN 'lateral'
+          ELSE 'regular'
+        END AS entry_type,
+        CASE
+          WHEN roll_raw::int BETWEEN 700 AND 799 THEN 2
+          WHEN roll_raw::int BETWEEN 300 AND 399 THEN 2
+          ELSE 1
+        END AS entry_study_year
+      FROM parsed
+      WHERE yy IS NOT NULL AND roll_raw IS NOT NULL
+        AND yy::int BETWEEN 10 AND 40
+    )
     UPDATE students s SET
-      admission_academic_year = (
-        '20' || substring(upper(regexp_replace(s.reg_no, '[^A-Za-z0-9]', '', 'g'))
-          from '171[A-Z]{2,4}([0-9]{2})[0-9]{3,4}$')
-        || '-' ||
-        lpad((
-          (substring(upper(regexp_replace(s.reg_no, '[^A-Za-z0-9]', '', 'g'))
-            from '171[A-Z]{2,4}([0-9]{2})[0-9]{3,4}$')::int + 1) % 100
-        )::text, 2, '0')
-      ),
-      needs_admission_year_review = TRUE,
+      admission_academic_year = c.adm_ay,
+      entry_type = c.entry_type,
+      entry_study_year = c.entry_study_year,
+      needs_admission_year_review = FALSE,
       academic_updated_at = now()
-    WHERE (s.admission_academic_year IS NULL OR s.admission_academic_year = '')
-      AND upper(regexp_replace(s.reg_no, '[^A-Za-z0-9]', '', 'g'))
-          ~ '^171[A-Z]{2,4}[0-9]{2}[0-9]{3,4}$'
+    FROM calc c
+    WHERE s.reg_no = c.reg_no
   `)
 
   await query(`
     UPDATE students SET needs_admission_year_review = TRUE
     WHERE admission_academic_year IS NULL OR admission_academic_year = ''
+  `)
+  // Normalize bare years left in column
+  await query(`
+    UPDATE students SET
+      admission_academic_year =
+        substring(admission_academic_year from '^(20[0-9]{2})')
+        || '-' ||
+        lpad(((substring(admission_academic_year from '^(20[0-9]{2})')::int + 1) % 100)::text, 2, '0')
+    WHERE admission_academic_year ~ '^20[0-9]{2}$'
   `)
 
   const { rowCount } = await query(
