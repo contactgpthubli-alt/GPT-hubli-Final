@@ -2138,8 +2138,8 @@ function demoLogin(role) {
   // Define what each role can SEE in the faculty sidebar (data-fac values)
   const roleAccess = {
     faculty:      { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','timetable','results','acm','exam','office','est','cash','search','staff','activities'], sec: 'facHome', allBranches: false },
-    // HOD: no Teaching Staff Profile; no Staff/Activities (Student Data is already in the main desk)
-    hod:          { show: ['home','submitforms','approvals','accountapprovals','students','studentdata','stuprofile','attendance','timetable','results'], sec: 'facBranchStudents', allBranches: false },
+    // HOD: no Teaching Staff Profile; no Student Profile (use Students / Student Data desks instead)
+    hod:          { show: ['home','submitforms','approvals','accountapprovals','students','studentdata','attendance','timetable','results'], sec: 'facBranchStudents', allBranches: false },
     teaching:     { show: ['home','myprofile','submitforms','approvals','stuprofile','attendance','results','staff','activities'], sec: 'facHome', allBranches: false },
     registrar:    { show: ['home','myprofile','submitforms','approvals','stuprofile','acm','exam','office','est','cash','search','staff','activities'], sec: 'facOffice', allBranches: false },
     // ACM uses scoped admin shell (Approvals + Students + Student Data + ACM) — see applyAcmAdminScope
