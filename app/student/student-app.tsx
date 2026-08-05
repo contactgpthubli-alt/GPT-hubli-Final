@@ -752,7 +752,7 @@ export default function StudentApp() {
   const loadDashboard = useCallback(async () => {
     setDataLoading(true)
     setDataErr("")
-    const [s, r, f, c, a, n, pr, sch, g, notif] = await Promise.all([
+    const [s, r, f, c, a, n, pr, sch, g, notif, exam] = await Promise.all([
       api<{ students: Student[] }>("/api/students"),
       api<{ results: ResultRow[] }>("/api/results"),
       api<{ forms: FormRow[] }>("/api/forms"),
@@ -763,10 +763,17 @@ export default function StudentApp() {
       api<{ schema?: SchemaSection[] | null }>("/api/profile-schema?key=student"),
       api<{ grievances: Grievance[] }>("/api/grievances"),
       api<{ notifications?: AppNotif[] }>("/api/notifications"),
+      api<{ cgpa?: string | null }>("/api/exam/attempts"),
     ])
 
     let nextStudent: Student | null = null
     if (s.ok && s.data?.students?.[0]) nextStudent = s.data.students[0]
+    // Live C-20 CGPA from exam results (grade points × credits)
+    if (exam.ok && exam.data?.cgpa && nextStudent) {
+      nextStudent = { ...nextStudent, cgpa: String(exam.data.cgpa) }
+    } else if (exam.ok && exam.data?.cgpa && !nextStudent) {
+      /* ignore */
+    }
     setStudent(nextStudent)
 
     if (r.ok && Array.isArray(r.data?.results)) setResults(r.data.results)

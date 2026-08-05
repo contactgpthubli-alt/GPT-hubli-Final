@@ -977,16 +977,118 @@ footer { background: var(--navy); color: rgba(255,255,255,0.65); padding: 50px 3
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } .qa-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Mobile menu button (hidden on desktop) */
+.db-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+.sb-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1100;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.sb-backdrop.show { display: block; }
+
 @media (max-width: 768px) {
   .topbar { display: none; }
   .hdr-inner { padding: 10px 16px; }
   .hero-stats { display: none; }
   .sec { padding: 36px 16px; }
   .ft-inner { grid-template-columns: 1fr; gap: 20px; }
-  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .kpi-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-card { padding: 12px 10px; }
+  .kpi-val { font-size: 1.25rem !important; }
   .notices-grid { grid-template-columns: 1fr; }
-  .db-main { margin-left: 0; }
-  .sb { display: none; }
+  .qa-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stu-menu-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stu-menu-card { padding: 14px 10px; }
+  .db-main { margin-left: 0; width: 100%; max-width: 100vw; }
+  .db-topbar {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .db-title { font-size: 0.95rem; line-height: 1.25; max-width: 55vw; }
+  .db-user { gap: 6px; }
+  .db-user span { display: none; } /* hide long name text on tiny screens */
+  .db-menu-btn { display: inline-flex; }
+
+  /* Off-canvas sidebar (was fully hidden — unusable) */
+  .sb {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(280px, 86vw);
+    max-width: 280px;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    z-index: 1200;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+  .sb.sb-open { transform: translateX(0); }
+
+  .db-content, .db-main > div[id] { padding-left: 12px !important; padding-right: 12px !important; }
+  .form-row,
+  .form-row.three,
+  .form-row.two { grid-template-columns: 1fr !important; }
+  .card { margin-bottom: 12px; }
+  .card-hd { flex-wrap: wrap; gap: 8px; padding: 12px !important; }
+  .card-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btn, button.btn { min-height: 40px; }
+  input, select, textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+    max-width: 100%;
+  }
+  table.data-table,
+  .data-table { font-size: 0.78rem; }
+  .data-table th, .data-table td { padding: 8px 6px; }
+  /* Horizontal scroll wrappers for wide tables */
+  .card > div[style*="overflow"],
+  #attHistoryHost,
+  #attGrid { -webkit-overflow-scrolling: touch; }
+  #attPeriodChips { gap: 6px !important; }
+  .att-period-chip { font-size: 0.75rem !important; padding: 8px !important; }
+  .info-box, .warn-box { font-size: 0.82rem; line-height: 1.45; }
+  .modal, .modal-box { max-width: 96vw !important; margin: 8px; }
+  /* Exam verification two-pane → stack */
+  #hodExRvList > div[style*="grid"],
+  [id$="RvList"] > div[style*="grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  [id$="RvStudentList"] {
+    max-height: 220px !important;
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .db-menu-btn { display: none !important; }
+  .sb-backdrop { display: none !important; }
+  .sb.sb-open { transform: none; }
+}
+
+@media (max-width: 420px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .qa-grid, .stu-menu-grid { grid-template-columns: 1fr; }
 }
   .pf-field[readonly],.pf-field:disabled{background:#f8fafc;color:#64748b;cursor:not-allowed;}
   .pf-field.editable{background:#fff!important;color:var(--navy)!important;cursor:text!important;border-color:#1a4fa0!important;}

@@ -6,6 +6,8 @@ import {
   staffCanAccessReg,
   curriculumForStudentWithPathway,
   effectiveSubjectStatus,
+  computeCgpaFromAttempts,
+  recomputeAndStoreStudentCgpa,
   type AttemptResult,
   type AttemptStatus,
   type ExamAttemptRow,
@@ -135,6 +137,30 @@ export async function GET(req: Request) {
     const term_parity = inferTermParityFromDate()
     const active_academic_year = inferAcademicYearFromDate()
     const current_semester = ctx ? inferCurrentSemester(ctx.current_study_year) : null
+    const cgpa_official = ctx
+      ? computeCgpaFromAttempts(attempts, {
+          branch_code: ctx.branch_code,
+          scheme: ctx.scheme,
+          entry_type: ctx.entry_type,
+          provisional: false,
+        })
+      : null
+    const cgpa_live = ctx
+      ? computeCgpaFromAttempts(attempts, {
+          branch_code: ctx.branch_code,
+          scheme: ctx.scheme,
+          entry_type: ctx.entry_type,
+          provisional: true,
+        })
+      : null
+    // Persist official (or provisional fallback) so dashboard KPI has data
+    if (ctx) {
+      try {
+        await recomputeAndStoreStudentCgpa(reg)
+      } catch {
+        /* ignore store failures */
+      }
+    }
     return Response.json({
       attempts,
       effective: effectiveSubjectStatus(attempts),
@@ -148,6 +174,11 @@ export async function GET(req: Request) {
       term_label: termParityLabel(term_parity),
       active_academic_year,
       current_semester,
+      cgpa: cgpa_live?.label || cgpa_official?.label || null,
+      cgpa_detail: {
+        live: cgpa_live,
+        official: cgpa_official,
+      },
     })
   }
 
@@ -355,12 +386,21 @@ export async function POST(req: Request) {
     `SELECT * FROM student_exam_attempts WHERE reg_no = $1 ORDER BY semester, subject_code, id`,
     [regNo],
   )
+  const mapped = rows.map(mapRow)
+  let cgpa = null
+  try {
+    const detail = await recomputeAndStoreStudentCgpa(regNo)
+    cgpa = detail?.label || null
+  } catch {
+    /* ignore */
+  }
   return Response.json({
     ok: true,
     saved: saved.length,
     errors,
-    attempts: rows.map(mapRow),
-    effective: effectiveSubjectStatus(rows.map(mapRow)),
+    attempts: mapped,
+    effective: effectiveSubjectStatus(mapped),
+    cgpa,
   })
 }
 
@@ -432,6 +472,24 @@ export async function PATCH(req: Request) {
         [id],
       )
       results.push({ id, ok: true })
+    }
+  }
+
+  // Recompute CGPA for affected students after verify/reject/unlock
+  const regs = new Set<string>()
+  for (const id of ids) {
+    try {
+      const { rows } = await query(`SELECT reg_no FROM student_exam_attempts WHERE id = $1`, [id])
+      if (rows[0]?.reg_no) regs.add(String(rows[0].reg_no))
+    } catch {
+      /* ignore */
+    }
+  }
+  for (const reg of regs) {
+    try {
+      await recomputeAndStoreStudentCgpa(reg)
+    } catch {
+      /* ignore */
     }
   }
 

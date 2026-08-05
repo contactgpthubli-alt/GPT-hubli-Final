@@ -11,6 +11,12 @@ import {
   type EntryType,
 } from "@/lib/academic-year"
 import {
+  computeCgpaFromCourses,
+  creditsMapFromCurriculum,
+  defaultSubjectCredits,
+  type CgpaResult,
+} from "@/lib/c20-grade-points"
+import {
   branchCodeFromDept,
   getCurriculumSubjects,
   schemeFromAdmissionYear,
@@ -172,6 +178,117 @@ export function effectiveSubjectStatus(attempts: ExamAttemptRow[]): {
     })
   }
   return out.sort((a, b) => a.semester - b.semester || a.subject_code.localeCompare(b.subject_code))
+}
+
+/**
+ * Live CGPA from exam attempts using C-20 grade points + curriculum credits.
+ * - Official: only verified attempts
+ * - Provisional: verified + pending (student self-view before HOD ticks)
+ */
+export function computeCgpaFromAttempts(
+  attempts: ExamAttemptRow[],
+  opts: {
+    branch_code: BranchCode | null
+    scheme?: string
+    entry_type?: EntryType
+    /** true = include pending passes for student KPI */
+    provisional?: boolean
+  },
+): CgpaResult {
+  const provisional = !!opts.provisional
+  const allowed = new Set(provisional ? ["verified", "pending"] : ["verified"])
+  const bySub = new Map<string, ExamAttemptRow>()
+  for (const a of attempts) {
+    if (!allowed.has(a.status)) continue
+    if (a.result !== "pass" && a.result !== "fail" && a.result !== "absent") continue
+    const prev = bySub.get(a.subject_code)
+    // Prefer verified pass, else latest
+    if (!prev) {
+      bySub.set(a.subject_code, a)
+      continue
+    }
+    const aScore =
+      (a.status === "verified" && a.result === "pass" ? 100 : 0) +
+      (a.result === "pass" ? 10 : 0) +
+      Number(a.id)
+    const pScore =
+      (prev.status === "verified" && prev.result === "pass" ? 100 : 0) +
+      (prev.result === "pass" ? 10 : 0) +
+      Number(prev.id)
+    if (aScore >= pScore) bySub.set(a.subject_code, a)
+  }
+
+  const curriculum =
+    opts.branch_code && (opts.scheme || "C-20") === "C-20"
+      ? getCurriculumSubjects({
+          scheme: "C-20",
+          branch: opts.branch_code,
+          entryType: opts.entry_type || "regular",
+          includeYear1ForLateral: true,
+        })
+      : []
+  const creditMap = creditsMapFromCurriculum(curriculum)
+
+  const courses = Array.from(bySub.values()).map((a) => ({
+    subject_code: a.subject_code,
+    subject_name: a.subject_name,
+    grade: a.grade,
+    result: a.result,
+    semester: a.semester,
+    credits:
+      creditMap.get(a.subject_code.toUpperCase()) ??
+      defaultSubjectCredits({ code: a.subject_code, name: a.subject_name }),
+  }))
+
+  return computeCgpaFromCourses(courses, { provisional })
+}
+
+/** Persist CGPA string onto students.cgpa (official = verified only). */
+export async function recomputeAndStoreStudentCgpa(regNo: string): Promise<CgpaResult | null> {
+  const ctx = await loadStudentContext(regNo)
+  if (!ctx) return null
+  const { rows } = await query(
+    `SELECT * FROM student_exam_attempts WHERE reg_no = $1 ORDER BY id`,
+    [regNo],
+  )
+  const attempts = rows.map((r) => ({
+    id: Number(r.id),
+    reg_no: String(r.reg_no),
+    scheme: String(r.scheme),
+    branch_code: String(r.branch_code),
+    semester: Number(r.semester),
+    subject_code: String(r.subject_code),
+    subject_name: String(r.subject_name),
+    exam_session: String(r.exam_session),
+    result: String(r.result) as AttemptResult,
+    grade: String(r.grade || ""),
+    cie_marks: r.cie_marks != null ? Number(r.cie_marks) : null,
+    see_marks: r.see_marks != null ? Number(r.see_marks) : null,
+    status: String(r.status) as AttemptStatus,
+    reject_note: r.reject_note != null ? String(r.reject_note) : null,
+    submitted_at: r.submitted_at ? String(r.submitted_at) : null,
+    verified_at: r.verified_at ? String(r.verified_at) : null,
+    verified_by_name: r.verified_by_name != null ? String(r.verified_by_name) : null,
+    verifier_role: r.verifier_role != null ? String(r.verifier_role) : null,
+  }))
+  const official = computeCgpaFromAttempts(attempts, {
+    branch_code: ctx.branch_code,
+    scheme: ctx.scheme,
+    entry_type: ctx.entry_type,
+    provisional: false,
+  })
+  const provisional = computeCgpaFromAttempts(attempts, {
+    branch_code: ctx.branch_code,
+    scheme: ctx.scheme,
+    entry_type: ctx.entry_type,
+    provisional: true,
+  })
+  // Store best available: official first, else provisional so KPI is not empty after student entry
+  const label = official.label || provisional.label
+  if (label) {
+    await query(`UPDATE students SET cgpa = $2 WHERE UPPER(reg_no) = UPPER($1)`, [regNo, label])
+  }
+  return official.label ? official : provisional
 }
 
 /** Same fee rules as legacy Exam Fees calculator. */

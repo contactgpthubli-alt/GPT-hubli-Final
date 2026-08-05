@@ -119,12 +119,30 @@ function __initGptBridge() {
     setText('stuProfileMeta', profMeta.length ? profMeta.join(' · ') : '—');
 
     var cgpa = stu && stu.cgpa != null && String(stu.cgpa).trim() !== '' ? String(stu.cgpa) : null;
+    // Live C-20 CGPA from verified/pending exam results (grade points × credits)
+    try {
+      var examCg = await apiReqQuiet('/api/exam/attempts');
+      if (examCg && examCg.cgpa) {
+        cgpa = String(examCg.cgpa);
+        if (stu) stu.cgpa = cgpa;
+      } else if (examCg && examCg.cgpa_detail) {
+        var det = examCg.cgpa_detail.live || examCg.cgpa_detail.official;
+        if (det && det.label) {
+          cgpa = String(det.label);
+          if (stu) stu.cgpa = cgpa;
+        }
+      }
+    } catch (eCg) { /* ignore */ }
     setText('stuKpiCgpa', cgpa || '—');
     if (cgpa) {
       var cg = parseFloat(cgpa);
-      setTrend('stuKpiCgpaTrend', cg >= 7 ? '↑ Good Standing' : cg >= 5 ? '→ Average' : '↓ Needs attention', cg >= 7 ? 'up' : cg >= 5 ? '' : 'dn');
+      setTrend(
+        'stuKpiCgpaTrend',
+        cg >= 7 ? '↑ Good Standing (C-20)' : cg >= 5 ? '→ Average (C-20)' : '↓ Needs attention (C-20)',
+        cg >= 7 ? 'up' : cg >= 5 ? '' : 'dn',
+      );
     } else {
-      setTrend('stuKpiCgpaTrend', 'No data yet', '');
+      setTrend('stuKpiCgpaTrend', 'Enter results → live CGPA', '');
     }
 
     var attRaw = stu && stu.att != null ? String(stu.att).trim() : '';
@@ -171,7 +189,7 @@ function __initGptBridge() {
       else if (pr && Array.isArray(pr.pending)) pendingApprovals = pr.pending.length;
     } catch (e) { /* ignore */ }
 
-    // If student.cgpa is empty, derive a simple average from loaded results
+    // Fallback: average published SGPAs if no exam-attempt CGPA yet
     if ((!cgpa || cgpa === '—') && reg && typeof resultDB !== 'undefined' && Array.isArray(resultDB)) {
       var mineRes = resultDB.filter(function (r) { return r.reg === reg && r.sgpa != null; });
       if (mineRes.length) {
@@ -8734,44 +8752,264 @@ setInterval(function () {
     return host;
   }
 
+  /** Map full branch name → C-20 code for curriculum API. */
+  function attBranchCode(branchName) {
+    var n = attNormalizeBranch(branchName || '').toLowerCase();
+    if (n.indexOf('civil') >= 0) return 'CE';
+    if (n.indexOf('computer') >= 0 || n.indexOf('cse') >= 0) return 'CSE';
+    if (n.indexOf('electron') >= 0 || n.indexOf('ece') >= 0) return 'ECE';
+    if (n.indexOf('mech') >= 0) return 'ME';
+    return '';
+  }
+
+  /** Year I/II/III → semester pairs for subject filter. */
+  function attSemestersForYear(year) {
+    var y = String(year || '').trim().toUpperCase();
+    if (y === 'I' || y === '1') return [1, 2];
+    if (y === 'II' || y === '2') return [3, 4];
+    if (y === 'III' || y === '3') return [5, 6];
+    return [1, 2, 3, 4, 5, 6];
+  }
+
   function ensureAttSubjectInput() {
     var sel = document.getElementById('attSubject');
     if (!sel) return null;
-    // Convert select → text input so Civil/ME/EC can enter real subjects
-    if (sel.tagName === 'INPUT') return sel;
+    // Prefer select with C-20 subjects (still allow free type via datalist-backed input if needed)
+    if (sel.tagName === 'SELECT' && sel.getAttribute('data-c20') === '1') return sel;
     var fg = sel.parentNode;
     var val = sel.value || '';
-    var inp = document.createElement('input');
-    inp.type = 'text';
-    inp.id = 'attSubject';
-    inp.placeholder = 'e.g. Strength of Materials / Data Structures';
-    inp.value = val;
-    inp.setAttribute('list', 'attSubjectSuggestions');
-    var dl = document.getElementById('attSubjectSuggestions');
-    if (!dl) {
-      dl = document.createElement('datalist');
-      dl.id = 'attSubjectSuggestions';
-      dl.innerHTML =
-        '<option value="Engineering Mathematics"></option>' +
-        '<option value="Communication Skills"></option>' +
-        '<option value="Applied Science"></option>' +
-        '<option value="Computer Fundamentals"></option>' +
-        '<option value="Strength of Materials"></option>' +
-        '<option value="Surveying"></option>' +
-        '<option value="Data Structures"></option>' +
-        '<option value="Database Systems"></option>' +
-        '<option value="Computer Networks"></option>' +
-        '<option value="Digital Electronics"></option>' +
-        '<option value="Microcontrollers"></option>' +
-        '<option value="Thermodynamics"></option>' +
-        '<option value="Manufacturing Technology"></option>' +
-        '<option value="Workshop Practice"></option>';
-      (fg || document.body).appendChild(dl);
+    // Replace with searchable select-like: select + "Other" text
+    var wrap = document.createElement('div');
+    wrap.id = 'attSubjectWrap';
+    wrap.innerHTML =
+      '<select id="attSubject" data-c20="1" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;">' +
+      '<option value="">Loading C-20 subjects…</option></select>' +
+      '<input id="attSubjectOther" type="text" placeholder="Or type subject name if not listed" ' +
+      'style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:0.82rem;display:none;" />';
+    if (fg) {
+      fg.innerHTML = '<label>Subject (C-20 Sem 1–6)</label>';
+      fg.appendChild(wrap);
+    } else if (sel.parentNode) {
+      sel.parentNode.replaceChild(wrap, sel);
     }
-    if (fg) fg.replaceChild(inp, sel);
-    else sel.parentNode.replaceChild(inp, sel);
-    return inp;
+    var yearEl = document.getElementById('attYear');
+    var branchEl = document.getElementById('attBranch');
+    function reload() {
+      window.loadAttCurriculumSubjects && window.loadAttCurriculumSubjects();
+    }
+    if (yearEl && !yearEl.__attSubjBound) {
+      yearEl.__attSubjBound = true;
+      yearEl.addEventListener('change', reload);
+    }
+    if (branchEl && !branchEl.__attSubjBound) {
+      branchEl.__attSubjBound = true;
+      branchEl.addEventListener('change', reload);
+    }
+    setTimeout(reload, 50);
+    if (val) {
+      var other = document.getElementById('attSubjectOther');
+      if (other) {
+        other.style.display = '';
+        other.value = val;
+      }
+    }
+    return document.getElementById('attSubject');
   }
+
+  window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
+    var sel = document.getElementById('attSubject');
+    if (!sel) return;
+    var branch =
+      (document.getElementById('attBranch') && document.getElementById('attBranch').value) ||
+      (window.currentUser && window.currentUser.role === 'hod' ? attHodBranch(window.currentUser) : '') ||
+      '';
+    branch = attNormalizeBranch(branch);
+    var code = attBranchCode(branch);
+    var year = (document.getElementById('attYear') && document.getElementById('attYear').value) || '';
+    var sems = attSemestersForYear(year);
+    var prev = sel.value || '';
+    if (!code) {
+      sel.innerHTML =
+        '<option value="">Select branch first</option>' +
+        '<option value="__other__">Other / type below…</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Loading…</option>';
+    try {
+      var r = await fetch(
+        '/api/curriculum?scheme=C-20&branch=' +
+          encodeURIComponent(code) +
+          '&include_y1=1&_ts=' +
+          Date.now(),
+        { credentials: 'same-origin', cache: 'no-store' },
+      );
+      var data = await r.json().catch(function () { return null; });
+      var subjects = (data && data.subjects) || [];
+      subjects = subjects.filter(function (s) {
+        return sems.indexOf(Number(s.semester)) >= 0;
+      });
+      subjects.sort(function (a, b) {
+        return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
+      });
+      var html = '<option value="">Select subject (Sem ' + sems.join('/') + ')</option>';
+      var lastSem = null;
+      subjects.forEach(function (s) {
+        if (lastSem !== Number(s.semester)) {
+          lastSem = Number(s.semester);
+          html +=
+            '<option disabled value="">—— Semester ' + lastSem + ' ——</option>';
+        }
+        var label = s.code + ' — ' + s.name;
+        html +=
+          '<option value="' +
+          attEsc(label) +
+          '"' +
+          (prev === label ? ' selected' : '') +
+          '>' +
+          attEsc(label) +
+          '</option>';
+      });
+      html += '<option value="__other__">Other / type below…</option>';
+      sel.innerHTML = html;
+      if (prev && prev !== '__other__' && !subjects.some(function (s) {
+        return s.code + ' — ' + s.name === prev;
+      })) {
+        sel.value = '__other__';
+        var other0 = document.getElementById('attSubjectOther');
+        if (other0) {
+          other0.style.display = '';
+          other0.value = prev;
+        }
+      }
+      if (!sel.__otherBound) {
+        sel.__otherBound = true;
+        sel.addEventListener('change', function () {
+          var o = document.getElementById('attSubjectOther');
+          if (!o) return;
+          if (sel.value === '__other__') {
+            o.style.display = '';
+            o.focus();
+          } else {
+            o.style.display = 'none';
+            o.value = '';
+          }
+        });
+      }
+    } catch (e) {
+      sel.innerHTML =
+        '<option value="">Could not load C-20 subjects</option>' +
+        '<option value="__other__">Type subject below…</option>';
+    }
+  };
+
+  function attResolveSubjectValue() {
+    var sel = document.getElementById('attSubject');
+    var other = document.getElementById('attSubjectOther');
+    if (!sel) return '';
+    if (sel.value === '__other__') return other ? String(other.value || '').trim() : '';
+    return String(sel.value || '').trim();
+  }
+
+  /** 9am–6pm hourly period chips (continuous multi-select). */
+  function ensureAttPeriodSlots() {
+    var timeEl = document.getElementById('attTime');
+    if (!timeEl) return;
+    var host = document.getElementById('attPeriodHost');
+    if (host) return host;
+    var fg = timeEl.closest('.fg') || timeEl.parentNode;
+    host = document.createElement('div');
+    host.id = 'attPeriodHost';
+    host.className = 'fg';
+    host.style.gridColumn = '1 / -1';
+    var hours = [9, 10, 11, 12, 13, 14, 15, 16, 17];
+    var chips = hours
+      .map(function (h) {
+        var lab =
+          String(h).padStart(2, '0') +
+          ':00–' +
+          String(h + 1).padStart(2, '0') +
+          ':00';
+        return (
+          '<label class="att-period-chip" style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.8rem;user-select:none;background:#fff;">' +
+          '<input type="checkbox" class="att-period-cb" value="' +
+          h +
+          '" style="width:16px;height:16px;" />' +
+          '<span>' +
+          lab +
+          '</span></label>'
+        );
+      })
+      .join('');
+    host.innerHTML =
+      '<label style="display:block;margin-bottom:6px;font-weight:700;">Period slots (9:00–18:00)</label>' +
+      '<p style="margin:0 0 8px;font-size:0.78rem;opacity:.8;line-height:1.4;">' +
+      'Select <strong>every hour</strong> taught. Continuous class (e.g. 9–12) = check 3 slots → students get <strong>3 attendance units</strong> (not just 1).</p>' +
+      '<div id="attPeriodChips" style="display:flex;flex-wrap:wrap;gap:8px;">' +
+      chips +
+      '</div>' +
+      '<div id="attPeriodSummary" style="margin-top:8px;font-size:0.82rem;font-weight:700;color:var(--navy);"></div>';
+    if (fg && fg.parentNode) {
+      if (fg.nextSibling) fg.parentNode.insertBefore(host, fg.nextSibling);
+      else fg.parentNode.appendChild(host);
+    }
+    // Hide raw single time or keep as secondary
+    if (timeEl.closest('.fg')) {
+      var lab = timeEl.closest('.fg').querySelector('label');
+      if (lab) lab.textContent = 'Clock time (optional note)';
+    }
+    host.querySelectorAll('.att-period-cb').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        // auto-fill consecutive range when picking ends
+        window.attUpdatePeriodSummary && window.attUpdatePeriodSummary();
+      });
+    });
+    window.attUpdatePeriodSummary();
+    return host;
+  }
+
+  window.attGetSelectedPeriods = function () {
+    var boxes = document.querySelectorAll('#attPeriodHost .att-period-cb:checked');
+    var hours = [];
+    boxes.forEach(function (cb) {
+      hours.push(Number(cb.value));
+    });
+    hours.sort(function (a, b) { return a - b; });
+    return hours;
+  };
+
+  window.attUpdatePeriodSummary = function () {
+    var el = document.getElementById('attPeriodSummary');
+    if (!el) return;
+    var hours = window.attGetSelectedPeriods();
+    if (!hours.length) {
+      el.innerHTML = '<span style="color:#b45309;">⚠ Select at least one period (counts as 1 unit if none chosen at submit).</span>';
+      return;
+    }
+    var labels = hours.map(function (h) {
+      return String(h).padStart(2, '0') + ':00–' + String(h + 1).padStart(2, '0') + ':00';
+    });
+    el.innerHTML =
+      '✅ <strong>' +
+      hours.length +
+      '</strong> period unit(s): ' +
+      labels.join(', ') +
+      (hours.length > 1
+        ? ' — continuous class will give each Present student <strong>' + hours.length + '</strong> attendance counts.'
+        : '');
+    // Highlight selected chips
+    document.querySelectorAll('#attPeriodHost .att-period-chip').forEach(function (lab) {
+      var cb = lab.querySelector('.att-period-cb');
+      if (cb && cb.checked) {
+        lab.style.background = '#fff7ed';
+        lab.style.borderColor = '#ea580c';
+        lab.style.fontWeight = '700';
+      } else {
+        lab.style.background = '#fff';
+        lab.style.borderColor = 'var(--border)';
+        lab.style.fontWeight = '500';
+      }
+    });
+  };
 
   function ensureAttBatchSelectId() {
     var batchField = document.getElementById('batchField');
@@ -8873,6 +9111,7 @@ setInterval(function () {
     ensureAttSubjectInput();
     ensureAttYearSelect();
     ensureAttBatchSelectId();
+    ensureAttPeriodSlots();
 
     var dateEl = document.getElementById('attDate');
     if (dateEl && !dateEl.value) dateEl.value = attTodayISO();
@@ -8884,6 +9123,21 @@ setInterval(function () {
         ':' +
         String(now.getMinutes()).padStart(2, '0');
     }
+    // Default-select current hour slot if none checked
+    try {
+      var curH = new Date().getHours();
+      if (curH >= 9 && curH <= 17) {
+        var any = document.querySelector('#attPeriodHost .att-period-cb:checked');
+        if (!any) {
+          var def = document.querySelector('#attPeriodHost .att-period-cb[value="' + curH + '"]');
+          if (def) {
+            def.checked = true;
+            window.attUpdatePeriodSummary && window.attUpdatePeriodSummary();
+          }
+        }
+      }
+    } catch (e0) { /* ignore */ }
+    window.loadAttCurriculumSubjects && window.loadAttCurriculumSubjects();
 
     // Hide prototype-only end semester button spam or rewire lightly
     root.querySelectorAll('button').forEach(function (btn) {
@@ -9112,6 +9366,15 @@ setInterval(function () {
           '<button type="button" class="btn re" style="padding:4px 10px;font-size:0.72rem;" data-att-delete="' +
           attEsc(String(s.id)) +
           '" title="Permanently delete if created by mistake">Delete</button>';
+        var exportBtn =
+          '<button type="button" class="btn go" style="padding:4px 10px;font-size:0.72rem;" data-att-export="' +
+          attEsc(String(s.id)) +
+          '" title="Download Excel/CSV for this session">📊 Excel</button>';
+        var periodLabel =
+          s.att_time ||
+          (s.period_count
+            ? s.period_count + ' period(s)'
+            : '—');
         return (
           '<tr' +
           rowStyle +
@@ -9121,7 +9384,9 @@ setInterval(function () {
           '</td>' +
           '<td>' +
           attEsc(s.subject || '—') +
-          '</td>' +
+          '<div style="font-size:0.7rem;opacity:.75;margin-top:2px;">' +
+          attEsc(periodLabel) +
+          '</div></td>' +
           '<td>' +
           attEsc(s.year || 'All') +
           '</td>' +
@@ -9133,13 +9398,20 @@ setInterval(function () {
           ' P</span> ' +
           '<span class="badge" style="background:#fee2e2;color:#991b1b;">' +
           (st.absent != null ? st.absent : '—') +
-          ' A</span></td>' +
+          ' A</span>' +
+          (s.period_count
+            ? '<div style="font-size:0.68rem;margin-top:3px;opacity:.8;">×' +
+              s.period_count +
+              ' units</div>'
+            : '') +
+          '</td>' +
           '<td>' +
           statusBadge +
           '</td>' +
           '<td style="white-space:nowrap;">' +
           '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
           openBtn +
+          exportBtn +
           cancelBtn +
           delBtn +
           '</div></td>' +
@@ -9153,10 +9425,10 @@ setInterval(function () {
       '<h3 style="margin:0;font-size:0.92rem;">📋 Attendance register' +
       (branch ? ' · ' + attEsc(branch) : '') +
       '</h3>' +
-      '<p style="margin:6px 0 0;font-size:0.75rem;opacity:.75;">Cancel class keeps the row (not counted in student %). Delete permanently removes an accidental session.</p>' +
+      '<p style="margin:6px 0 0;font-size:0.75rem;opacity:.75;">Continuous multi-period classes count each hour. Export Excel downloads one session\'s roll. Cancel keeps the row (not in %).</p>' +
       '</div>' +
       '<div style="overflow:auto;"><table class="data-table" style="width:100%;font-size:0.82rem;">' +
-      '<thead><tr><th>Date</th><th>Subject</th><th>Year</th><th>Batch</th><th>Summary</th><th>Status</th><th>Actions</th></tr></thead>' +
+      '<thead><tr><th>Date</th><th>Subject / Periods</th><th>Year</th><th>Batch</th><th>Summary</th><th>Status</th><th>Actions</th></tr></thead>' +
       '<tbody>' +
       rows +
       '</tbody></table></div></div>';
@@ -9190,6 +9462,16 @@ setInterval(function () {
           window._attPrefillEntries = match.entries || [];
         }
         window.startAttendance();
+      });
+    });
+
+    host.querySelectorAll('[data-att-export]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-att-export');
+        var match = sessions.find(function (x) {
+          return String(x.id) === String(id);
+        });
+        if (match) window.exportAttendanceSessionExcel(match);
       });
     });
 
@@ -9381,7 +9663,8 @@ setInterval(function () {
       branch = attHodBranch(user) || branch;
     }
     branch = attNormalizeBranch(branch);
-    var subj = subjEl ? String(subjEl.value || '').trim() : '';
+    var subj = typeof attResolveSubjectValue === 'function' ? attResolveSubjectValue() : (subjEl ? String(subjEl.value || '').trim() : '');
+    if (subj === '__other__') subj = '';
     var year = yearEl ? String(yearEl.value || '').trim() : '';
     var attDate = dateEl && dateEl.value ? dateEl.value : attTodayISO();
     var classType = classTypeEl ? classTypeEl.value : 'Regular Class';
@@ -9389,6 +9672,12 @@ setInterval(function () {
       classType && String(classType).toLowerCase().indexOf('batch') >= 0 && batchEl
         ? String(batchEl.value || '').trim()
         : '';
+    var periods = (window.attGetSelectedPeriods && window.attGetSelectedPeriods()) || [];
+    if (!periods.length) {
+      var th = new Date().getHours();
+      if (th >= 9 && th <= 17) periods = [th];
+      else periods = [9];
+    }
 
     if (!branch) {
       alert(
@@ -9399,7 +9688,7 @@ setInterval(function () {
       return;
     }
     if (!subj) {
-      alert('Please enter Subject first.');
+      alert('Please select a C-20 subject (or type under Other).');
       return;
     }
 
@@ -9425,7 +9714,10 @@ setInterval(function () {
         (year ? ' · ' + year + ' Yr' : '') +
         (batch ? ' · ' + batch : '') +
         ' · ' +
-        attDate;
+        attDate +
+        ' · ' +
+        periods.length +
+        ' period(s)';
     }
 
     // Fast dedicated roster API (no photos, no heavy student list)
@@ -9548,6 +9840,8 @@ setInterval(function () {
       time: attTimeVal,
       class_type: classType,
       batch: batch || null,
+      periods: periods,
+      period_count: periods.length,
     };
 
     try {
@@ -9706,6 +10000,10 @@ setInterval(function () {
       return e.status === 'A';
     }).length;
 
+    var periodList =
+      (meta.periods && meta.periods.length
+        ? meta.periods
+        : (window.attGetSelectedPeriods && window.attGetSelectedPeriods()) || []) || [];
     var res = await api.post('/api/attendance', {
       branch: meta.branch,
       subject: meta.subject,
@@ -9714,6 +10012,8 @@ setInterval(function () {
       time: meta.time || (document.getElementById('attTime') && document.getElementById('attTime').value) || null,
       class_type: meta.class_type,
       batch: meta.batch,
+      periods: periodList,
+      period_count: periodList.length || 1,
       entries: entries,
     });
     if (!res || !res.ok) return;
@@ -9725,6 +10025,7 @@ setInterval(function () {
       .map(function (e) {
         return e.reg;
       });
+    var pc = (res.attendance && res.attendance.period_count) || periodList.length || 1;
     var msg =
       '✅ Attendance saved for ' +
       entries.length +
@@ -9733,7 +10034,11 @@ setInterval(function () {
       present +
       ' · Absent: ' +
       absent +
-      '\n' +
+      '\nPeriod units: ' +
+      pc +
+      ' (each Present counts as ' +
+      pc +
+      ')\n' +
       meta.subject +
       ' · ' +
       meta.branch +
@@ -9766,6 +10071,93 @@ setInterval(function () {
     }
     loadAttendanceHistory();
   }
+
+  /** Excel-friendly CSV export for one attendance session. */
+  window.exportAttendanceSessionExcel = function exportAttendanceSessionExcel(session) {
+    if (!session) {
+      alert('Session not found');
+      return;
+    }
+    var entries = session.entries || [];
+    var date = session.att_date ? String(session.att_date).slice(0, 10) : '';
+    var pc = session.period_count || 1;
+    var periods = session.att_time || '';
+    var lines = [];
+    lines.push(
+      [
+        'Reg No',
+        'Name',
+        'Status',
+        'Present',
+        'Period Units',
+        'Subject',
+        'Date',
+        'Periods',
+        'Branch',
+        'Year',
+        'Batch',
+        'Class Type',
+        'Session Status',
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+    function csvCell(v) {
+      var s = v == null ? '' : String(v);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+    entries.forEach(function (e) {
+      var st = e.status || (e.present ? 'P' : 'A');
+      lines.push(
+        [
+          e.reg || e.reg_no || '',
+          e.name || '',
+          st === 'P' ? 'Present' : st === 'A' ? 'Absent' : st,
+          st === 'P' ? 'Yes' : 'No',
+          pc,
+          session.subject || '',
+          date,
+          periods,
+          session.branch || '',
+          session.year || '',
+          session.batch || '',
+          session.class_type || '',
+          session.session_status || 'active',
+        ]
+          .map(csvCell)
+          .join(','),
+      );
+    });
+    // Summary rows
+    lines.push('');
+    lines.push(csvCell('Total students') + ',' + csvCell(entries.length));
+    lines.push(
+      csvCell('Present') +
+        ',' +
+        csvCell(entries.filter(function (e) { return (e.status || (e.present ? 'P' : 'A')) === 'P'; }).length),
+    );
+    lines.push(
+      csvCell('Absent') +
+        ',' +
+        csvCell(entries.filter(function (e) { return (e.status || (e.present ? 'P' : 'A')) === 'A'; }).length),
+    );
+    lines.push(csvCell('Period units (each present multiplies)') + ',' + csvCell(pc));
+    var bom = '\uFEFF';
+    var blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    var safeSub = String(session.subject || 'session')
+      .replace(/[^\w\-]+/g, '_')
+      .slice(0, 40);
+    a.href = URL.createObjectURL(blob);
+    a.download = 'attendance_' + date + '_' + safeSub + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
+  };
 
   // Expose for onclick + legacy-app proxy (must not rely on bare currentUser)
   window.__gpthStartAttendance = startAttendanceLive;
@@ -11878,5 +12270,100 @@ setInterval(function () {
   setInterval(activateLiveFormsIfVisible, 2000);
 
   console.log('[bridge] live forms handlers installed (v=forms-fix)');
+})();
+
+/* ============================================================
+   Mobile sidebar (hamburger) — keep full navigation on phones
+   ============================================================ */
+(function () {
+  'use strict';
+
+  function closeMobileNav() {
+    document.querySelectorAll('.sb.sb-open').forEach(function (sb) {
+      sb.classList.remove('sb-open');
+    });
+    document.querySelectorAll('.sb-backdrop.show').forEach(function (b) {
+      b.classList.remove('show');
+    });
+    document.body.style.overflow = '';
+  }
+
+  function openMobileNav(sb) {
+    if (!sb) return;
+    sb.classList.add('sb-open');
+    var bd = document.getElementById('sbBackdrop');
+    if (bd) bd.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function ensureBackdrop() {
+    var bd = document.getElementById('sbBackdrop');
+    if (bd) return bd;
+    bd = document.createElement('button');
+    bd.type = 'button';
+    bd.id = 'sbBackdrop';
+    bd.className = 'sb-backdrop';
+    bd.setAttribute('aria-label', 'Close menu');
+    bd.addEventListener('click', closeMobileNav);
+    document.body.appendChild(bd);
+    return bd;
+  }
+
+  function ensureMenuButtons() {
+    ensureBackdrop();
+    document.querySelectorAll('.db-topbar').forEach(function (bar) {
+      if (bar.querySelector('.db-menu-btn')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'db-menu-btn';
+      btn.setAttribute('aria-label', 'Open menu');
+      btn.innerHTML = '☰';
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var wrap = bar.closest('.db') || bar.closest('.db-wrap') || document;
+        var sb = wrap.querySelector('.sb') || document.querySelector('.db.show .sb') || document.querySelector('.sb');
+        if (!sb) return;
+        if (sb.classList.contains('sb-open')) closeMobileNav();
+        else openMobileNav(sb);
+      });
+      // Insert at start of topbar
+      if (bar.firstChild) bar.insertBefore(btn, bar.firstChild);
+      else bar.appendChild(btn);
+    });
+
+    // Close drawer when a sidebar link is tapped
+    document.querySelectorAll('.sb .sl, .sb .sb-menu a, .sb [data-fac]').forEach(function (el) {
+      if (el.__mobNavBound) return;
+      el.__mobNavBound = true;
+      el.addEventListener('click', function () {
+        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+          setTimeout(closeMobileNav, 120);
+        }
+      });
+    });
+  }
+
+  function bootMobNav() {
+    try {
+      ensureMenuButtons();
+    } catch (e) {
+      console.warn('[mobile-nav]', e);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(bootMobNav, 200);
+    });
+  } else {
+    setTimeout(bootMobNav, 200);
+  }
+  setInterval(bootMobNav, 2500);
+  window.addEventListener('resize', function () {
+    if (window.matchMedia && window.matchMedia('(min-width: 769px)').matches) closeMobileNav();
+  });
+  window.__gpthCloseMobileNav = closeMobileNav;
+  console.log('[bridge] mobile nav installed');
 })();
 

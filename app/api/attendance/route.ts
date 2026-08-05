@@ -34,9 +34,20 @@ async function ensureAttendanceSchema() {
   await query(
     `ALTER TABLE attendance ADD COLUMN IF NOT EXISTS session_status TEXT NOT NULL DEFAULT 'active'`,
   )
+  // Multi-period continuous classes (9–6 slots): each selected hour counts as 1 attendance unit
+  await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS period_start INT`)
+  await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS period_end INT`)
+  await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS period_count INT NOT NULL DEFAULT 1`)
+  await query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS att_time TEXT`)
   await query(
     `CREATE INDEX IF NOT EXISTS idx_attendance_branch_date ON attendance (branch, att_date DESC)`,
   )
+  // Allow multiple sessions same subject/day when periods differ (continuous vs separate blocks)
+  await query(`ALTER TABLE attendance DROP CONSTRAINT IF EXISTS attendance_class_id_att_date_key`)
+  await query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS attendance_class_date_period_uidx
+      ON attendance (class_id, att_date, COALESCE(period_start, 0))
+  `)
 }
 
 function slugPart(v: string | null | undefined): string {
@@ -63,6 +74,61 @@ function makeClassId(input: {
     slugPart(input.batch || "all"),
     slugPart(input.class_type || "regular"),
   ].join("__")
+}
+
+/** Hourly slots 09:00–18:00 (college day 9 to 6). */
+export const ATT_PERIOD_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17] as const
+
+function clampPeriodHour(n: unknown): number | null {
+  const h = Number(n)
+  if (!Number.isFinite(h)) return null
+  if (h < 9 || h > 17) return null
+  return Math.floor(h)
+}
+
+/** Normalize multi-select periods → start hour, end hour (exclusive display end), count. */
+function normalizePeriods(b: Record<string, unknown>): {
+  period_start: number | null
+  period_end: number | null
+  period_count: number
+  att_time: string | null
+} {
+  let hours: number[] = []
+  if (Array.isArray(b.periods)) {
+    hours = b.periods.map(clampPeriodHour).filter((x): x is number => x != null)
+  } else if (b.period_start != null || b.period_end != null) {
+    const s = clampPeriodHour(b.period_start)
+    const e = clampPeriodHour(b.period_end)
+    if (s != null && e != null && e >= s) {
+      for (let h = s; h <= e; h++) hours.push(h)
+    } else if (s != null) hours = [s]
+  }
+  hours = [...new Set(hours)].sort((a, b) => a - b)
+  if (!hours.length) {
+    const timeStr =
+      (b.time != null && String(b.time).trim()) ||
+      (b.att_time != null && String(b.att_time).trim()) ||
+      ""
+    const m = timeStr.match(/^(\d{1,2})/)
+    if (m) {
+      const h = clampPeriodHour(m[1])
+      if (h != null) hours = [h]
+    }
+  }
+  if (!hours.length) {
+    return { period_start: null, period_end: null, period_count: 1, att_time: null }
+  }
+  const period_start = hours[0]
+  const period_end = hours[hours.length - 1]
+  const period_count = hours.length
+  const att_time = hours.map((h) => `${String(h).padStart(2, "0")}:00–${String(h + 1).padStart(2, "0")}:00`).join(", ")
+  return { period_start, period_end, period_count, att_time }
+}
+
+function periodWeight(row: { period_count?: unknown }): number {
+  const n = Number(row.period_count)
+  if (Number.isFinite(n) && n >= 1) return Math.min(12, Math.floor(n))
+  return 1
 }
 
 function normalizeEntries(raw: unknown): AttEntry[] {
@@ -99,7 +165,7 @@ async function recomputeStudentAttendance(regs: string[]) {
 
   for (const reg of unique) {
     const { rows } = await query(
-      `SELECT entries FROM attendance
+      `SELECT entries, period_count FROM attendance
         WHERE COALESCE(session_status, 'active') = 'active'
           AND (entries @> $1::jsonb OR entries::text ILIKE $2)`,
       [JSON.stringify([{ reg }]), `%"reg":"${reg}"%`],
@@ -112,8 +178,9 @@ async function recomputeStudentAttendance(regs: string[]) {
       if (!hit) continue
       // Wait counts as absent for percentage
       if (hit.status === "W") continue // skip incomplete wait sessions from %
-      total += 1
-      if (hit.status === "P") present += 1
+      const w = periodWeight(row)
+      total += w
+      if (hit.status === "P") present += w
     }
     // Zero sessions → clear % rather than leaving a stale value
     const label = total === 0 ? null : `${Math.round((present / total) * 1000) / 10}%`
@@ -151,7 +218,8 @@ export async function GET(req: Request) {
     const reg = String(user.reg_no || "").toUpperCase()
     if (!reg) return Response.json({ sessions: [], summary: null })
     const { rows } = await query(
-      `SELECT id, class_id, att_date, branch, subject, year_label, class_type, batch, entries, marked_by, created_at
+      `SELECT id, class_id, att_date, branch, subject, year_label, class_type, batch, entries, marked_by, created_at,
+              period_start, period_end, period_count, att_time
          FROM attendance
         WHERE COALESCE(session_status, 'active') = 'active'
           AND entries::text ILIKE $1
@@ -165,9 +233,10 @@ export async function GET(req: Request) {
       const entries = normalizeEntries(r.entries)
       const hit = entries.find((e) => e.reg.toUpperCase() === reg)
       const status = hit?.status || "A"
+      const w = periodWeight(r)
       if (status === "P" || status === "A") {
-        total += 1
-        if (status === "P") present += 1
+        total += w
+        if (status === "P") present += w
       }
       return {
         date: r.att_date,
@@ -175,6 +244,8 @@ export async function GET(req: Request) {
         subject: r.subject,
         status,
         present: status === "P",
+        period_count: w,
+        periods: r.att_time || null,
       }
     })
     const pct = total ? Math.round((present / total) * 1000) / 10 : null
@@ -229,7 +300,8 @@ export async function GET(req: Request) {
   const sql = `
     SELECT id, class_id, att_date, branch, subject, year_label, class_type, batch,
            entries, marked_by, created_at, updated_at,
-           COALESCE(session_status, 'active') AS session_status
+           COALESCE(session_status, 'active') AS session_status,
+           period_start, period_end, period_count, att_time
       FROM attendance
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY att_date DESC, id DESC
@@ -243,6 +315,7 @@ export async function GET(req: Request) {
     const absent = entries.filter((e) => e.status === "A").length
     const wait = entries.filter((e) => e.status === "W").length
     const sessionStatus = String(r.session_status || "active")
+    const pc = periodWeight(r)
     return {
       id: r.id,
       class_id: r.class_id,
@@ -258,7 +331,11 @@ export async function GET(req: Request) {
       updated_at: r.updated_at,
       session_status: sessionStatus,
       cancelled: sessionStatus === "cancelled",
-      stats: { total: entries.length, present, absent, wait },
+      period_start: r.period_start != null ? Number(r.period_start) : null,
+      period_end: r.period_end != null ? Number(r.period_end) : null,
+      period_count: pc,
+      att_time: r.att_time != null ? String(r.att_time) : null,
+      stats: { total: entries.length, present, absent, wait, period_count: pc },
     }
   })
 
@@ -327,38 +404,85 @@ export async function POST(req: Request) {
     makeClassId({ branch, subject, year, batch, class_type: classType })
 
   const attDate = b.date || b.att_date || null
+  const periods = normalizePeriods(b as Record<string, unknown>)
+  // Unique index is on (class_id, att_date, COALESCE(period_start,0)) — upsert via delete+insert or manual
+  const periodStartKey = periods.period_start ?? 0
 
-  const { rows } = await query(
-    `INSERT INTO attendance (
-        class_id, att_date, entries, marked_by,
-        branch, subject, year_label, class_type, batch, updated_at
-     ) VALUES (
-        $1, COALESCE($2::date, CURRENT_DATE), $3::jsonb, $4,
-        $5, $6, $7, $8, $9, now()
-     )
-     ON CONFLICT (class_id, att_date) DO UPDATE SET
-       entries = EXCLUDED.entries,
-       marked_by = EXCLUDED.marked_by,
-       branch = EXCLUDED.branch,
-       subject = EXCLUDED.subject,
-       year_label = EXCLUDED.year_label,
-       class_type = EXCLUDED.class_type,
-       batch = EXCLUDED.batch,
-       session_status = 'active',
-       updated_at = now()
-     RETURNING *`,
-    [
-      classId,
-      attDate,
-      JSON.stringify(entries),
-      user.id,
-      branch,
-      subject,
-      year,
-      classType,
-      batch,
-    ],
+  // Upsert: find existing row for same class/date/period block
+  const { rows: existing } = await query(
+    `SELECT id FROM attendance
+      WHERE class_id = $1
+        AND att_date = COALESCE($2::date, CURRENT_DATE)
+        AND COALESCE(period_start, 0) = $3
+      LIMIT 1`,
+    [classId, attDate, periodStartKey],
   )
+
+  let rows: Record<string, unknown>[]
+  if (existing[0]?.id) {
+    const upd = await query(
+      `UPDATE attendance SET
+         entries = $1::jsonb,
+         marked_by = $2,
+         branch = $3,
+         subject = $4,
+         year_label = $5,
+         class_type = $6,
+         batch = $7,
+         period_start = $8,
+         period_end = $9,
+         period_count = $10,
+         att_time = $11,
+         session_status = 'active',
+         updated_at = now()
+       WHERE id = $12
+       RETURNING *`,
+      [
+        JSON.stringify(entries),
+        user.id,
+        branch,
+        subject,
+        year,
+        classType,
+        batch,
+        periods.period_start,
+        periods.period_end,
+        periods.period_count,
+        periods.att_time,
+        existing[0].id,
+      ],
+    )
+    rows = upd.rows
+  } else {
+    const ins = await query(
+      `INSERT INTO attendance (
+          class_id, att_date, entries, marked_by,
+          branch, subject, year_label, class_type, batch,
+          period_start, period_end, period_count, att_time, updated_at
+       ) VALUES (
+          $1, COALESCE($2::date, CURRENT_DATE), $3::jsonb, $4,
+          $5, $6, $7, $8, $9,
+          $10, $11, $12, $13, now()
+       )
+       RETURNING *`,
+      [
+        classId,
+        attDate,
+        JSON.stringify(entries),
+        user.id,
+        branch,
+        subject,
+        year,
+        classType,
+        batch,
+        periods.period_start,
+        periods.period_end,
+        periods.period_count,
+        periods.att_time,
+      ],
+    )
+    rows = ins.rows
+  }
 
   // Best-effort % update on student rows
   try {
@@ -369,8 +493,13 @@ export async function POST(req: Request) {
 
   // Notify student + parent (same account; parent mode shows parent-kind alerts)
   // Prefer client date (YYYY-MM-DD), else RETURNING att_date as Date/ISO — never bare String(Date).
+  const rawAttDate = rows[0]?.att_date
   const attDateStr = toCanonicalDate(
-    (typeof attDate === "string" && attDate) || rows[0]?.att_date || new Date(),
+    (typeof attDate === "string" && attDate) ||
+      (typeof rawAttDate === "string" || rawAttDate instanceof Date
+        ? rawAttDate
+        : null) ||
+      new Date(),
   )
   // Prefer session time from client (attTime input); else mark time now
   const attTimeStr =
@@ -413,6 +542,10 @@ export async function POST(req: Request) {
       entries: normalizeEntries(row.entries),
       marked_by: row.marked_by,
       session_status: row.session_status || "active",
+      period_start: row.period_start != null ? Number(row.period_start) : null,
+      period_end: row.period_end != null ? Number(row.period_end) : null,
+      period_count: periodWeight(row),
+      att_time: row.att_time != null ? String(row.att_time) : periods.att_time,
     },
   })
 }
