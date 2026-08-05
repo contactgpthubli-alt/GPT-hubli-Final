@@ -65,24 +65,35 @@ export const C20_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
     s(6, "20CE61R", "Science and Research Pathway – Research Project", { pathway: "research" }),
     s(6, "20CE61E", "Entrepreneurship pathway – MVP / Incubation", { pathway: "entrepreneurship" }),
   ],
+  // CSE Sem 1–4 from official BTE Provisional Marks Cards (C-20)
+  // Sem 5–6 remain pathway-based (HOD assigns per academic year)
   CSE: [
+    // --- Semester I (Nov/Dec session subjects) ---
+    s(1, "20SC01T", "Engineering Mathematics", { year1_only: true }),
     s(1, "20CS11T", "Fundamentals of Computer", { year1_only: true }),
-    ...SHARED_Y1_BASE.map((x) => s(1, x.code, x.name, { year1_only: true })),
-    s(1, "20EC01P", "Fundamentals of Electrical & Electronics Engineering", { year1_only: true }),
-    s(1, "20ME02P", "Computer Aided Engineering Graphics", { year1_only: true }),
-    s(2, "20CS21P", "Multimedia & Animation", { year1_only: true }),
+    s(1, "20EC01P", "Fundamentals of Electrical & Electronics Engg", { year1_only: true }),
+    s(1, "20CS01P", "IT Skills", { year1_only: true }),
+    s(1, "20AU01T", "Environmental Sustainability", { year1_only: true }),
+    // --- Semester II (Apr/May session subjects) ---
     s(2, "20PM01T", "Project Management Skills", { year1_only: true }),
-    s(2, "20KA21T", "Sahitya Sinchana / Balake Kannada", { is_audit: true, year1_only: true }),
+    s(2, "20SC02P", "Statistics and Analytics", { year1_only: true }),
+    s(2, "20EG01P", "Communication Skills", { year1_only: true }),
+    s(2, "20ME02P", "Computer Aided Engineering Graphics", { year1_only: true }),
+    s(2, "20CS21P", "Multimedia & Animation", { year1_only: true }),
+    s(2, "20KA21T", "Sahithya Sinchana-1 / Balake Kannada-1", { is_audit: true, year1_only: true }),
+    // --- Semester III ---
     s(3, "20CS31P", "Python Programming"),
-    s(3, "20CS32P", "Computer Hardware, Maintenance and Administration"),
+    s(3, "20CS32P", "Computer Hardware, Maintenance & Administration"),
     s(3, "20CS33P", "Computer Networks"),
-    s(3, "20CS34P", "Database System Concepts and PL/SQL"),
-    s(3, "20KA31T", "Sahitya Sinchana-II / Balake Kannada-II", { is_audit: true }),
+    s(3, "20CS34P", "Database System Concepts & PL/SQL"),
+    s(3, "20KA31T", "Sahithya Sinchana-2 / Balake Kannada-2", { is_audit: true }),
+    // --- Semester IV ---
     s(4, "20CS41P", "Data Structures with Python"),
-    s(4, "20CS42P", "Operating System and Administration"),
-    s(4, "20CS43P", "Object Oriented Programming and Design with Java"),
-    s(4, "20CS44P", "Software Engineering Principles and Practices"),
+    s(4, "20CS42P", "Operating System & Administration"),
+    s(4, "20CS43P", "Object Oriented Programming & Design with Java"),
+    s(4, "20CS44P", "Software Engineering Principles & Practices"),
     s(4, "20CS45T", "Indian Constitution", { is_audit: true }),
+    // --- Semester V pathways (HOD offers / assigns each AY) ---
     s(5, "20CS51I", "Artificial Intelligence and Machine Learning", { pathway: "specialization" }),
     s(5, "20CS52I", "Full Stack Development", { pathway: "specialization" }),
     s(5, "20CS53I", "Cloud Computing", { pathway: "specialization" }),
@@ -92,6 +103,7 @@ export const C20_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
     s(5, "20RM53T", "Paper 3 – Research Methodology", { pathway: "research" }),
     s(5, "20TW54P", "Paper 4 – Technical Writing", { pathway: "research" }),
     s(5, "20ET51I", "Entrepreneurship and Start-up", { pathway: "entrepreneurship" }),
+    // --- Semester VI pathways ---
     s(6, "20CS61S", "Specialisation pathway – Internship / Project", { pathway: "specialization" }),
     s(6, "20CS61R", "Science and Research Pathway – Research Project", { pathway: "research" }),
     s(6, "20CS61E", "Entrepreneurship pathway – MVP / Incubation", { pathway: "entrepreneurship" }),
