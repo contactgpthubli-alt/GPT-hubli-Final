@@ -25,16 +25,18 @@ export default function Page() {
         {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
       {/* Instant CMS shell — hide old public landing before heavy scripts load */}
-      <Script src="/cms-boot.js?v=20260805a" strategy="beforeInteractive" />
+      <Script src="/cms-boot.js?v=20260805b" strategy="beforeInteractive" />
       {/* Core app scripts — afterInteractive so DOM from legacy body exists */}
-      <Script src="/legacy-app.js?v=20260805a" strategy="afterInteractive" />
+      <Script src="/legacy-app.js?v=20260805b" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order). */}
-      <Script src="/legacy-bridge.js?v=20260805a" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260805b" strategy="afterInteractive" />
+      {/* Exam results self-entry, verification, live fees + multi K2 (manual paid tick) */}
+      <Script src="/legacy-exam.js?v=20260805b" strategy="afterInteractive" />
       {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}
-      <Script src="/gpth-print.js?v=20260805a" strategy="lazyOnload" />
-      <Script src="/legacy-tc.js?v=20260805a" strategy="lazyOnload" />
-      <Script src="/legacy-acm-study.js?v=20260805a" strategy="lazyOnload" />
+      <Script src="/gpth-print.js?v=20260805b" strategy="lazyOnload" />
+      <Script src="/legacy-tc.js?v=20260805b" strategy="lazyOnload" />
+      <Script src="/legacy-acm-study.js?v=20260805b" strategy="lazyOnload" />
     </>
   )
 }

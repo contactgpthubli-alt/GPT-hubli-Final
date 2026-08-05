@@ -112,6 +112,52 @@ CREATE TABLE IF NOT EXISTS result_subjects (
 );
 CREATE INDEX IF NOT EXISTS idx_result_subjects_result ON result_subjects(result_id);
 
+-- ---------- Exam self-entry (C-20) + multi K2 challan (manual paid tick) ----------
+CREATE TABLE IF NOT EXISTS student_exam_attempts (
+  id            BIGSERIAL PRIMARY KEY,
+  reg_no        TEXT NOT NULL,
+  scheme        TEXT NOT NULL DEFAULT 'C-20',
+  branch_code   TEXT NOT NULL,
+  semester      INT  NOT NULL,
+  subject_code  TEXT NOT NULL,
+  subject_name  TEXT NOT NULL,
+  exam_session  TEXT NOT NULL,
+  result        TEXT NOT NULL DEFAULT 'fail',
+  grade         TEXT NOT NULL DEFAULT '',
+  cie_marks     INT,
+  see_marks     INT,
+  status        TEXT NOT NULL DEFAULT 'draft',
+  reject_note   TEXT,
+  submitted_at  TIMESTAMPTZ,
+  verified_at   TIMESTAMPTZ,
+  verified_by   BIGINT,
+  verified_by_name TEXT,
+  verifier_role TEXT,
+  created_by    BIGINT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS exam_fee_payments (
+  id              BIGSERIAL PRIMARY KEY,
+  reg_no          TEXT NOT NULL,
+  exam_cycle      TEXT NOT NULL DEFAULT 'current',
+  entry_type      TEXT NOT NULL DEFAULT 'regular',
+  computed_total  INT NOT NULL DEFAULT 0,
+  fine_amount     INT NOT NULL DEFAULT 0,
+  breakup         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status          TEXT NOT NULL DEFAULT 'due',
+  challans        JSONB NOT NULL DEFAULT '[]'::jsonb,
+  student_note    TEXT,
+  staff_note      TEXT,
+  submitted_at    TIMESTAMPTZ,
+  paid_marked_at  TIMESTAMPTZ,
+  paid_marked_by  BIGINT,
+  paid_marked_by_name TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ---------- Grievances ----------
 CREATE TABLE IF NOT EXISTS grievances (
   id           BIGSERIAL PRIMARY KEY,
