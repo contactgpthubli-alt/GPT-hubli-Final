@@ -89,6 +89,25 @@
       '<button type="button" class="btn ol" onclick="window.examPrintProvisional&&window.examPrintProvisional()">🖨️ Provisional card</button>' +
       '</div></div>' +
       '<div style="padding:12px 16px;">' +
+      '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid #93c5fd;background:#eff6ff;">' +
+      '<h3 style="margin:0 0 8px;font-size:0.95rem;color:#1e3a8a;">📷 Auto-fill from marks card</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.82rem;line-height:1.5;color:#1e40af;">' +
+      'Upload a <strong>clear photo</strong> of your official marks card / provisional card. ' +
+      'We read grades and fill the form. If anything is blurry or cut off, you will be asked to <strong>upload a new image</strong>. ' +
+      'The photo is stored <strong>only temporarily</strong> and <strong>deleted immediately</strong> after scanning — it is not kept in the portal.</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">' +
+      '<input type="file" id="examMarksCardFile" accept="image/jpeg,image/png,image/webp,image/*" ' +
+      'capture="environment" style="font-size:0.85rem;max-width:100%;" />' +
+      '<button type="button" class="btn go" id="examMarksCardScanBtn" ' +
+      'onclick="window.examScanMarksCard&&window.examScanMarksCard()" style="padding:10px 14px;">' +
+      '✨ Scan &amp; auto-fill</button>' +
+      '</div>' +
+      '<div id="examMarksCardPreview" style="margin-top:10px;display:none;">' +
+      '<img id="examMarksCardImg" alt="Marks card preview" ' +
+      'style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid #bfdbfe;" />' +
+      '</div>' +
+      '<div id="examMarksCardStatus" style="margin-top:10px;font-size:0.84rem;line-height:1.45;"></div>' +
+      '</div>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;">' +
       '<div><label style="font-size:0.75rem;font-weight:700;">Semester</label><br>' +
       '<select id="examStuSem" onchange="window.examStuOnSemChange&&window.examStuOnSemChange()" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
@@ -170,6 +189,227 @@
     var sel = document.getElementById('examStuSem');
     if (sel) sel.setAttribute('data-user-picked', '1');
     window.examStuPaintForm && window.examStuPaintForm();
+  };
+
+  /** Compress image client-side before upload (faster + under size limit). */
+  function examReadMarksCardFile(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) return reject(new Error('No file selected'));
+      if (!/^image\//i.test(file.type || '') && !/\.(jpe?g|png|webp)$/i.test(file.name || '')) {
+        return reject(new Error('Please choose a JPEG or PNG image of your marks card.'));
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        return reject(new Error('Image is too large. Take a closer photo under 12 MB, or compress it.'));
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Could not read the file.')); };
+      reader.onload = function () {
+        var dataUrl = String(reader.result || '');
+        // Resize if huge
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var maxW = 1800;
+            var scale = img.width > maxW ? maxW / img.width : 1;
+            var w = Math.round(img.width * scale);
+            var h = Math.round(img.height * scale);
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(dataUrl);
+              return;
+            }
+            ctx.drawImage(img, 0, 0, w, h);
+            var out = canvas.toDataURL('image/jpeg', 0.88);
+            resolve(out);
+          } catch (e) {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = function () { resolve(dataUrl); };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  window.examScanMarksCard = async function () {
+    var fileEl = document.getElementById('examMarksCardFile');
+    var status = document.getElementById('examMarksCardStatus');
+    var btn = document.getElementById('examMarksCardScanBtn');
+    var preview = document.getElementById('examMarksCardPreview');
+    var imgEl = document.getElementById('examMarksCardImg');
+    var file = fileEl && fileEl.files && fileEl.files[0];
+    if (!file) {
+      alert('Select a clear photo of your marks card first.');
+      return;
+    }
+    if (status) {
+      status.innerHTML =
+        '<span style="color:#1d4ed8;">⏳ Reading marks card… keep this page open. Image is temporary and will be deleted after scan.</span>';
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Scanning…';
+    }
+    try {
+      var dataUrl = await examReadMarksCardFile(file);
+      if (preview && imgEl) {
+        imgEl.src = dataUrl;
+        preview.style.display = '';
+      }
+      var sem = Number((document.getElementById('examStuSem') || {}).value || 0) || null;
+      var data = await api('/api/exam/marks-card-scan', {
+        method: 'POST',
+        body: { action: 'scan', image: dataUrl, semester: sem },
+      });
+      // Clear file input — image not kept client-side long term
+      try {
+        if (fileEl) fileEl.value = '';
+      } catch (e0) { /* ignore */ }
+
+      if (!data || !data.ok || !data.readable) {
+        var msg =
+          (data && (data.message || data.unreadable_reason || data.error)) ||
+          'Could not read marks card. Upload a NEW clearer image.';
+        if (status) {
+          status.innerHTML =
+            '<div style="padding:10px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">' +
+            '❌ <strong>Please upload a new image.</strong><br>' +
+            esc(msg) +
+            '<br><span style="font-size:0.78rem;opacity:.9;">Tips: full card visible, good light, no blur/glare, grades and subject codes sharp.</span></div>';
+        }
+        if (preview) preview.style.display = 'none';
+        if (imgEl) imgEl.removeAttribute('src');
+        return;
+      }
+
+      var fill = data.fill || {};
+      var subjects = fill.subjects || [];
+      if (fill.semester && document.getElementById('examStuSem')) {
+        document.getElementById('examStuSem').value = String(fill.semester);
+        document.getElementById('examStuSem').setAttribute('data-user-picked', '1');
+        window.examStuPaintForm && window.examStuPaintForm();
+      }
+
+      var applied = window.examApplyMarksCardFill(subjects);
+      var warns = (data.extract && data.extract.warnings) || data.warnings || [];
+      var warnHtml = warns.length
+        ? '<ul style="margin:8px 0 0;padding-left:1.1rem;">' +
+          warns.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') +
+          '</ul>'
+        : '';
+      if (status) {
+        status.innerHTML =
+          '<div style="padding:10px 12px;border-radius:8px;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;">' +
+          '✅ <strong>' +
+          esc(data.message || 'Fields filled') +
+          '</strong><br>' +
+          'Applied to <strong>' +
+          applied +
+          '</strong> subject row(s). Image deleted from server after scan.' +
+          (applied < subjects.length
+            ? '<br><span style="color:#92400e;">Some rows were skipped (already verified or not on form).</span>'
+            : '') +
+          warnHtml +
+          '<br><span style="font-size:0.78rem;">Review every grade carefully, then <strong>Save draft</strong> or <strong>Submit for verification</strong>.</span></div>';
+      }
+      // Drop preview image from DOM after success (no retention)
+      setTimeout(function () {
+        if (preview) preview.style.display = 'none';
+        if (imgEl) imgEl.removeAttribute('src');
+      }, 4000);
+    } catch (e) {
+      var errMsg = e && e.message ? e.message : String(e);
+      if (status) {
+        status.innerHTML =
+          '<div style="padding:10px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">' +
+          '❌ <strong>Please upload a new clearer image.</strong><br>' +
+          esc(errMsg) +
+          '</div>';
+      }
+      if (preview) preview.style.display = 'none';
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✨ Scan & auto-fill';
+      }
+    }
+  };
+
+  /** Apply scan results onto unlocked form rows (does not overwrite verified). */
+  window.examApplyMarksCardFill = function (subjects) {
+    if (!subjects || !subjects.length) return 0;
+    var applied = 0;
+    subjects.forEach(function (s) {
+      var code = String(s.subject_code || s.code || '').trim();
+      if (!code) return;
+      var rows = document.querySelectorAll('#examStuFormHost tr.exam-stu-row[data-code="' + code.replace(/"/g, '') + '"]');
+      if (!rows.length) {
+        // try case-insensitive
+        document.querySelectorAll('#examStuFormHost tr.exam-stu-row').forEach(function (tr) {
+          if (String(tr.getAttribute('data-code') || '').toUpperCase() === code.toUpperCase()) {
+            rows = [tr];
+          }
+        });
+      }
+      var target = null;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-locked') !== '1') {
+          target = rows[i];
+          break;
+        }
+      }
+      if (!target) return;
+      var sess = target.querySelector('.exam-sess');
+      var res = target.querySelector('.exam-res');
+      var grade = target.querySelector('.exam-grade');
+      if (sess && s.exam_session) {
+        var want = String(s.exam_session);
+        var found = false;
+        for (var j = 0; j < sess.options.length; j++) {
+          if (sess.options[j].value === want) {
+            sess.value = want;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          var opt = document.createElement('option');
+          opt.value = want;
+          opt.textContent = want;
+          sess.appendChild(opt);
+          sess.value = want;
+        }
+      }
+      if (res && s.result) {
+        var r = String(s.result).toLowerCase();
+        if (r === 'pass' || r === 'fail' || r === 'absent') res.value = r;
+      }
+      if (grade && s.grade) {
+        var g = String(s.grade);
+        var gFound = false;
+        for (var k = 0; k < grade.options.length; k++) {
+          if (grade.options[k].value === g) {
+            grade.value = g;
+            gFound = true;
+            break;
+          }
+        }
+        if (!gFound && g) {
+          var gOpt = document.createElement('option');
+          gOpt.value = g;
+          gOpt.textContent = g;
+          grade.appendChild(gOpt);
+          grade.value = g;
+        }
+      }
+      target.style.background = '#ecfdf5';
+      applied++;
+    });
+    return applied;
   };
 
   window.examStuPaintForm = function () {
