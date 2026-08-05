@@ -8762,20 +8762,112 @@ setInterval(function () {
     return '';
   }
 
-  /** Year I/II/III → semester pairs for subject filter. */
-  function attSemestersForYear(year) {
-    var y = String(year || '').trim().toUpperCase();
-    if (y === 'I' || y === '1') return [1, 2];
-    if (y === 'II' || y === '2') return [3, 4];
-    if (y === 'III' || y === '3') return [5, 6];
-    return [1, 2, 3, 4, 5, 6];
+  /**
+   * DTE term parity from calendar date (auto forever — no hard-coded year).
+   * June–December → odd (Sem 1/3/5); January–May → even (Sem 2/4/6).
+   * Academic year flips every June (e.g. Jun 2027 → AY 2027-28 odd).
+   */
+  function attParseLocalDate(input) {
+    if (input instanceof Date && !isNaN(input.getTime())) return input;
+    var s = String(input || '').trim();
+    if (s) {
+      var p = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (p) return new Date(Number(p[1]), Number(p[2]) - 1, Number(p[3]));
+    }
+    return new Date();
+  }
+
+  function attCalendarTermInfo(dateInput) {
+    var d = attParseLocalDate(dateInput);
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1; // 1–12
+    var odd = m >= 6;
+    var start = odd ? y : y - 1;
+    var ay = start + '-' + String((start + 1) % 100).padStart(2, '0');
+    return {
+      parity: odd ? 'odd' : 'even',
+      academic_year: ay,
+      label: odd ? 'Odd semester (Jun–Dec)' : 'Even semester (Jan–May)',
+      short: odd ? 'Odd' : 'Even',
+    };
+  }
+
+  /** Year I/II/III (or 1/2/3) → study year number. */
+  function attStudyYearNum(year) {
+    var y = String(year || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    if (!y || y === 'ALL' || y === 'ALL YEARS') return null;
+    if (y === 'III' || y === '3' || y === 'III YEAR' || y.indexOf('III') === 0) return 3;
+    if (y === 'II' || y === '2' || y === 'II YEAR' || y.indexOf('II') === 0) return 2;
+    if (y === 'I' || y === '1' || y === 'I YEAR' || y.indexOf('I') === 0) return 1;
+    var n = Number(y);
+    if (n === 1 || n === 2 || n === 3) return n;
+    return null;
+  }
+
+  /** Study year + term parity → single running semester (1–6). */
+  function attSemesterFromYearAndParity(studyYear, parity) {
+    var yn = typeof studyYear === 'number' ? studyYear : attStudyYearNum(studyYear);
+    if (yn !== 1 && yn !== 2 && yn !== 3) return null;
+    return parity === 'odd' ? 2 * yn - 1 : 2 * yn;
+  }
+
+  /**
+   * Subjects to offer for attendance:
+   * - Year selected → only that year's running semester for the session date
+   * - No year → all three years' running semesters for current term only (1/3/5 or 2/4/6)
+   */
+  function attSemestersForYear(year, dateInput) {
+    var dateEl = document.getElementById('attDate');
+    var d = dateInput || (dateEl && dateEl.value) || new Date();
+    var term = attCalendarTermInfo(d);
+    var yn = attStudyYearNum(year);
+    if (yn) {
+      var sem = attSemesterFromYearAndParity(yn, term.parity);
+      return sem != null ? [sem] : [];
+    }
+    return term.parity === 'odd' ? [1, 3, 5] : [2, 4, 6];
+  }
+
+  /** 12-hour period label: 9 → "9:00–10:00 AM", 12 → "12:00–1:00 PM", 17 → "5:00–6:00 PM". */
+  function attHour12(h) {
+    var n = Number(h);
+    if (!Number.isFinite(n)) return '';
+    var ap = n >= 12 ? 'PM' : 'AM';
+    var h12 = n % 12;
+    if (h12 === 0) h12 = 12;
+    return { h12: h12, ap: ap };
+  }
+
+  function attPeriodLabel12(startHour) {
+    var s = Number(startHour);
+    var e = s + 1;
+    var a = attHour12(s);
+    var b = attHour12(e);
+    if (!a || !b) return String(startHour);
+    if (a.ap === b.ap) return a.h12 + ':00–' + b.h12 + ':00 ' + b.ap;
+    return a.h12 + ':00 ' + a.ap + ' – ' + b.h12 + ':00 ' + b.ap;
+  }
+
+  function attFormatClock12(hhmm) {
+    var m = String(hhmm || '').trim().match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return String(hhmm || '');
+    var h = Number(m[1]);
+    var min = m[2];
+    var ap = h >= 12 ? 'PM' : 'AM';
+    var h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return h12 + ':' + min + ' ' + ap;
   }
 
   function ensureAttSubjectInput() {
     var sel = document.getElementById('attSubject');
     if (!sel) return null;
     // Prefer select with C-20 subjects (still allow free type via datalist-backed input if needed)
-    if (sel.tagName === 'SELECT' && sel.getAttribute('data-c20') === '1') return sel;
+    if (sel.tagName === 'SELECT' && sel.getAttribute('data-c20') === '1') {
+      attEnsureSemHint(sel);
+      attBindSubjectReloaders();
+      return sel;
+    }
     var fg = sel.parentNode;
     var val = sel.value || '';
     // Replace with searchable select-like: select + "Other" text
@@ -8784,28 +8876,19 @@ setInterval(function () {
     wrap.innerHTML =
       '<select id="attSubject" data-c20="1" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;">' +
       '<option value="">Loading C-20 subjects…</option></select>' +
+      '<div id="attSemHint" style="margin-top:6px;font-size:0.75rem;opacity:.8;line-height:1.35;"></div>' +
       '<input id="attSubjectOther" type="text" placeholder="Or type subject name if not listed" ' +
       'style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:0.82rem;display:none;" />';
     if (fg) {
-      fg.innerHTML = '<label>Subject (C-20 Sem 1–6)</label>';
+      fg.innerHTML = '<label id="attSubjectLabel">Subject (C-20 · auto semester)</label>';
       fg.appendChild(wrap);
     } else if (sel.parentNode) {
       sel.parentNode.replaceChild(wrap, sel);
     }
-    var yearEl = document.getElementById('attYear');
-    var branchEl = document.getElementById('attBranch');
-    function reload() {
+    attBindSubjectReloaders();
+    setTimeout(function () {
       window.loadAttCurriculumSubjects && window.loadAttCurriculumSubjects();
-    }
-    if (yearEl && !yearEl.__attSubjBound) {
-      yearEl.__attSubjBound = true;
-      yearEl.addEventListener('change', reload);
-    }
-    if (branchEl && !branchEl.__attSubjBound) {
-      branchEl.__attSubjBound = true;
-      branchEl.addEventListener('change', reload);
-    }
-    setTimeout(reload, 50);
+    }, 50);
     if (val) {
       var other = document.getElementById('attSubjectOther');
       if (other) {
@@ -8814,6 +8897,40 @@ setInterval(function () {
       }
     }
     return document.getElementById('attSubject');
+  }
+
+  function attEnsureSemHint(sel) {
+    if (!sel || document.getElementById('attSemHint')) return;
+    var wrap = document.getElementById('attSubjectWrap') || sel.parentNode;
+    if (!wrap) return;
+    var lab = wrap.parentNode && wrap.parentNode.querySelector('label');
+    if (lab && !lab.id) lab.id = 'attSubjectLabel';
+    var hint = document.createElement('div');
+    hint.id = 'attSemHint';
+    hint.style.cssText = 'margin-top:6px;font-size:0.75rem;opacity:.8;line-height:1.35;';
+    if (sel.nextSibling) wrap.insertBefore(hint, sel.nextSibling);
+    else wrap.appendChild(hint);
+  }
+
+  function attBindSubjectReloaders() {
+    function reload() {
+      window.loadAttCurriculumSubjects && window.loadAttCurriculumSubjects();
+    }
+    var yearEl = document.getElementById('attYear');
+    var branchEl = document.getElementById('attBranch');
+    var dateEl = document.getElementById('attDate');
+    if (yearEl && !yearEl.__attSubjBound) {
+      yearEl.__attSubjBound = true;
+      yearEl.addEventListener('change', reload);
+    }
+    if (branchEl && !branchEl.__attSubjBound) {
+      branchEl.__attSubjBound = true;
+      branchEl.addEventListener('change', reload);
+    }
+    if (dateEl && !dateEl.__attSubjBound) {
+      dateEl.__attSubjBound = true;
+      dateEl.addEventListener('change', reload);
+    }
   }
 
   window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
@@ -8826,11 +8943,41 @@ setInterval(function () {
     branch = attNormalizeBranch(branch);
     var code = attBranchCode(branch);
     var year = (document.getElementById('attYear') && document.getElementById('attYear').value) || '';
-    var sems = attSemestersForYear(year);
+    var dateVal =
+      (document.getElementById('attDate') && document.getElementById('attDate').value) || '';
+    var term = attCalendarTermInfo(dateVal || new Date());
+    var sems = attSemestersForYear(year, dateVal);
+    var studyY = attStudyYearNum(year);
+    var runningSem = studyY ? attSemesterFromYearAndParity(studyY, term.parity) : null;
     var prev = sel.value || '';
+    var lab = document.getElementById('attSubjectLabel');
+    if (lab) {
+      lab.textContent =
+        runningSem != null
+          ? 'Subject (C-20 · Sem ' + runningSem + ' · ' + term.short + ' term)'
+          : 'Subject (C-20 · ' + term.short + ' term Sem ' + sems.join('/') + ')';
+    }
+    var hint = document.getElementById('attSemHint');
+    if (hint) {
+      hint.innerHTML =
+        'Auto semester: <strong>AY ' +
+        attEsc(term.academic_year) +
+        '</strong> · ' +
+        attEsc(term.label) +
+        (runningSem != null
+          ? ' · Year ' + studyY + ' → <strong>Sem ' + runningSem + '</strong> only'
+          : ' · All years → Sem ' + sems.join(', ')) +
+        '. <span style="opacity:.85;">June starts odd (1/3/5); January starts even (2/4/6). Rolls every year (2027-28+ automatic).</span>';
+    }
     if (!code) {
       sel.innerHTML =
         '<option value="">Select branch first</option>' +
+        '<option value="__other__">Other / type below…</option>';
+      return;
+    }
+    if (!sems.length) {
+      sel.innerHTML =
+        '<option value="">Select Year / Class first</option>' +
         '<option value="__other__">Other / type below…</option>';
       return;
     }
@@ -8851,7 +8998,11 @@ setInterval(function () {
       subjects.sort(function (a, b) {
         return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
       });
-      var html = '<option value="">Select subject (Sem ' + sems.join('/') + ')</option>';
+      var pickLabel =
+        runningSem != null
+          ? 'Select subject (Sem ' + runningSem + ')'
+          : 'Select subject (Sem ' + sems.join('/') + ')';
+      var html = '<option value="">' + attEsc(pickLabel) + '</option>';
       var lastSem = null;
       subjects.forEach(function (s) {
         if (lastSem !== Number(s.semester)) {
@@ -8910,25 +9061,24 @@ setInterval(function () {
     return String(sel.value || '').trim();
   }
 
-  /** 9am–6pm hourly period chips (continuous multi-select). */
+  /** 9 AM–6 PM hourly period chips in 12-hour format (continuous multi-select). */
   function ensureAttPeriodSlots() {
     var timeEl = document.getElementById('attTime');
     if (!timeEl) return;
+    ensureAttClockTime12h();
     var host = document.getElementById('attPeriodHost');
-    if (host) return host;
+    if (host && host.getAttribute('data-fmt') === '12h') return host;
+    if (host && host.parentNode) host.parentNode.removeChild(host);
     var fg = timeEl.closest('.fg') || timeEl.parentNode;
     host = document.createElement('div');
     host.id = 'attPeriodHost';
     host.className = 'fg';
+    host.setAttribute('data-fmt', '12h');
     host.style.gridColumn = '1 / -1';
     var hours = [9, 10, 11, 12, 13, 14, 15, 16, 17];
     var chips = hours
       .map(function (h) {
-        var lab =
-          String(h).padStart(2, '0') +
-          ':00–' +
-          String(h + 1).padStart(2, '0') +
-          ':00';
+        var lab = attPeriodLabel12(h);
         return (
           '<label class="att-period-chip" style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.8rem;user-select:none;background:#fff;">' +
           '<input type="checkbox" class="att-period-cb" value="' +
@@ -8941,9 +9091,9 @@ setInterval(function () {
       })
       .join('');
     host.innerHTML =
-      '<label style="display:block;margin-bottom:6px;font-weight:700;">Period slots (9:00–18:00)</label>' +
+      '<label style="display:block;margin-bottom:6px;font-weight:700;">Period slots (9:00 AM – 6:00 PM)</label>' +
       '<p style="margin:0 0 8px;font-size:0.78rem;opacity:.8;line-height:1.4;">' +
-      'Select <strong>every hour</strong> taught. Continuous class (e.g. 9–12) = check 3 slots → students get <strong>3 attendance units</strong> (not just 1).</p>' +
+      'Select <strong>every hour</strong> taught. Continuous class (e.g. 9 AM–12 PM) = check 3 slots → students get <strong>3 attendance units</strong> (not just 1).</p>' +
       '<div id="attPeriodChips" style="display:flex;flex-wrap:wrap;gap:8px;">' +
       chips +
       '</div>' +
@@ -8955,7 +9105,7 @@ setInterval(function () {
     // Hide raw single time or keep as secondary
     if (timeEl.closest('.fg')) {
       var lab = timeEl.closest('.fg').querySelector('label');
-      if (lab) lab.textContent = 'Clock time (optional note)';
+      if (lab) lab.textContent = 'Clock time (optional note, 12-hour)';
     }
     host.querySelectorAll('.att-period-cb').forEach(function (cb) {
       cb.addEventListener('change', function () {
@@ -8965,6 +9115,75 @@ setInterval(function () {
     });
     window.attUpdatePeriodSummary();
     return host;
+  }
+
+  /** Convert #attTime from 24h browser control to 12-hour text (stores HH:MM 24h in data-24h). */
+  function ensureAttClockTime12h() {
+    var timeEl = document.getElementById('attTime');
+    if (!timeEl || timeEl.getAttribute('data-12h') === '1') return timeEl;
+    var prev24 = '';
+    if (timeEl.type === 'time' && timeEl.value) {
+      prev24 = timeEl.value;
+    } else if (timeEl.value) {
+      prev24 = attParseClockTo24(timeEl.value) || '';
+    }
+    if (!prev24) {
+      var now = new Date();
+      prev24 =
+        String(now.getHours()).padStart(2, '0') +
+        ':' +
+        String(now.getMinutes()).padStart(2, '0');
+    }
+    timeEl.type = 'text';
+    timeEl.setAttribute('data-12h', '1');
+    timeEl.setAttribute('data-24h', prev24);
+    timeEl.setAttribute('placeholder', 'e.g. 10:30 AM');
+    timeEl.setAttribute('inputmode', 'text');
+    timeEl.value = attFormatClock12(prev24);
+    timeEl.style.maxWidth = '160px';
+    if (!timeEl.__att12Bound) {
+      timeEl.__att12Bound = true;
+      timeEl.addEventListener('blur', function () {
+        var as24 = attParseClockTo24(timeEl.value);
+        if (as24) {
+          timeEl.setAttribute('data-24h', as24);
+          timeEl.value = attFormatClock12(as24);
+        }
+      });
+    }
+    return timeEl;
+  }
+
+  function attParseClockTo24(s) {
+    var t = String(s || '').trim();
+    if (!t) return null;
+    var m12 = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (m12) {
+      var h = Number(m12[1]);
+      var min = m12[2];
+      var ap = m12[3].toUpperCase();
+      if (h < 1 || h > 12) return null;
+      if (ap === 'PM' && h < 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      return String(h).padStart(2, '0') + ':' + min;
+    }
+    var m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24) {
+      var h2 = Number(m24[1]);
+      if (h2 > 23) return null;
+      return String(h2).padStart(2, '0') + ':' + m24[2];
+    }
+    return null;
+  }
+
+  function attGetClockTime24() {
+    var timeEl = document.getElementById('attTime');
+    if (!timeEl) return null;
+    if (timeEl.getAttribute('data-24h')) {
+      var fromData = attParseClockTo24(timeEl.getAttribute('data-24h')) || timeEl.getAttribute('data-24h');
+      if (fromData) return fromData;
+    }
+    return attParseClockTo24(timeEl.value) || String(timeEl.value || '').trim() || null;
   }
 
   window.attGetSelectedPeriods = function () {
@@ -8986,7 +9205,7 @@ setInterval(function () {
       return;
     }
     var labels = hours.map(function (h) {
-      return String(h).padStart(2, '0') + ':00–' + String(h + 1).padStart(2, '0') + ':00';
+      return attPeriodLabel12(h);
     });
     el.innerHTML =
       '✅ <strong>' +
@@ -9108,21 +9327,15 @@ setInterval(function () {
       }
     }
 
-    ensureAttSubjectInput();
     ensureAttYearSelect();
+    ensureAttSubjectInput();
     ensureAttBatchSelectId();
     ensureAttPeriodSlots();
+    attBindSubjectReloaders();
 
     var dateEl = document.getElementById('attDate');
     if (dateEl && !dateEl.value) dateEl.value = attTodayISO();
-    var timeEl = document.getElementById('attTime');
-    if (timeEl && !timeEl.value) {
-      var now = new Date();
-      timeEl.value =
-        String(now.getHours()).padStart(2, '0') +
-        ':' +
-        String(now.getMinutes()).padStart(2, '0');
-    }
+    ensureAttClockTime12h();
     // Default-select current hour slot if none checked
     try {
       var curH = new Date().getHours();
@@ -9827,11 +10040,7 @@ setInterval(function () {
       /* ignore */
     }
     window._attRoster = roster;
-    var timeElMeta = document.getElementById('attTime');
-    var attTimeVal =
-      timeElMeta && timeElMeta.value
-        ? String(timeElMeta.value)
-        : new Date().toTimeString().slice(0, 5);
+    var attTimeVal = attGetClockTime24() || new Date().toTimeString().slice(0, 5);
     window._attSessionMeta = {
       branch: branch,
       subject: subj,
@@ -10009,7 +10218,7 @@ setInterval(function () {
       subject: meta.subject,
       year: meta.year,
       date: meta.date,
-      time: meta.time || (document.getElementById('attTime') && document.getElementById('attTime').value) || null,
+      time: meta.time || attGetClockTime24() || null,
       class_type: meta.class_type,
       batch: meta.batch,
       periods: periodList,
@@ -10044,7 +10253,7 @@ setInterval(function () {
       meta.branch +
       ' · ' +
       meta.date +
-      (meta.time ? ' · ' + meta.time : '');
+      (meta.time ? ' · ' + attFormatClock12(meta.time) : '');
     if (absList.length) {
       msg +=
         '\n\nAbsent: ' +

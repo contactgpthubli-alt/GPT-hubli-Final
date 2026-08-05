@@ -121,8 +121,24 @@ function normalizePeriods(b: Record<string, unknown>): {
   const period_start = hours[0]
   const period_end = hours[hours.length - 1]
   const period_count = hours.length
-  const att_time = hours.map((h) => `${String(h).padStart(2, "0")}:00–${String(h + 1).padStart(2, "0")}:00`).join(", ")
+  const att_time = hours.map((h) => formatPeriodLabel12(h)).join(", ")
   return { period_start, period_end, period_count, att_time }
+}
+
+/** 12-hour period label for register / Excel (e.g. 9 → "9:00–10:00 AM"). */
+function formatPeriodLabel12(startHour: number): string {
+  const s = startHour
+  const e = startHour + 1
+  const fmt = (h: number) => {
+    const ap = h >= 12 ? "PM" : "AM"
+    let h12 = h % 12
+    if (h12 === 0) h12 = 12
+    return { h12, ap }
+  }
+  const a = fmt(s)
+  const b = fmt(e)
+  if (a.ap === b.ap) return `${a.h12}:00–${b.h12}:00 ${b.ap}`
+  return `${a.h12}:00 ${a.ap} – ${b.h12}:00 ${b.ap}`
 }
 
 function periodWeight(row: { period_count?: unknown }): number {

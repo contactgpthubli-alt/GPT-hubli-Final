@@ -34,18 +34,29 @@
 
   // C-20 marksheet grades (S / A+ / A …) + common alt labels
   var GRADES = ['', 'S', 'A+', 'A', 'B+', 'B', 'C', 'D', 'E', 'F', 'O', 'P', 'W', 'X', 'Ab', 'Pass', 'Fail'];
-  var SESSIONS = [
-    '2020-21 November', '2020-21 April',
-    '2021-22 November', '2021-22 April',
-    '2022-23 November', '2022-23 April',
-    '2023-24 November', '2023-24 April',
-    '2024-25 November', '2024-25 April',
-    '2025-26 November', '2025-26 April',
-    '2026-27 November', '2026-27 April',
-    'Other / Supplementary',
-  ];
 
-  /** Jun–Dec = odd term (1/3/5); Jan–May = even term (2/4/6). AY flips in June. */
+  /**
+   * Exam sessions roll forever from 2020-21 through current AY + next year.
+   * No hard stop at 2026-27 — 2027-28, 2028-29… appear automatically.
+   * November ≈ odd-term sitting; April ≈ even-term sitting.
+   */
+  function buildExamSessions(d) {
+    d = d || new Date();
+    var term = calendarTermInfo(d);
+    var startYear = Number(String(term.academic_year || '').split('-')[0]) || d.getFullYear();
+    var list = [];
+    for (var s = 2020; s <= startYear + 1; s++) {
+      var ay = s + '-' + String((s + 1) % 100).padStart(2, '0');
+      list.push(ay + ' November');
+      list.push(ay + ' April');
+    }
+    list.push('Other / Supplementary');
+    return list;
+  }
+
+  var SESSIONS = buildExamSessions();
+
+  /** Jun–Dec = odd term (1/3/5); Jan–May = even term (2/4/6). AY flips in June — permanent calendar rule. */
   function calendarTermInfo(d) {
     d = d || new Date();
     var y = d.getFullYear();
@@ -111,6 +122,7 @@
     var host = document.getElementById('examStuFormHost');
     var list = document.getElementById('examStuList');
     try {
+      SESSIONS = buildExamSessions(); // roll exam-session list into future AYs automatically
       var data = await api('/api/exam/attempts');
       window._examStuState = data;
       var st = data.student || {};
