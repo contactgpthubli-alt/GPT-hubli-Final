@@ -527,6 +527,17 @@ function __initGptBridge() {
       if (admSel && admSel.options && admSel.options[0] && /Adm/i.test(admSel.options[0].text || '')) {
         admSel.options[0].text = 'All Batches';
       }
+
+      // Ensure Select All checkbox exists (HOD / Principal panels created before this fix)
+      if (!document.getElementById(pfx + 'SelectAll')) {
+        var tbody = document.getElementById(pfx + 'TableBody');
+        var table = tbody && tbody.closest ? tbody.closest('table') : null;
+        var firstTh = table && table.querySelector('thead tr th');
+        if (firstTh && !firstTh.querySelector('input[type="checkbox"]')) {
+          firstTh.innerHTML =
+            '<input type="checkbox" id="' + pfx + 'SelectAll" class="stu-select-all-cb" title="Select all visible" />';
+        }
+      }
     });
   }
   window.upgradeStudentDbFilters = upgradeStudentDbFilters;
@@ -748,7 +759,8 @@ function __initGptBridge() {
       '<div id="' + pfx + 'ListMeta" style="padding:8px 18px;font-size:0.78rem;color:var(--text-muted);"></div>' +
       '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
       '<thead><tr>' +
-      '<th style="width:36px;"></th><th>Reg No</th><th>Name / Email</th><th>Branch</th><th>Year</th><th>Account</th><th>Profile</th><th>Actions</th>' +
+      '<th style="width:36px;"><input type="checkbox" id="' + pfx + 'SelectAll" class="stu-select-all-cb" title="Select all visible" /></th>' +
+      '<th>Reg No</th><th>Name / Email</th><th>Branch</th><th>Year</th><th>Account</th><th>Profile</th><th>Actions</th>' +
       '</tr></thead>' +
       '<tbody id="' + pfx + 'TableBody"><tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading…</td></tr></tbody>' +
       '</table></div></div>' +
@@ -6563,11 +6575,22 @@ function activeStudentDbPrefix() {
   return 'adStu';
 }
 
+/** Root element for the active Student Database panel (admin / principal / HOD). */
+function studentDbRootForPrefix(pfx) {
+  pfx = pfx || activeStudentDbPrefix();
+  if (pfx === 'priStu') {
+    return document.getElementById('priStudentsDesk') || document.getElementById('priStuTableBody') || document;
+  }
+  if (pfx === 'facStu') {
+    return document.getElementById('facBranchStudents') || document.getElementById('facStuTableBody') || document;
+  }
+  return document.getElementById('adStudents') || document.getElementById('adStuTableBody') || document;
+}
+window.studentDbRootForPrefix = studentDbRootForPrefix;
+
 function updateStuBulkBarCount() {
   var pfx = activeStudentDbPrefix();
-  var root =
-    document.getElementById(pfx === 'adStu' ? 'adStudents' : pfx === 'priStu' ? 'priStudentsDesk' : 'facBranchStudents') ||
-    document;
+  var root = studentDbRootForPrefix(pfx);
   var n = root.querySelectorAll('.stu-select-cb:checked').length;
   root.querySelectorAll('.stu-selected-count').forEach(function (el) {
     el.textContent = n + ' selected';
@@ -7135,27 +7158,69 @@ async function setStudentProfileEditLock(regNo, locked) {
       if (s.extra && typeof s.extra === 'object') s.extra.profile_edit_locked = !!locked;
     }
   });
+  // Also keep Student Data cache in sync (ACM / Exam / HOD Student Data view)
+  (window._studentDataList || []).forEach(function (s) {
+    if (String(s.reg_no || '') === String(regNo)) {
+      s.profile_edit_locked = !!locked;
+      if (s.extra && typeof s.extra === 'object') s.extra.profile_edit_locked = !!locked;
+    }
+  });
   filterAdminStudentList();
 
   // Hard refresh from server (cache-busted)
   await renderAdminStudentDatabase();
-  var modal = document.getElementById('adStuViewModal');
-  if (modal && modal.style.display === 'flex') {
+  // Re-open view modal on whichever desk is active (admin / principal / HOD)
+  var pfxM = typeof activeStudentDbPrefix === 'function' ? activeStudentDbPrefix() : 'adStu';
+  var modal =
+    document.getElementById(pfxM + 'ViewModal') ||
+    document.getElementById('adStuViewModal') ||
+    document.getElementById('priStuViewModal') ||
+    document.getElementById('facStuViewModal');
+  if (modal && (modal.style.display === 'flex' || modal.style.display === 'block')) {
     var match = (window._adminStudentList || []).find(function (s) {
       return String(s.reg_no || '') === String(regNo);
     });
     if (match) viewAdminStudent(studentListKey(match));
   }
+  // Re-paint Student Data list + modal so HOD/ACM/Exam see lock flip immediately
+  try {
+    if (typeof window.filterStudentDataList === 'function' && (window._studentDataList || []).length) {
+      window.filterStudentDataList();
+    }
+    if (typeof window.viewStudentDataRow === 'function') {
+      var openSd = false;
+      ;['adSd_modal', 'facSd_modal', 'priSd_modal'].forEach(function (id) {
+        var m = document.getElementById(id);
+        if (m && m.style.display === 'flex') openSd = true;
+      });
+      if (openSd) {
+        var sdMatch = (window._studentDataList || []).find(function (s) {
+          return String(s.reg_no || '') === String(regNo);
+        });
+        if (sdMatch && sdMatch.key != null) window.viewStudentDataRow(String(sdMatch.key));
+      }
+    }
+  } catch (eSd) { /* ignore */ }
   return res;
 }
 window.setStudentProfileEditLock = setStudentProfileEditLock;
 
-/** Selected reg numbers from Student Database checkboxes. */
+/** Selected reg numbers from the *active* Student Database panel checkboxes. */
 function getSelectedStudentRegNos() {
-  var root = document.getElementById('adStudents') || document;
+  var pfx = typeof activeStudentDbPrefix === 'function' ? activeStudentDbPrefix() : 'adStu';
+  var root = typeof studentDbRootForPrefix === 'function'
+    ? studentDbRootForPrefix(pfx)
+    : (document.getElementById('adStudents') || document);
   var regs = [];
   var seen = {};
-  root.querySelectorAll('.stu-select-cb:checked').forEach(function (cb) {
+  // Prefer checkboxes inside the active panel; fall back to any visible student-db checkboxes
+  var cbs = root.querySelectorAll('.stu-select-cb:checked');
+  if (!cbs.length) {
+    cbs = document.querySelectorAll(
+      '#adStudents .stu-select-cb:checked, #priStudentsDesk .stu-select-cb:checked, #facBranchStudents .stu-select-cb:checked'
+    );
+  }
+  cbs.forEach(function (cb) {
     var reg = (cb.getAttribute('data-stu-reg') || '').trim();
     if (reg && !seen[reg]) {
       seen[reg] = true;
@@ -7770,9 +7835,23 @@ setInterval(function () {
     function (e) {
       var t = e.target;
       if (!t) return;
-      if (t.id === "adStuSelectAll" || (t.classList && t.classList.contains("stu-select-all-cb"))) {
+      if (
+        t.id === "adStuSelectAll" ||
+        t.id === "priStuSelectAll" ||
+        t.id === "facStuSelectAll" ||
+        (t.classList && t.classList.contains("stu-select-all-cb"))
+      ) {
         var on = !!t.checked;
-        var root = document.getElementById("adStudents") || document;
+        // Scope select-all to the panel that owns this checkbox (HOD / Principal / Admin)
+        var root =
+          t.closest("#adStudents, #priStudentsDesk, #facBranchStudents") ||
+          (typeof studentDbRootForPrefix === "function"
+            ? studentDbRootForPrefix(
+                typeof activeStudentDbPrefix === "function" ? activeStudentDbPrefix() : "adStu"
+              )
+            : null) ||
+          document.getElementById("adStudents") ||
+          document;
         root.querySelectorAll(".stu-select-cb").forEach(function (cb) {
           if (!cb.disabled) cb.checked = on;
         });
@@ -7886,6 +7965,11 @@ setInterval(function () {
       caste: sdPick(extra, ['Caste']) || '',
       account_status: s.account_status || '',
       profile_status: s.profile_status || '',
+      profile_edit_locked:
+        s.profile_edit_locked === true ||
+        s.profile_edit_locked === 'true' ||
+        extra.profile_edit_locked === true ||
+        extra.profile_edit_locked === 'true',
       extra: extra,
       raw: s,
     };
@@ -8196,6 +8280,15 @@ setInterval(function () {
       if (c) return c;
       return String(a.name || '').localeCompare(String(b.name || ''));
     });
+    var cuPaint = window.currentUser;
+    var canLockPaint = !!(
+      cuPaint &&
+      (cuPaint.role === 'admin' ||
+        cuPaint.role === 'principal' ||
+        cuPaint.role === 'hod' ||
+        cuPaint.role === 'acm' ||
+        cuPaint.role === 'exam')
+    );
     tbody.innerHTML = filtered.map(function (s) {
       var keyJs = JSON.stringify(String(s.key));
       var st = String(s.academic_status || 'active');
@@ -8209,8 +8302,21 @@ setInterval(function () {
       var latBadge = s.entry_type === 'lateral'
         ? ' <span class="badge" style="background:#fef3c7;color:#92400e;font-size:0.65rem;">Lateral</span>'
         : '';
+      var lockIcon = s.profile_edit_locked ? ' 🔒' : ' 🔓';
+      var regAttrSd = s.reg_no ? sdEsc(String(s.reg_no)) : '';
+      var nameAttrSd = sdEsc(String(s.name || s.reg_no || ''));
+      var lockBtnSd = '';
+      if (canLockPaint && s.reg_no) {
+        lockBtnSd = s.profile_edit_locked
+          ? '<button class="btn gr stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;" ' +
+            'data-stu-action="unlock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd +
+            '">🔓 Unlock</button>'
+          : '<button class="btn stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;background:#b45309;color:#fff;" ' +
+            'data-stu-action="lock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd +
+            '">🔒 Lock</button>';
+      }
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + '</td>' +
+        '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + lockIcon + '</td>' +
         '<td style="padding:10px 8px;"><strong>' + sdEsc(s.name) + '</strong>' + latBadge + '</td>' +
         '<td style="padding:10px 8px;">' + sdEsc(s.father || '—') + '</td>' +
         '<td style="padding:10px 8px;font-size:0.82rem;">' + sdEsc(s.dept || '—') +
@@ -8219,9 +8325,11 @@ setInterval(function () {
           ? ' · Batch ' + sdEsc(s.admission_academic_year || s.admission_year)
           : '') +
         '</div></td>' +
-        '<td style="padding:10px 8px;">' +
+        '<td style="padding:10px 8px;"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
         '<button type="button" class="btn pr" style="padding:6px 12px;font-size:0.78rem;font-weight:700;" ' +
-        "onclick='window.viewStudentDataRow&&window.viewStudentDataRow(" + keyJs + ")'>View</button></td>" +
+        "onclick='window.viewStudentDataRow&&window.viewStudentDataRow(" + keyJs + ")'>View</button>" +
+        lockBtnSd +
+        '</div></td>' +
         '</tr>';
     }).join('');
   }
@@ -8382,6 +8490,34 @@ setInterval(function () {
     html += row('Email', s.email);
 
     var cuSd = window.currentUser;
+    // Profile My Profile edit lock / unlock — Admin, Principal, HOD, ACM, Exam
+    if (
+      s.reg_no &&
+      cuSd &&
+      (cuSd.role === 'admin' ||
+        cuSd.role === 'principal' ||
+        cuSd.role === 'hod' ||
+        cuSd.role === 'acm' ||
+        cuSd.role === 'exam')
+    ) {
+      var regProf = sdEsc(String(s.reg_no));
+      var nameProf = sdEsc(String(s.name || s.reg_no));
+      var lockedProf = !!s.profile_edit_locked;
+      html += '<div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#1a4fa0;margin:16px 0 8px;background:#e8f0fe;padding:5px 8px;border-radius:6px;">Profile edit access</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
+      if (lockedProf) {
+        html += '<span class="badge" style="background:#fef3c7;color:#92400e;">Edit Locked</span>';
+        html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' +
+          regProf + '" data-stu-label="' + nameProf + '">🔓 Unlock Profile Edit</button>';
+        html += '<span style="font-size:0.75rem;opacity:.75;">Student can request My Profile changes after unlock.</span>';
+      } else {
+        html += '<span class="badge active">Edit Open</span>';
+        html += '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' +
+          regProf + '" data-stu-label="' + nameProf + '">🔒 Lock Profile Edit</button>';
+        html += '<span style="font-size:0.75rem;opacity:.75;">Student can currently submit profile edit requests.</span>';
+      }
+      html += '</div>';
+    }
     if (s.reg_no && cuSd && (cuSd.role === 'admin' || cuSd.role === 'principal' || cuSd.role === 'hod' || cuSd.role === 'exam')) {
       var regSd = sdEsc(String(s.reg_no));
       html += '<div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#1a4fa0;margin:16px 0 8px;background:#e8f0fe;padding:5px 8px;border-radius:6px;">Academic actions</div>';
@@ -8389,7 +8525,7 @@ setInterval(function () {
       if (cuSd.role !== 'exam') {
         html += '<button class="btn stu-act-btn" type="button" style="background:#991b1b;color:#fff;" data-stu-action="acad-detain" data-stu-reg="' + regSd + '">Detain</button>';
         html += '<button class="btn stu-act-btn" type="button" style="background:#c2410c;color:#fff;" data-stu-action="acad-yearback" data-stu-reg="' + regSd + '">Year Back</button>';
-        html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="acad-unlock" data-stu-reg="' + regSd + '">Unlock</button>';
+        html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="acad-unlock" data-stu-reg="' + regSd + '">Unlock progress</button>';
       }
       html += '<button class="btn stu-act-btn" type="button" style="background:#3730a3;color:#fff;" data-stu-action="acad-passout" data-stu-reg="' + regSd + '">Pass-out</button>';
       html += '<button class="btn ol stu-act-btn" type="button" data-stu-action="acad-set-admission" data-stu-reg="' + regSd + '">Set admission year</button>';

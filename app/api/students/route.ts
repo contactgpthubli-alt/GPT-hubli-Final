@@ -140,10 +140,17 @@ export async function GET(req: Request) {
     )`
   }
 
-  // lite: never load students.extra (profile photos make multi-MB responses)
+  // lite: never load full students.extra (profile photos make multi-MB responses)
+  // but still return profile_edit_locked so Unlock/Lock buttons show correctly.
   // full list: still strip data:image values so View/list stays usable
   const extraSelect = lite
-    ? `'{}'::jsonb AS extra`
+    ? `jsonb_build_object(
+         'profile_edit_locked',
+         CASE
+           WHEN lower(COALESCE(s.extra->>'profile_edit_locked', '')) IN ('true', 't', '1') THEN true
+           ELSE false
+         END
+       ) AS extra`
     : `COALESCE(
          (SELECT jsonb_object_agg(e.key, e.value)
             FROM jsonb_each(COALESCE(s.extra, '{}'::jsonb)) AS e
