@@ -12,6 +12,12 @@ import {
   EXAM_VERIFIERS,
 } from "@/lib/exam-results"
 import { hodBranchOf } from "@/lib/account-approvals"
+import {
+  inferAcademicYearFromDate,
+  inferCurrentSemester,
+  inferTermParityFromDate,
+  termParityLabel,
+} from "@/lib/academic-year"
 
 function mapRow(r: Record<string, unknown>): ExamAttemptRow {
   return {
@@ -66,6 +72,9 @@ export async function GET(req: Request) {
       pathway_note = packed.pathway_note
       pathway_required = packed.pathway_required
     }
+    const term_parity = inferTermParityFromDate()
+    const active_academic_year = inferAcademicYearFromDate()
+    const current_semester = ctx ? inferCurrentSemester(ctx.current_study_year) : null
     return Response.json({
       attempts,
       effective: effectiveSubjectStatus(attempts),
@@ -74,6 +83,11 @@ export async function GET(req: Request) {
       pathway,
       pathway_note,
       pathway_required,
+      // Calendar term: Jun–Dec = odd (1/3/5), Jan–May = even (2/4/6)
+      term_parity,
+      term_label: termParityLabel(term_parity),
+      active_academic_year,
+      current_semester,
     })
   }
 

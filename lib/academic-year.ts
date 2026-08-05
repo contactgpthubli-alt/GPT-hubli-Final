@@ -80,6 +80,46 @@ export function inferAcademicYearFromDate(
   return `${start}-${String((start + 1) % 100).padStart(2, "0")}`
 }
 
+/**
+ * DTE diploma term parity from calendar:
+ * - June–December → odd semester term (Sem 1 / 3 / 5)
+ * - January–May → even semester term (Sem 2 / 4 / 6)
+ *
+ * Academic year still flips in June (see inferAcademicYearFromDate).
+ * Example: Jun 2026–Dec 2026 = AY 2026-27 odd; Jan 2027–May 2027 = AY 2026-27 even.
+ */
+export type TermParity = "odd" | "even"
+
+export function inferTermParityFromDate(d: Date = new Date()): TermParity {
+  const m = d.getMonth() + 1 // 1–12
+  return m >= DEFAULT_ACADEMIC_START_MONTH ? "odd" : "even"
+}
+
+export function termParityLabel(parity: TermParity): string {
+  return parity === "odd" ? "Odd semester (Jun–Dec)" : "Even semester (Jan–May)"
+}
+
+/**
+ * Map study year + term → running semester (1–6).
+ * Year 1 → 1/2 · Year 2 → 3/4 · Year 3 → 5/6
+ */
+export function semesterFromStudyYearAndTerm(
+  studyYear: number | null | undefined,
+  parity: TermParity = inferTermParityFromDate(),
+): number | null {
+  const y = Number(studyYear)
+  if (y !== 1 && y !== 2 && y !== 3) return null
+  return parity === "odd" ? 2 * y - 1 : 2 * y
+}
+
+/** Current running semester for a student (calendar + their study year). */
+export function inferCurrentSemester(
+  studyYear: number | null | undefined,
+  d: Date = new Date(),
+): number | null {
+  return semesterFromStudyYearAndTerm(studyYear, inferTermParityFromDate(d))
+}
+
 export function parseStudyYear(input: string | number | null | undefined): StudyYear | null {
   if (input == null || input === "") return null
   if (typeof input === "number") {

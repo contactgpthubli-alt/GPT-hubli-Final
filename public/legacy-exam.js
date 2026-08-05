@@ -32,7 +32,8 @@
     return data;
   }
 
-  var GRADES = ['', 'S', 'A', 'B', 'C', 'D', 'E', 'F', 'W', 'X', 'Pass', 'Fail'];
+  // C-20 marksheet grades (S / A+ / A …) + common alt labels
+  var GRADES = ['', 'S', 'A+', 'A', 'B+', 'B', 'C', 'D', 'E', 'F', 'O', 'P', 'W', 'X', 'Ab', 'Pass', 'Fail'];
   var SESSIONS = [
     '2020-21 November', '2020-21 April',
     '2021-22 November', '2021-22 April',
@@ -40,8 +41,32 @@
     '2023-24 November', '2023-24 April',
     '2024-25 November', '2024-25 April',
     '2025-26 November', '2025-26 April',
+    '2026-27 November', '2026-27 April',
     'Other / Supplementary',
   ];
+
+  /** Jun–Dec = odd term (1/3/5); Jan–May = even term (2/4/6). AY flips in June. */
+  function calendarTermInfo(d) {
+    d = d || new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1; // 1–12
+    var odd = m >= 6;
+    var start = odd ? y : y - 1;
+    var ay = start + '-' + String((start + 1) % 100).padStart(2, '0');
+    return {
+      parity: odd ? 'odd' : 'even',
+      academic_year: ay,
+      label: odd ? 'Odd semester (Jun–Dec)' : 'Even semester (Jan–May)',
+    };
+  }
+
+  /** Study year 1/2/3 → running semester for current calendar term. */
+  function semesterFromStudyYear(studyYear, parity) {
+    var y = Number(studyYear);
+    if (y !== 1 && y !== 2 && y !== 3) return null;
+    var p = parity || calendarTermInfo().parity;
+    return p === 'odd' ? 2 * y - 1 : 2 * y;
+  }
 
   /* ---------- Student: Results entry ---------- */
   function ensureStuResultsPanel() {
@@ -66,7 +91,7 @@
       '<div style="padding:12px 16px;">' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;">' +
       '<div><label style="font-size:0.75rem;font-weight:700;">Semester</label><br>' +
-      '<select id="examStuSem" onchange="window.examStuPaintForm&&window.examStuPaintForm()" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
+      '<select id="examStuSem" onchange="window.examStuOnSemChange&&window.examStuOnSemChange()" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
       '<option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>' +
       '<option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option>' +
       '</select></div>' +
@@ -89,6 +114,19 @@
       var data = await api('/api/exam/attempts');
       window._examStuState = data;
       var st = data.student || {};
+      var term = calendarTermInfo();
+      var parity = data.term_parity || term.parity;
+      var ay = data.active_academic_year || term.academic_year;
+      var termLabel = data.term_label || term.label;
+      var autoSem =
+        data.current_semester != null
+          ? Number(data.current_semester)
+          : semesterFromStudyYear(st.current_study_year, parity);
+      // Auto-select running semester (student can still change the dropdown)
+      var semSel = document.getElementById('examStuSem');
+      if (semSel && autoSem != null && !semSel.getAttribute('data-user-picked')) {
+        semSel.value = String(autoSem);
+      }
       if (meta) {
         var pw = data.pathway;
         meta.innerHTML =
@@ -96,9 +134,12 @@
           ' · ' + esc(st.branch || '') +
           ' · Scheme: <strong>' + esc(st.scheme || '—') + '</strong>' +
           (st.admission_academic_year ? ' · Adm. ' + esc(st.admission_academic_year) : '') +
+          (st.current_study_year ? ' · Year ' + esc(String(st.current_study_year)) : '') +
           (st.entry_type === 'lateral'
             ? ' · <span class="badge pending">Lateral (ITI/PUC) — Year-1 hidden</span>'
             : '') +
+          ' · <span class="badge active">AY ' + esc(ay) + ' · ' + esc(termLabel) +
+          (autoSem != null ? ' · running Sem ' + autoSem : '') + '</span>' +
           (pw
             ? ' · <span class="badge active">Pathway: ' + esc(pw.label) + ' (' + esc(pw.academic_year || '') + ')</span>'
             : data.pathway_required
@@ -106,7 +147,10 @@
               : '') +
           (data.pathway_note
             ? '<div style="margin-top:6px;font-size:0.78rem;opacity:.85;">' + esc(data.pathway_note) + '</div>'
-            : '');
+            : '') +
+          '<div style="margin-top:6px;font-size:0.75rem;opacity:.8;">' +
+          'Term rule: every <strong>June</strong> starts odd semesters (1/3/5); every <strong>January</strong> starts even (2/4/6). ' +
+          'Use the Semester dropdown to enter backlog / other sem results.</div>';
       }
       if (st.scheme === 'C-25') {
         if (host) {
@@ -122,18 +166,42 @@
     }
   };
 
+  window.examStuOnSemChange = function () {
+    var sel = document.getElementById('examStuSem');
+    if (sel) sel.setAttribute('data-user-picked', '1');
+    window.examStuPaintForm && window.examStuPaintForm();
+  };
+
   window.examStuPaintForm = function () {
     var host = document.getElementById('examStuFormHost');
     if (!host) return;
     var state = window._examStuState || {};
+    var st = state.student || {};
+    var term = calendarTermInfo();
+    var parity = state.term_parity || term.parity;
+    var autoSem =
+      state.current_semester != null
+        ? Number(state.current_semester)
+        : semesterFromStudyYear(st.current_study_year, parity);
     var sem = Number((document.getElementById('examStuSem') || {}).value || 1);
     var cur = (state.curriculum || []).filter(function (s) { return Number(s.semester) === sem; });
     var hint = document.getElementById('examStuSemHint');
     if (hint) {
-      hint.textContent =
+      var bits = [];
+      if (autoSem != null) {
+        bits.push(
+          'Auto: AY ' + (state.active_academic_year || term.academic_year) +
+            ' · ' + (state.term_label || term.label) +
+            ' → Sem ' + autoSem +
+            (Number(sem) === Number(autoSem) ? ' (selected)' : ' (you chose Sem ' + sem + ')'),
+        );
+      }
+      bits.push(
         sem >= 5
-          ? 'Sem 5–6 subjects come only from the pathway your HOD assigned for this academic year (changes every year).'
-          : 'Add one row per exam attempt (e.g. fail Nov 2021-22, pass Apr 2022-23).';
+          ? 'Sem 5–6 subjects come only from the pathway your HOD assigned for this academic year.'
+          : 'Add one row per exam attempt (e.g. fail Nov, pass Apr).',
+      );
+      hint.textContent = bits.join(' — ');
     }
     if (!cur.length) {
       if (sem >= 5 && state.pathway_required) {

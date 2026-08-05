@@ -4,7 +4,12 @@
  */
 
 import { query } from "@/lib/db"
-import { academicYearStart, normalizeAcademicYear, type EntryType } from "@/lib/academic-year"
+import {
+  academicYearStart,
+  inferCurrentSemester,
+  normalizeAcademicYear,
+  type EntryType,
+} from "@/lib/academic-year"
 import {
   branchCodeFromDept,
   getCurriculumSubjects,
@@ -204,6 +209,8 @@ export type FeeBreakupLine = {
 export function computeExamFees(opts: {
   entryType: EntryType
   currentStudyYear: number | null
+  /** Running semester from calendar (Jun odd / Jan even). Falls back to inferred. */
+  currentSemester?: number | null
   effective: ReturnType<typeof effectiveSubjectStatus>
   fine?: number
   /** If true, count pending+verified; else verified only for "must pay" */
@@ -235,19 +242,11 @@ export function computeExamFees(opts: {
     bySem.get(e.semester)!.push(e)
   }
 
-  // Map study year → regular semesters student may be writing now
+  // Only the calendar-running semester counts as regular (Jun–Dec odd, Jan–May even)
   const cy = opts.currentStudyYear
   const regularSems = new Set<number>()
-  if (cy === 1) {
-    regularSems.add(1)
-    regularSems.add(2)
-  } else if (cy === 2) {
-    regularSems.add(3)
-    regularSems.add(4)
-  } else if (cy === 3) {
-    regularSems.add(5)
-    regularSems.add(6)
-  }
+  const running = opts.currentSemester ?? inferCurrentSemester(cy)
+  if (running != null) regularSems.add(running)
 
   for (let sem = 1; sem <= 6; sem++) {
     if (opts.entryType === "lateral" && sem < 3) continue
