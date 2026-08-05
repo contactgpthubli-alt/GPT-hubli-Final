@@ -564,20 +564,19 @@
       v.id = cfg.prefix + 'ResultsVerify';
       v.style.display = 'none';
       v.innerHTML =
-        '<div class="info-box">Verify student-entered exam results. HOD = own branch. Exam / Principal / Admin = all. ' +
-        'Verified rows lock for students.</div>' +
+        '<div class="info-box">✅ <strong>Result verification (per student)</strong> — ' +
+        'HOD = own branch; Exam / Principal / Admin = all. Open one student, review semester-wise subjects (larger view with name), ' +
+        'then verify/reject. Verified rows lock for students.</div>' +
         '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
-        '<select id="' + cfg.prefix + 'RvBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+        '<select id="' + cfg.prefix + 'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
         '<option value="">All branches</option>' +
         '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
         '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
-        '<select id="' + cfg.prefix + 'RvStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-        '<option value="pending">Pending</option><option value="">All statuses</option>' +
+        '<select id="' + cfg.prefix + 'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+        '<option value="pending">Pending only</option><option value="">All statuses</option>' +
         '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
-        '<button type="button" class="btn ol" data-exam-reload-rv="' + cfg.prefix + '">↻ Load</button>' +
-        '<button type="button" class="btn go" data-exam-verify-sel="' + cfg.prefix + '">✅ Verify selected</button>' +
-        '<button type="button" class="btn" style="background:#991b1b;color:#fff;" data-exam-reject-sel="' + cfg.prefix + '">Reject selected</button>' +
-        '</div><div id="' + cfg.prefix + 'RvList" style="padding:10px;overflow-x:auto;"></div>';
+        '<button type="button" class="btn ol" data-exam-reload-rv="' + cfg.prefix + '" style="padding:10px 14px;">↻ Reload students</button>' +
+        '</div><div id="' + cfg.prefix + 'RvList" style="padding:8px 10px 16px;"></div>';
       root.appendChild(v);
 
       var f = document.createElement('div');
@@ -635,14 +634,15 @@
         panel.id = 'facExamResultsHod';
         panel.style.display = 'none';
         panel.innerHTML =
-          '<div class="info-box">Verify branch student result entries.</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;">' +
-          '<select id="hodExRvStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="pending">Pending</option><option value="">All</option></select>' +
-          '<button type="button" class="btn ol" data-exam-reload-rv="hodEx">↻ Load</button>' +
-          '<button type="button" class="btn go" data-exam-verify-sel="hodEx">✅ Verify selected</button>' +
-          '<button type="button" class="btn" style="background:#991b1b;color:#fff;" data-exam-reject-sel="hodEx">Reject selected</button>' +
-          '</div><div id="hodExRvList" style="padding:10px;"></div>';
+          '<div class="info-box">✅ <strong>Result verification (per student)</strong> — Pick a student on the left, ' +
+          'review their subjects by semester (name + reg shown), then verify or reject that student. ' +
+          'When many students submit, you work one student at a time — not one huge flat list.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+          '<select id="hodExRvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+          '<option value="pending">Pending only</option><option value="">All statuses</option>' +
+          '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+          '<button type="button" class="btn ol" data-exam-reload-rv="hodEx" style="padding:10px 14px;">↻ Reload students</button>' +
+          '</div><div id="hodExRvList" style="padding:8px 10px 16px;"></div>';
         facContent.appendChild(panel);
       }
       if (facContent && facMenu && !document.getElementById('facPathwayNav')) {
@@ -986,10 +986,29 @@
     }
   };
 
+  /** Staff verification state: per-student cards (not one giant flat table). */
+  window._examRvState = window._examRvState || {};
+
+  function examResultBadge(result) {
+    var r = String(result || '').toLowerCase();
+    if (r === 'pass') return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:800;font-size:0.8rem;">PASS</span>';
+    if (r === 'fail') return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#fee2e2;color:#991b1b;font-weight:800;font-size:0.8rem;">FAIL</span>';
+    if (r === 'absent') return '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:800;font-size:0.8rem;">ABSENT</span>';
+    return esc(result || '—');
+  }
+
+  function examStatusBadge(status) {
+    var s = String(status || '');
+    if (s === 'pending') return '<span class="badge pending">pending</span>';
+    if (s === 'verified') return '<span class="badge active">verified</span>';
+    if (s === 'rejected') return '<span class="badge" style="background:#fee2e2;color:#991b1b;">rejected</span>';
+    return '<span class="badge">' + esc(s) + '</span>';
+  }
+
   window.examStaffLoadVerify = async function (prefix) {
     var list = document.getElementById(prefix + 'RvList');
     if (!list) return;
-    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    list.innerHTML = '<p style="opacity:.7;padding:16px;font-size:0.95rem;">Loading students…</p>';
     var statusEl = document.getElementById(prefix + 'RvStatus');
     var branchEl = document.getElementById(prefix + 'RvBranch');
     var q = '/api/exam/attempts?';
@@ -998,30 +1017,301 @@
     if (branchEl && branchEl.value) q += 'branch=' + encodeURIComponent(branchEl.value) + '&';
     try {
       var data = await api(q);
-      var attempts = data.attempts || [];
-      if (!attempts.length) {
-        list.innerHTML = '<p style="opacity:.7;">No rows.</p>';
+      var byStudent = data.by_student || [];
+      var prev = (window._examRvState[prefix] || {}).selectedReg || null;
+      window._examRvState[prefix] = {
+        by_student: byStudent,
+        selectedReg: prev,
+        student_count: data.student_count || byStudent.length,
+        pending_count: data.pending_count || 0,
+      };
+      if (!byStudent.length) {
+        list.innerHTML =
+          '<div style="padding:28px;text-align:center;opacity:.75;font-size:0.95rem;">' +
+          'No student result entries for this filter.</div>';
         return;
       }
-      var html = '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
-        '<th></th><th>Reg</th><th>Sem</th><th>Code</th><th>Session</th><th>Result</th><th>Grade</th><th>Status</th></tr></thead><tbody>';
-      attempts.forEach(function (a) {
-        html += '<tr style="border-bottom:1px solid var(--border);">' +
-          '<td style="padding:4px;"><input type="checkbox" class="exam-rv-cb" data-id="' + a.id + '" ' +
-          (a.status === 'verified' ? 'disabled' : '') + ' /></td>' +
-          '<td style="padding:4px;font-family:monospace;font-size:0.7rem;">' + esc(a.reg_no) + '</td>' +
-          '<td style="padding:4px;">' + a.semester + '</td>' +
-          '<td style="padding:4px;" title="' + esc(a.subject_name) + '">' + esc(a.subject_code) + '</td>' +
-          '<td style="padding:4px;">' + esc(a.exam_session) + '</td>' +
-          '<td style="padding:4px;">' + esc(a.result) + '</td>' +
-          '<td style="padding:4px;">' + esc(a.grade) + '</td>' +
-          '<td style="padding:4px;">' + esc(a.status) + '</td></tr>';
-      });
-      html += '</tbody></table>';
-      list.innerHTML = html;
+      // Prefer previously selected student if still present; else first with pending
+      var sel = prev;
+      if (!sel || !byStudent.some(function (s) { return s.reg_no === sel; })) {
+        var withPend = byStudent.find(function (s) { return s.pending > 0; });
+        sel = (withPend || byStudent[0]).reg_no;
+      }
+      window._examRvState[prefix].selectedReg = sel;
+      window.examStaffPaintVerify(prefix);
     } catch (e) {
-      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+      list.innerHTML = '<p style="color:#991b1b;padding:16px;">' + esc(e.message) + '</p>';
     }
+  };
+
+  window.examStaffPaintVerify = function (prefix) {
+    var list = document.getElementById(prefix + 'RvList');
+    if (!list) return;
+    var state = window._examRvState[prefix] || {};
+    var byStudent = state.by_student || [];
+    var sel = state.selectedReg;
+    var filterQ = ((document.getElementById(prefix + 'RvSearch') || {}).value || '').trim().toLowerCase();
+
+    var filtered = byStudent.filter(function (s) {
+      if (!filterQ) return true;
+      return (
+        String(s.name || '').toLowerCase().indexOf(filterQ) >= 0 ||
+        String(s.reg_no || '').toLowerCase().indexOf(filterQ) >= 0
+      );
+    });
+
+    var html =
+      '<div style="padding:8px 4px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">' +
+      '<div style="font-size:0.92rem;">' +
+      '<strong>' + filtered.length + '</strong> student(s)' +
+      (state.pending_count != null
+        ? ' · <strong style="color:#b45309;">' + state.pending_count + '</strong> pending subject row(s)'
+        : '') +
+      ' · open one student at a time to verify' +
+      '</div>' +
+      '<input id="' + prefix + 'RvSearch" type="search" placeholder="Search name or reg…" ' +
+      'value="' + esc(filterQ) + '" ' +
+      'oninput="window.examStaffPaintVerify&&window.examStaffPaintVerify(\'' + prefix + '\')" ' +
+      'style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);min-width:220px;font-size:0.9rem;" />' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:14px;align-items:start;">' +
+      '<div id="' + prefix + 'RvStudentList" style="max-height:70vh;overflow:auto;border:1.5px solid var(--border);border-radius:12px;background:#f8fafc;">';
+
+    if (!filtered.length) {
+      html += '<div style="padding:20px;opacity:.7;">No match.</div>';
+    } else {
+      filtered.forEach(function (s) {
+        var active = s.reg_no === sel;
+        html +=
+          '<button type="button" class="exam-rv-stu" data-reg="' + esc(s.reg_no) + '" ' +
+          'onclick="window.examStaffSelectStudent&&window.examStaffSelectStudent(\'' +
+          prefix + '\',\'' + esc(s.reg_no).replace(/'/g, "\\'") + '\')" ' +
+          'style="display:block;width:100%;text-align:left;padding:14px 14px;border:0;border-bottom:1px solid #e2e8f0;' +
+          'cursor:pointer;background:' + (active ? '#fff7ed' : 'transparent') + ';' +
+          (active ? 'box-shadow:inset 4px 0 0 #ea580c;' : '') + '">' +
+          '<div style="font-weight:800;font-size:0.95rem;color:#0f172a;line-height:1.25;">' +
+          esc(s.name || s.reg_no) + '</div>' +
+          '<div style="font-family:ui-monospace,monospace;font-size:0.8rem;color:#475569;margin-top:3px;">' +
+          esc(s.reg_no) + '</div>' +
+          '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;font-size:0.75rem;">' +
+          (s.pending
+            ? '<span style="background:#ffedd5;color:#9a3412;padding:2px 8px;border-radius:999px;font-weight:700;">' +
+              s.pending + ' pending</span>'
+            : '') +
+          (s.verified
+            ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-weight:700;">' +
+              s.verified + ' verified</span>'
+            : '') +
+          (s.rejected
+            ? '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-weight:700;">' +
+              s.rejected + ' rejected</span>'
+            : '') +
+          '<span style="opacity:.65;">' + s.total + ' row(s)</span>' +
+          '</div></button>';
+      });
+    }
+
+    html += '</div><div id="' + prefix + 'RvDetail" style="min-height:320px;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:0;overflow:hidden;"></div></div>';
+    list.innerHTML = html;
+
+    // Keep search caret: restore focus if typing
+    var searchEl = document.getElementById(prefix + 'RvSearch');
+    if (searchEl && filterQ) {
+      try {
+        searchEl.focus();
+        var len = searchEl.value.length;
+        searchEl.setSelectionRange(len, len);
+      } catch (e1) { /* ignore */ }
+    }
+
+    window.examStaffPaintVerifyDetail(prefix);
+  };
+
+  window.examStaffSelectStudent = function (prefix, reg) {
+    if (!window._examRvState[prefix]) window._examRvState[prefix] = {};
+    window._examRvState[prefix].selectedReg = reg;
+    window.examStaffPaintVerify(prefix);
+  };
+
+  window.examStaffPaintVerifyDetail = function (prefix) {
+    var host = document.getElementById(prefix + 'RvDetail');
+    if (!host) return;
+    var state = window._examRvState[prefix] || {};
+    var byStudent = state.by_student || [];
+    var sel = state.selectedReg;
+    var stu = byStudent.find(function (s) { return s.reg_no === sel; });
+    if (!stu) {
+      host.innerHTML = '<div style="padding:28px;opacity:.7;font-size:0.95rem;">Select a student from the left.</div>';
+      return;
+    }
+
+    var attempts = (stu.attempts || []).slice().sort(function (a, b) {
+      return Number(a.semester) - Number(b.semester) ||
+        String(a.subject_code).localeCompare(String(b.subject_code)) ||
+        Number(a.id) - Number(b.id);
+    });
+    var pendingIds = attempts.filter(function (a) { return a.status === 'pending'; }).map(function (a) { return a.id; });
+
+    var html =
+      '<div style="padding:16px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff7ed 0%,#fff 100%);">' +
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;">' +
+      '<div>' +
+      '<div style="font-size:1.2rem;font-weight:800;color:#0f172a;">' + esc(stu.name || stu.reg_no) + '</div>' +
+      '<div style="margin-top:4px;font-size:0.9rem;color:#475569;">' +
+      '<span style="font-family:ui-monospace,monospace;font-weight:700;">' + esc(stu.reg_no) + '</span>' +
+      (stu.branch ? ' · ' + esc(stu.branch) : '') +
+      (stu.branch_code ? ' · ' + esc(stu.branch_code) : '') +
+      '</div>' +
+      '<div style="margin-top:8px;font-size:0.85rem;">' +
+      '<strong>' + pendingIds.length + '</strong> pending · ' +
+      '<strong>' + (stu.verified || 0) + '</strong> verified · ' +
+      '<strong>' + attempts.length + '</strong> total rows' +
+      '</div></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' +
+      '<button type="button" class="btn ol" style="padding:10px 14px;font-size:0.85rem;" ' +
+      'onclick="window.examStaffToggleAllStudent&&window.examStaffToggleAllStudent(\'' + prefix + '\',true)">Select all pending</button>' +
+      '<button type="button" class="btn go" style="padding:10px 14px;font-size:0.85rem;" ' +
+      'onclick="window.examStaffActStudent&&window.examStaffActStudent(\'' + prefix + '\',\'verify\')" ' +
+      (pendingIds.length ? '' : 'disabled ') +
+      '>✅ Verify all pending (' + pendingIds.length + ')</button>' +
+      '<button type="button" class="btn" style="padding:10px 14px;font-size:0.85rem;background:#991b1b;color:#fff;" ' +
+      'onclick="window.examStaffActStudent&&window.examStaffActStudent(\'' + prefix + '\',\'reject\')" ' +
+      (pendingIds.length ? '' : 'disabled ') +
+      '>Reject all pending</button>' +
+      '</div></div></div>' +
+      '<div style="padding:14px 16px;max-height:62vh;overflow:auto;">';
+
+    // Group by semester
+    var bySem = {};
+    attempts.forEach(function (a) {
+      var k = String(a.semester || '?');
+      if (!bySem[k]) bySem[k] = [];
+      bySem[k].push(a);
+    });
+    Object.keys(bySem).sort(function (a, b) { return Number(a) - Number(b); }).forEach(function (sem) {
+      var rows = bySem[sem];
+      html +=
+        '<div style="margin-bottom:18px;">' +
+        '<div style="font-size:1rem;font-weight:800;margin:4px 0 10px;padding:8px 12px;background:#f1f5f9;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">' +
+        '<span>Semester ' + esc(sem) + ' <span style="font-weight:600;opacity:.7;font-size:0.85rem;">(' + rows.length + ' subjects)</span></span>' +
+        '</div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:0.92rem;">' +
+        '<thead><tr style="background:#fafafa;text-align:left;">' +
+        '<th style="padding:10px 8px;width:36px;"></th>' +
+        '<th style="padding:10px 8px;">Subject</th>' +
+        '<th style="padding:10px 8px;">Session</th>' +
+        '<th style="padding:10px 8px;">Result</th>' +
+        '<th style="padding:10px 8px;">Grade</th>' +
+        '<th style="padding:10px 8px;">Status</th>' +
+        '</tr></thead><tbody>';
+      rows.forEach(function (a) {
+        var canCheck = a.status === 'pending' || a.status === 'rejected';
+        var passBg = String(a.result).toLowerCase() === 'pass' ? 'background:#f0fdf4;' :
+          String(a.result).toLowerCase() === 'fail' ? 'background:#fef2f2;' : '';
+        html +=
+          '<tr class="exam-rv-row" style="border-bottom:1px solid #e2e8f0;' + passBg + '">' +
+          '<td style="padding:12px 8px;vertical-align:top;">' +
+          (canCheck
+            ? '<input type="checkbox" class="exam-rv-cb" data-id="' + a.id + '" data-reg="' + esc(a.reg_no) + '" ' +
+              (a.status === 'pending' ? 'checked ' : '') +
+              'style="width:18px;height:18px;cursor:pointer;" />'
+            : '') +
+          '</td>' +
+          '<td style="padding:12px 8px;vertical-align:top;">' +
+          '<div style="font-weight:800;font-size:0.95rem;">' + esc(a.subject_code) + '</div>' +
+          '<div style="font-size:0.84rem;color:#475569;margin-top:2px;line-height:1.35;">' +
+          esc(a.subject_name || '') + '</div></td>' +
+          '<td style="padding:12px 8px;vertical-align:top;font-size:0.9rem;">' + esc(a.exam_session || '—') + '</td>' +
+          '<td style="padding:12px 8px;vertical-align:top;">' + examResultBadge(a.result) + '</td>' +
+          '<td style="padding:12px 8px;vertical-align:top;font-weight:800;font-size:1.05rem;color:#0f172a;">' +
+          esc(a.grade || '—') + '</td>' +
+          '<td style="padding:12px 8px;vertical-align:top;">' + examStatusBadge(a.status) +
+          (a.reject_note ? '<div style="font-size:0.75rem;color:#991b1b;margin-top:4px;">' + esc(a.reject_note) + '</div>' : '') +
+          '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+
+    html +=
+      '<div style="padding:12px 0 4px;border-top:1px solid var(--border);margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;">' +
+      '<button type="button" class="btn go" style="padding:10px 16px;" ' +
+      'onclick="window.examStaffActSelected&&window.examStaffActSelected(\'' + prefix + '\',\'verify\')">✅ Verify checked rows</button>' +
+      '<button type="button" class="btn" style="padding:10px 16px;background:#991b1b;color:#fff;" ' +
+      'onclick="window.examStaffActSelected&&window.examStaffActSelected(\'' + prefix + '\',\'reject\')">Reject checked rows</button>' +
+      '<span style="font-size:0.8rem;opacity:.7;align-self:center;">Pending rows are pre-checked. Uncheck any you want to skip.</span>' +
+      '</div></div>';
+
+    host.innerHTML = html;
+  };
+
+  window.examStaffToggleAllStudent = function (prefix, on) {
+    document.querySelectorAll('#' + prefix + 'RvDetail .exam-rv-cb').forEach(function (cb) {
+      if (!cb.disabled) cb.checked = !!on;
+    });
+  };
+
+  window.examStaffCollectChecked = function (prefix) {
+    var ids = [];
+    document.querySelectorAll('#' + prefix + 'RvList .exam-rv-cb:checked').forEach(function (cb) {
+      var id = Number(cb.getAttribute('data-id'));
+      if (id) ids.push(id);
+    });
+    return ids;
+  };
+
+  window.examStaffActSelected = function (prefix, action) {
+    var ids = window.examStaffCollectChecked(prefix);
+    if (!ids.length) {
+      alert('Select subject rows first (pending rows are pre-checked for this student).');
+      return;
+    }
+    var body = { action: action, ids: ids };
+    if (action === 'reject') {
+      var note = prompt('Reject reason (optional)') || 'Rejected';
+      body.note = note;
+    }
+    api('/api/exam/attempts', { method: 'PATCH', body: body })
+      .then(function (data) {
+        alert(
+          (action === 'verify' ? 'Verified ' : 'Rejected ') +
+            (data.updated || ids.length) +
+            ' row(s)' +
+            (action === 'verify' ? '. Locked for student edits.' : '.'),
+        );
+        window.examStaffLoadVerify(prefix);
+      })
+      .catch(function (err) { alert(err.message); });
+  };
+
+  window.examStaffActStudent = function (prefix, action) {
+    var state = window._examRvState[prefix] || {};
+    var stu = (state.by_student || []).find(function (s) { return s.reg_no === state.selectedReg; });
+    if (!stu) return;
+    var ids = (stu.attempts || [])
+      .filter(function (a) { return a.status === 'pending'; })
+      .map(function (a) { return a.id; });
+    if (!ids.length) {
+      alert('No pending rows for this student.');
+      return;
+    }
+    var body = { action: action, ids: ids };
+    if (action === 'reject') {
+      var note = prompt('Reject reason for all pending of ' + (stu.name || stu.reg_no) + ' (optional)') || 'Rejected';
+      body.note = note;
+    } else if (
+      !confirm(
+        'Verify all ' + ids.length + ' pending subject(s) for\n' +
+          (stu.name || '') + ' (' + stu.reg_no + ')?\n\nRows will lock for the student.',
+      )
+    ) {
+      return;
+    }
+    api('/api/exam/attempts', { method: 'PATCH', body: body })
+      .then(function (data) {
+        alert((action === 'verify' ? 'Verified ' : 'Rejected ') + (data.updated || ids.length) + ' row(s) for this student.');
+        window.examStaffLoadVerify(prefix);
+      })
+      .catch(function (err) { alert(err.message); });
   };
 
   window.examStaffLoadFees = async function (prefix) {
@@ -1101,41 +1391,12 @@
       }
       var ver = t.closest('[data-exam-verify-sel]');
       if (ver) {
-        var pfx = ver.getAttribute('data-exam-verify-sel');
-        var ids = [];
-        document.querySelectorAll('#' + pfx + 'RvList .exam-rv-cb:checked').forEach(function (cb) {
-          ids.push(Number(cb.getAttribute('data-id')));
-        });
-        if (!ids.length) {
-          alert('Select rows first');
-          return;
-        }
-        api('/api/exam/attempts', { method: 'PATCH', body: { action: 'verify', ids: ids } })
-          .then(function () {
-            alert('Verified ' + ids.length + ' row(s). Locked for student edits.');
-            window.examStaffLoadVerify(pfx);
-          })
-          .catch(function (err) { alert(err.message); });
+        window.examStaffActSelected(ver.getAttribute('data-exam-verify-sel'), 'verify');
         return;
       }
       var rej = t.closest('[data-exam-reject-sel]');
       if (rej) {
-        var pfx2 = rej.getAttribute('data-exam-reject-sel');
-        var ids2 = [];
-        document.querySelectorAll('#' + pfx2 + 'RvList .exam-rv-cb:checked').forEach(function (cb) {
-          ids2.push(Number(cb.getAttribute('data-id')));
-        });
-        if (!ids2.length) {
-          alert('Select rows first');
-          return;
-        }
-        var note = prompt('Reject reason (optional)') || 'Rejected';
-        api('/api/exam/attempts', { method: 'PATCH', body: { action: 'reject', ids: ids2, note: note } })
-          .then(function () {
-            alert('Rejected.');
-            window.examStaffLoadVerify(pfx2);
-          })
-          .catch(function (err) { alert(err.message); });
+        window.examStaffActSelected(rej.getAttribute('data-exam-reject-sel'), 'reject');
       }
     },
     true,

@@ -19,7 +19,10 @@ import {
   termParityLabel,
 } from "@/lib/academic-year"
 
-function mapRow(r: Record<string, unknown>): ExamAttemptRow {
+function mapRow(r: Record<string, unknown>): ExamAttemptRow & {
+  student_name?: string
+  student_branch?: string
+} {
   return {
     id: Number(r.id),
     reg_no: String(r.reg_no),
@@ -39,7 +42,64 @@ function mapRow(r: Record<string, unknown>): ExamAttemptRow {
     verified_at: r.verified_at ? String(r.verified_at) : null,
     verified_by_name: r.verified_by_name != null ? String(r.verified_by_name) : null,
     verifier_role: r.verifier_role != null ? String(r.verifier_role) : null,
+    student_name:
+      r.student_name != null && String(r.student_name).trim()
+        ? String(r.student_name)
+        : undefined,
+    student_branch:
+      r.student_branch != null && String(r.student_branch).trim()
+        ? String(r.student_branch)
+        : undefined,
   }
+}
+
+/** Group attempt rows into per-student cards for staff verification UI. */
+function groupAttemptsByStudent(
+  attempts: Array<ExamAttemptRow & { student_name?: string; student_branch?: string }>,
+) {
+  const map = new Map<
+    string,
+    {
+      reg_no: string
+      name: string
+      branch: string
+      branch_code: string
+      pending: number
+      verified: number
+      rejected: number
+      total: number
+      attempts: typeof attempts
+    }
+  >()
+  for (const a of attempts) {
+    let g = map.get(a.reg_no)
+    if (!g) {
+      g = {
+        reg_no: a.reg_no,
+        name: a.student_name || a.reg_no,
+        branch: a.student_branch || a.branch_code || "",
+        branch_code: a.branch_code || "",
+        pending: 0,
+        verified: 0,
+        rejected: 0,
+        total: 0,
+        attempts: [],
+      }
+      map.set(a.reg_no, g)
+    }
+    if (a.student_name && g.name === g.reg_no) g.name = a.student_name
+    if (a.student_branch) g.branch = a.student_branch
+    g.attempts.push(a)
+    g.total++
+    if (a.status === "pending") g.pending++
+    else if (a.status === "verified") g.verified++
+    else if (a.status === "rejected") g.rejected++
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    // Pending-first, then name
+    if (b.pending !== a.pending) return b.pending - a.pending
+    return a.name.localeCompare(b.name) || a.reg_no.localeCompare(b.reg_no)
+  })
 }
 
 export async function GET(req: Request) {
@@ -99,12 +159,12 @@ export async function GET(req: Request) {
   const where: string[] = []
   if (reg) {
     params.push(reg)
-    where.push(`reg_no = $${params.length}`)
+    where.push(`a.reg_no = $${params.length}`)
     if (!(await staffCanAccessReg(user, reg))) return unauthorized("Not your branch")
   }
   if (statusF) {
     params.push(statusF)
-    where.push(`status = $${params.length}`)
+    where.push(`a.status = $${params.length}`)
   }
   if (user.role === "hod") {
     const my = hodBranchOf(user)
@@ -113,17 +173,22 @@ export async function GET(req: Request) {
     const code = branchCodeFromDept(my)
     if (!code) return badRequest("Could not map HOD branch to CE/CSE/ECE/ME")
     params.push(code)
-    where.push(`branch_code = $${params.length}`)
+    where.push(`a.branch_code = $${params.length}`)
   } else if (branchF) {
     const { branchCodeFromDept } = await import("@/lib/curriculum-c20")
     const code = branchCodeFromDept(branchF) || branchF.toUpperCase()
     params.push(code)
-    where.push(`branch_code = $${params.length}`)
+    where.push(`a.branch_code = $${params.length}`)
   }
 
-  const sql = `SELECT * FROM student_exam_attempts
+  const sql = `SELECT a.*,
+      COALESCE(NULLIF(TRIM(s.name), ''), NULLIF(TRIM(u.display_name), ''), a.reg_no) AS student_name,
+      COALESCE(NULLIF(TRIM(s.dept), ''), NULLIF(TRIM(u.branch), ''), a.branch_code) AS student_branch
+    FROM student_exam_attempts a
+    LEFT JOIN students s ON s.reg_no = a.reg_no
+    LEFT JOIN users u ON u.reg_no = a.reg_no AND u.role = 'student' AND u.deleted_at IS NULL
     ${where.length ? "WHERE " + where.join(" AND ") : ""}
-    ORDER BY status = 'pending' DESC, reg_no, semester, subject_code, id
+    ORDER BY a.status = 'pending' DESC, student_name, a.reg_no, a.semester, a.subject_code, a.id
     LIMIT 2000`
   const { rows } = await query(sql, params)
   const attempts = rows.map(mapRow)
@@ -144,7 +209,18 @@ export async function GET(req: Request) {
     }
     effective = effectiveSubjectStatus(attempts)
   }
-  return Response.json({ attempts, effective, student, curriculum, pathway, pathway_note })
+  const by_student = groupAttemptsByStudent(attempts)
+  return Response.json({
+    attempts,
+    by_student,
+    student_count: by_student.length,
+    pending_count: attempts.filter((a) => a.status === "pending").length,
+    effective,
+    student,
+    curriculum,
+    pathway,
+    pathway_note,
+  })
 }
 
 /** Student save/submit attempts batch */
