@@ -417,6 +417,10 @@
   };
 
   /* ---------- Live Exam Fees + multi challan ---------- */
+  var K2_CHALLAN_URL =
+    'https://k2.karnataka.gov.in/wps/portal/Khajane-II/Scope/Remittance/ChallanGeneration/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTSycnQ39nQ38LVx8LA0C_f3DQn28PAwNQkz1w8EKDHAARwP9KGL041EQhd_4cP0ovFa4GBJQYGFEQIGBAVQBHlcU5IZGGGR6pgMA7DD6nQ!!/dz/d5/L2dBISEvZ0FBIS9nQSEh/';
+  var K2_SAMPLE_PDF = '/docs/sample-k2-challan.pdf';
+
   function ensureStuExamFeesPanel() {
     var panel = document.getElementById('stuExamFees');
     if (!panel) return;
@@ -424,9 +428,34 @@
     panel.setAttribute('data-exam-live', '1');
     panel.innerHTML =
       '<div class="info-box">💰 <strong>Exam Fees (live from your results)</strong> — Fee is calculated from backlog / regular status. ' +
-      'Pay via <strong>K2 treasury challan</strong> (offline). There is <strong>no online K2 API</strong> in this portal — ' +
-      'enter one or more challan receipts if you paid in parts (e.g. ₹300 + ₹50). ' +
+      'Pay on the official <strong>K2 (Khajane-II)</strong> website, then enter receipt number(s) here. ' +
+      'There is <strong>no online K2 payment API</strong> in this portal. Multiple challans allowed (e.g. ₹300 + ₹50). ' +
       'Exam Section will <strong>manually tick Paid</strong> after verifying.</div>' +
+
+      '<div class="card" style="padding:16px;margin-bottom:14px;border:1.5px solid #fdba74;background:#fff7ed;">' +
+      '<h3 style="margin:0 0 10px;font-size:1rem;color:#9a3412;">⚠️ Important — K2 challan must use these exact details</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.88rem;line-height:1.5;color:#7c2d12;">' +
+      'If you select the wrong district / department / DDO, your fee will <strong>not</strong> reach the correct office. ' +
+      'Check carefully before generating the challan.</p>' +
+      '<ul style="margin:0 0 12px;padding-left:1.2rem;font-size:0.9rem;line-height:1.65;color:#0f172a;">' +
+      '<li><strong>District:</strong> Bengaluru Urban</li>' +
+      '<li><strong>Department:</strong> DEPARTMENT OF TECHNICAL EDUCATION</li>' +
+      '<li><strong>DDO Office:</strong> DIRECTORATE OF TECHNICAL EDUCATION, BANGALORE</li>' +
+      '<li><strong>DDO Code:</strong> <span style="font-family:ui-monospace,monospace;font-weight:800;letter-spacing:0.03em;">14254O</span></li>' +
+      '</ul>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">' +
+      '<a class="btn go" href="' + K2_CHALLAN_URL + '" target="_blank" rel="noopener noreferrer" ' +
+      'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
+      '🔗 Open K2 Challan Generation</a>' +
+      '<a class="btn ol" href="' + K2_SAMPLE_PDF + '" target="_blank" rel="noopener noreferrer" ' +
+      'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
+      '📄 View sample K2 challan (PDF)</a>' +
+      '</div>' +
+      '<p style="margin:12px 0 0;font-size:0.8rem;opacity:.8;line-height:1.45;">' +
+      'After payment, copy the <strong>K2 receipt / challan number</strong> and amount into the form below and submit. ' +
+      'Keep the paid challan PDF/print for your records.</p>' +
+      '</div>' +
+
       '<div class="card" style="padding:16px;margin-bottom:14px;">' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' +
       '<button type="button" class="btn ol" onclick="window.examFeesReload&&window.examFeesReload()">↻ Recalculate</button>' +
@@ -439,6 +468,7 @@
       '</div>' +
       '<div class="card" style="padding:16px;">' +
       '<h3 style="margin:0 0 10px;font-size:0.95rem;color:var(--navy);">K2 Challan receipts (multiple allowed)</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.82rem;opacity:.8;">Enter receipt no. from your paid K2 challan. Add another row if you paid in parts.</p>' +
       '<div id="examChallanList"></div>' +
       '<button type="button" class="btn ol" style="margin:8px 0;" onclick="window.examAddChallanRow&&window.examAddChallanRow()">+ Add another challan</button>' +
       '<div class="fg" style="margin-top:8px;"><label>Note to Exam Section (optional)</label>' +
