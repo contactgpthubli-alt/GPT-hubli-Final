@@ -4,7 +4,7 @@ import {
   ensureExamResultsSchema,
   loadStudentContext,
   staffCanAccessReg,
-  curriculumForStudent,
+  curriculumForStudentWithPathway,
   effectiveSubjectStatus,
   type AttemptResult,
   type AttemptStatus,
@@ -55,12 +55,25 @@ export async function GET(req: Request) {
     )
     const attempts = rows.map(mapRow)
     const ctx = await loadStudentContext(reg)
-    const curriculum = ctx ? curriculumForStudent(ctx) : []
+    let curriculum: unknown[] = []
+    let pathway = null
+    let pathway_note: string | null = null
+    let pathway_required = false
+    if (ctx) {
+      const packed = await curriculumForStudentWithPathway({ ...ctx, reg_no: reg })
+      curriculum = packed.subjects
+      pathway = packed.pathway
+      pathway_note = packed.pathway_note
+      pathway_required = packed.pathway_required
+    }
     return Response.json({
       attempts,
       effective: effectiveSubjectStatus(attempts),
       student: ctx,
       curriculum,
+      pathway,
+      pathway_note,
+      pathway_required,
     })
   }
 
@@ -103,12 +116,21 @@ export async function GET(req: Request) {
   let student = null
   let curriculum: unknown[] = []
   let effective = null
+  let pathway = null
+  let pathway_note: string | null = null
   if (reg) {
     student = await loadStudentContext(reg)
-    if (student) curriculum = curriculumForStudent(student)
+    if (student) {
+      const packed = await curriculumForStudentWithPathway({ ...student, reg_no: reg })
+      curriculum = packed.subjects
+      pathway = packed.pathway
+      pathway_note = packed.pathway_note
+    } else {
+      curriculum = []
+    }
     effective = effectiveSubjectStatus(attempts)
   }
-  return Response.json({ attempts, effective, student, curriculum })
+  return Response.json({ attempts, effective, student, curriculum, pathway, pathway_note })
 }
 
 /** Student save/submit attempts batch */

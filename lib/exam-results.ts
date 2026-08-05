@@ -368,6 +368,30 @@ export function curriculumForStudent(ctx: {
   })
 }
 
+/** Async: apply HOD pathway assignment for Sem 5–6. */
+export async function curriculumForStudentWithPathway(
+  ctx: {
+    scheme: string
+    branch_code: BranchCode | null
+    entry_type: EntryType
+    reg_no?: string
+  },
+  academicYear?: string | null,
+) {
+  const base = curriculumForStudent(ctx)
+  if (!ctx.reg_no) {
+    return {
+      subjects: base,
+      pathway_required: false,
+      pathway: null as null,
+      pathway_note: null as string | null,
+    }
+  }
+  const { getStudentPathway, filterCurriculumByPathway } = await import("@/lib/pathways")
+  const assignment = await getStudentPathway(ctx.reg_no, academicYear)
+  return filterCurriculumByPathway(base, assignment)
+}
+
 export type ChallanEntry = {
   receipt_no: string
   amount: number

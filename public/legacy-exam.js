@@ -90,6 +90,7 @@
       window._examStuState = data;
       var st = data.student || {};
       if (meta) {
+        var pw = data.pathway;
         meta.innerHTML =
           '<strong>' + esc(st.name || '') + '</strong> · ' + esc(st.reg_no || '') +
           ' · ' + esc(st.branch || '') +
@@ -97,6 +98,14 @@
           (st.admission_academic_year ? ' · Adm. ' + esc(st.admission_academic_year) : '') +
           (st.entry_type === 'lateral'
             ? ' · <span class="badge pending">Lateral (ITI/PUC) — Year-1 hidden</span>'
+            : '') +
+          (pw
+            ? ' · <span class="badge active">Pathway: ' + esc(pw.label) + ' (' + esc(pw.academic_year || '') + ')</span>'
+            : data.pathway_required
+              ? ' · <span class="badge pending">Sem 5–6 pathway not assigned by HOD</span>'
+              : '') +
+          (data.pathway_note
+            ? '<div style="margin-top:6px;font-size:0.78rem;opacity:.85;">' + esc(data.pathway_note) + '</div>'
             : '');
       }
       if (st.scheme === 'C-25') {
@@ -123,11 +132,17 @@
     if (hint) {
       hint.textContent =
         sem >= 5
-          ? 'Sem 5–6: pick the pathway subjects you actually studied (specialization / research / entrepreneurship).'
+          ? 'Sem 5–6 subjects come only from the pathway your HOD assigned for this academic year (changes every year).'
           : 'Add one row per exam attempt (e.g. fail Nov 2021-22, pass Apr 2022-23).';
     }
     if (!cur.length) {
-      host.innerHTML = '<p style="opacity:.7;">No subjects for this semester (branch/scheme).</p>';
+      if (sem >= 5 && state.pathway_required) {
+        host.innerHTML =
+          '<div class="info-box" style="background:#fef3c7;">Your HOD has not assigned a Sem 5–6 pathway for the current academic year yet. ' +
+          'Ask HOD to open <strong>Pathway assignment</strong> and set your pathway.</div>';
+      } else {
+        host.innerHTML = '<p style="opacity:.7;">No subjects for this semester (branch/scheme).</p>';
+      }
       return;
     }
     var attempts = state.attempts || [];
@@ -527,7 +542,7 @@
       });
     });
 
-    // HOD: inject under facBranchStudents or facApprovals area — separate panel
+    // HOD: Result verification + Pathway manager (per academic year)
     if (window.currentUser && window.currentUser.role === 'hod') {
       var facContent = document.querySelector('#dbFaculty .db-content');
       var facMenu = document.querySelector('#dbFaculty .sb-menu');
@@ -562,8 +577,346 @@
           '</div><div id="hodExRvList" style="padding:10px;"></div>';
         facContent.appendChild(panel);
       }
+      if (facContent && facMenu && !document.getElementById('facPathwayNav')) {
+        var pnav = document.createElement('div');
+        pnav.className = 'sl';
+        pnav.id = 'facPathwayNav';
+        pnav.setAttribute('data-fac', 'pathways');
+        pnav.innerHTML = '<span class="sli">🛤️</span>Sem 5–6 Pathways';
+        pnav.onclick = function () {
+          facContent.querySelectorAll(':scope > div[id]').forEach(function (p) {
+            p.style.display = p.id === 'facPathwayHod' ? '' : 'none';
+          });
+          facMenu.querySelectorAll('.sl').forEach(function (sl) { sl.classList.remove('act'); });
+          pnav.classList.add('act');
+          var pp = document.getElementById('facPathwayHod');
+          if (pp) pp.style.display = '';
+          window.examPathwayLoad && window.examPathwayLoad();
+        };
+        facMenu.appendChild(pnav);
+        var pPanel = document.createElement('div');
+        pPanel.id = 'facPathwayHod';
+        pPanel.style.display = 'none';
+        pPanel.innerHTML =
+          '<div class="info-box">🛤️ <strong>Sem 5–6 pathways (per academic year)</strong> — ' +
+          'Offer which specializations / tracks run <strong>this year</strong>, then assign each student. ' +
+          'When the academic year changes, set pathways again for the new year. ' +
+          'Students only see Sem 5–6 subjects for their assigned pathway.</div>' +
+          '<div class="card" style="padding:14px;margin-bottom:12px;">' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">' +
+          '<div><label style="font-size:0.75rem;font-weight:700;">Academic year</label><br>' +
+          '<input id="hodPwYear" type="text" placeholder="2025-26" ' +
+          'style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);width:110px;" /></div>' +
+          '<button type="button" class="btn ol" onclick="window.examPathwayLoad&&window.examPathwayLoad()">↻ Load year</button>' +
+          '<button type="button" class="btn pr" onclick="window.examPathwaySaveOfferings&&window.examPathwaySaveOfferings()">💾 Save offerings</button>' +
+          '</div>' +
+          '<div id="hodPwOfferings" style="margin-top:12px;"></div></div>' +
+          '<div class="card" style="padding:14px;">' +
+          '<div class="card-hd" style="padding:0 0 10px;"><h3 style="margin:0;">Assign students</h3></div>' +
+          '<div id="hodPwStudents" style="overflow-x:auto;"></div>' +
+          '<button type="button" class="btn go" style="margin-top:10px;" ' +
+          'onclick="window.examPathwaySaveAssignments&&window.examPathwaySaveAssignments()">💾 Save assignments</button>' +
+          '</div>';
+        facContent.appendChild(pPanel);
+      }
     }
+
+    // Admin / Exam / Principal: pathway tab on exam shell
+    ;[
+      { root: 'adExam', prefix: 'adEx' },
+      { root: 'facExamModule', prefix: 'facEx' },
+    ].forEach(function (cfg) {
+      var root = document.getElementById(cfg.root);
+      if (!root || document.getElementById(cfg.prefix + 'Pathways')) return;
+      var bar = root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement;
+      if (bar) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn ol';
+        btn.setAttribute('data-exam-tab', cfg.prefix + 'Pathways');
+        btn.textContent = '🛤️ Pathways';
+        bar.appendChild(btn);
+        btn.onclick = function () {
+          var v = document.getElementById(cfg.prefix + 'ResultsVerify');
+          var f = document.getElementById(cfg.prefix + 'FeeDesk');
+          var p = document.getElementById(cfg.prefix + 'Pathways');
+          if (v) v.style.display = 'none';
+          if (f) f.style.display = 'none';
+          if (p) {
+            p.style.display = '';
+            window.examPathwayLoadStaff && window.examPathwayLoadStaff(cfg.prefix);
+          }
+        };
+      }
+      if (!document.getElementById(cfg.prefix + 'Pathways')) {
+        var pdiv = document.createElement('div');
+        pdiv.id = cfg.prefix + 'Pathways';
+        pdiv.style.display = 'none';
+        pdiv.innerHTML =
+          '<div class="info-box">Manage Sem 5–6 pathways by branch and academic year (same as HOD).</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:end;">' +
+          '<div><label style="font-size:0.72rem;">Branch</label><br>' +
+          '<select id="' + cfg.prefix + 'PwBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="CSE">CSE</option><option value="CE">Civil</option>' +
+          '<option value="ECE">ECE</option><option value="ME">ME</option></select></div>' +
+          '<div><label style="font-size:0.72rem;">Academic year</label><br>' +
+          '<input id="' + cfg.prefix + 'PwYear" type="text" placeholder="2025-26" ' +
+          'style="padding:8px;border-radius:8px;border:1.5px solid var(--border);width:110px;" /></div>' +
+          '<button type="button" class="btn ol" onclick="window.examPathwayLoadStaff&&window.examPathwayLoadStaff(\'' +
+          cfg.prefix + '\')">↻ Load</button>' +
+          '<button type="button" class="btn pr" onclick="window.examPathwaySaveOfferingsStaff&&window.examPathwaySaveOfferingsStaff(\'' +
+          cfg.prefix + '\')">💾 Save offerings</button>' +
+          '</div>' +
+          '<div id="' + cfg.prefix + 'PwOfferings" style="padding:10px;"></div>' +
+          '<div id="' + cfg.prefix + 'PwStudents" style="padding:10px;"></div>' +
+          '<div style="padding:10px;"><button type="button" class="btn go" ' +
+          'onclick="window.examPathwaySaveAssignmentsStaff&&window.examPathwaySaveAssignmentsStaff(\'' +
+          cfg.prefix + '\')">💾 Save assignments</button></div>';
+        root.appendChild(pdiv);
+      }
+    });
   }
+
+  function currentAyGuess() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var start = m >= 6 ? y : y - 1;
+    return start + '-' + String((start + 1) % 100).padStart(2, '0');
+  }
+
+  function paintOfferings(hostId, offerings) {
+    var host = document.getElementById(hostId);
+    if (!host) return;
+    if (!offerings || !offerings.length) {
+      host.innerHTML = '<p style="opacity:.7;">No pathway templates.</p>';
+      return;
+    }
+    var html =
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr>' +
+      '<th>Offered this year?</th><th>Track</th><th>Label (editable)</th><th>Sem 5 codes</th><th>Sem 6 codes</th></tr></thead><tbody>';
+    offerings.forEach(function (o) {
+      html +=
+        '<tr class="pw-off-row" data-key="' +
+        esc(o.pathway_key) +
+        '" style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:6px;text-align:center;"><input type="checkbox" class="pw-offered" ' +
+        (o.is_offered ? 'checked' : '') +
+        ' /></td>' +
+        '<td style="padding:6px;font-size:0.72rem;">' +
+        esc(o.track) +
+        '</td>' +
+        '<td style="padding:6px;"><input class="pw-label" type="text" value="' +
+        esc(o.label) +
+        '" style="width:100%;min-width:180px;padding:6px;border-radius:6px;border:1px solid var(--border);" /></td>' +
+        '<td style="padding:6px;font-family:monospace;font-size:0.7rem;">' +
+        esc((o.sem5_codes || []).join(', ')) +
+        '</td>' +
+        '<td style="padding:6px;font-family:monospace;font-size:0.7rem;">' +
+        esc((o.sem6_codes || []).join(', ')) +
+        '</td></tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  }
+
+  function paintAssignments(hostId, students, offerings) {
+    var host = document.getElementById(hostId);
+    if (!host) return;
+    var offered = (offerings || []).filter(function (o) {
+      return o.is_offered;
+    });
+    if (!students || !students.length) {
+      host.innerHTML = '<p style="opacity:.7;">No students in this branch.</p>';
+      return;
+    }
+    var opts =
+      '<option value="">— Not assigned —</option>' +
+      offered
+        .map(function (o) {
+          return (
+            '<option value="' +
+            esc(o.pathway_key) +
+            '">' +
+            esc(o.label) +
+            ' (' +
+            esc(o.track) +
+            ')</option>'
+          );
+        })
+        .join('');
+    var html =
+      '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+      '<th>Reg</th><th>Name</th><th>Year</th><th>Pathway for this AY</th></tr></thead><tbody>';
+    students.forEach(function (s) {
+      var cur = s.assignment ? s.assignment.pathway_key : '';
+      html +=
+        '<tr class="pw-stu-row" data-reg="' +
+        esc(s.reg_no) +
+        '" style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:6px;font-family:monospace;font-size:0.72rem;">' +
+        esc(s.reg_no) +
+        '</td>' +
+        '<td style="padding:6px;">' +
+        esc(s.name) +
+        '</td>' +
+        '<td style="padding:6px;">' +
+        (s.year != null ? s.year : '—') +
+        '</td>' +
+        '<td style="padding:6px;"><select class="pw-assign" style="min-width:220px;padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        opts.replace(
+          'value="' + esc(cur) + '"',
+          'value="' + esc(cur) + '" selected',
+        ) +
+        '</select></td></tr>';
+    });
+    html += '</tbody></table>';
+    // Fix selected options properly
+    host.innerHTML = html;
+    host.querySelectorAll('.pw-stu-row').forEach(function (tr, i) {
+      var s = students[i];
+      var sel = tr.querySelector('.pw-assign');
+      if (sel && s.assignment) sel.value = s.assignment.pathway_key;
+    });
+  }
+
+  window.examPathwayLoad = async function () {
+    var yearEl = document.getElementById('hodPwYear');
+    if (yearEl && !yearEl.value) yearEl.value = currentAyGuess();
+    var ay = (yearEl && yearEl.value) || currentAyGuess();
+    try {
+      var off = await api('/api/exam/pathways?academic_year=' + encodeURIComponent(ay));
+      window._hodPwBranch = off.branch_code;
+      window._hodPwYear = off.academic_year;
+      paintOfferings('hodPwOfferings', off.offerings || []);
+      var asg = await api(
+        '/api/exam/pathways?mode=assignments&academic_year=' + encodeURIComponent(ay),
+      );
+      paintAssignments('hodPwStudents', asg.students || [], asg.all_offerings || asg.offerings || []);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.examPathwaySaveOfferings = async function () {
+    var ay = ((document.getElementById('hodPwYear') || {}).value || currentAyGuess()).trim();
+    var rows = document.querySelectorAll('#hodPwOfferings .pw-off-row');
+    var offerings = [];
+    rows.forEach(function (tr) {
+      offerings.push({
+        pathway_key: tr.getAttribute('data-key'),
+        is_offered: !!(tr.querySelector('.pw-offered') || {}).checked,
+        label: ((tr.querySelector('.pw-label') || {}).value || '').trim(),
+      });
+    });
+    try {
+      await api('/api/exam/pathways', {
+        method: 'PATCH',
+        body: { academic_year: ay, offerings: offerings },
+      });
+      alert('Offerings saved for ' + ay);
+      window.examPathwayLoad();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.examPathwaySaveAssignments = async function () {
+    var ay = ((document.getElementById('hodPwYear') || {}).value || currentAyGuess()).trim();
+    var rows = document.querySelectorAll('#hodPwStudents .pw-stu-row');
+    var assignments = [];
+    rows.forEach(function (tr) {
+      var reg = tr.getAttribute('data-reg');
+      var key = ((tr.querySelector('.pw-assign') || {}).value || '').trim();
+      if (reg && key) assignments.push({ reg_no: reg, pathway_key: key });
+    });
+    if (!assignments.length) {
+      alert('Select at least one student pathway.');
+      return;
+    }
+    try {
+      var data = await api('/api/exam/pathways', {
+        method: 'POST',
+        body: { action: 'assign_bulk', academic_year: ay, assignments: assignments },
+      });
+      alert('Assigned ' + (data.updated || 0) + ' student(s) for ' + ay);
+      window.examPathwayLoad();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.examPathwayLoadStaff = async function (prefix) {
+    var yearEl = document.getElementById(prefix + 'PwYear');
+    var brEl = document.getElementById(prefix + 'PwBranch');
+    if (yearEl && !yearEl.value) yearEl.value = currentAyGuess();
+    var ay = (yearEl && yearEl.value) || currentAyGuess();
+    var br = (brEl && brEl.value) || 'CSE';
+    try {
+      var off = await api(
+        '/api/exam/pathways?academic_year=' +
+          encodeURIComponent(ay) +
+          '&branch=' +
+          encodeURIComponent(br),
+      );
+      paintOfferings(prefix + 'PwOfferings', off.offerings || []);
+      var asg = await api(
+        '/api/exam/pathways?mode=assignments&academic_year=' +
+          encodeURIComponent(ay) +
+          '&branch=' +
+          encodeURIComponent(br),
+      );
+      paintAssignments(prefix + 'PwStudents', asg.students || [], asg.all_offerings || asg.offerings || []);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.examPathwaySaveOfferingsStaff = async function (prefix) {
+    var ay = ((document.getElementById(prefix + 'PwYear') || {}).value || currentAyGuess()).trim();
+    var br = ((document.getElementById(prefix + 'PwBranch') || {}).value || 'CSE').trim();
+    var rows = document.querySelectorAll('#' + prefix + 'PwOfferings .pw-off-row');
+    var offerings = [];
+    rows.forEach(function (tr) {
+      offerings.push({
+        pathway_key: tr.getAttribute('data-key'),
+        is_offered: !!(tr.querySelector('.pw-offered') || {}).checked,
+        label: ((tr.querySelector('.pw-label') || {}).value || '').trim(),
+      });
+    });
+    try {
+      await api('/api/exam/pathways', {
+        method: 'PATCH',
+        body: { academic_year: ay, branch: br, offerings: offerings },
+      });
+      alert('Offerings saved');
+      window.examPathwayLoadStaff(prefix);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.examPathwaySaveAssignmentsStaff = async function (prefix) {
+    var ay = ((document.getElementById(prefix + 'PwYear') || {}).value || currentAyGuess()).trim();
+    var br = ((document.getElementById(prefix + 'PwBranch') || {}).value || 'CSE').trim();
+    var rows = document.querySelectorAll('#' + prefix + 'PwStudents .pw-stu-row');
+    var assignments = [];
+    rows.forEach(function (tr) {
+      var reg = tr.getAttribute('data-reg');
+      var key = ((tr.querySelector('.pw-assign') || {}).value || '').trim();
+      if (reg && key) assignments.push({ reg_no: reg, pathway_key: key });
+    });
+    try {
+      var data = await api('/api/exam/pathways', {
+        method: 'POST',
+        body: { action: 'assign_bulk', academic_year: ay, branch: br, assignments: assignments },
+      });
+      alert('Assigned ' + (data.updated || 0));
+      window.examPathwayLoadStaff(prefix);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
   window.examStaffLoadVerify = async function (prefix) {
     var list = document.getElementById(prefix + 'RvList');
