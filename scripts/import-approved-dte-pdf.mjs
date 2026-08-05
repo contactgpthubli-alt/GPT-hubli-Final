@@ -115,10 +115,17 @@ function genderLabel(g) {
   return cleanCell(g)
 }
 
-/** Parse PDF via Python+pdfplumber (already used in project tooling). */
+/**
+ * Parse PDF line-by-line in reading order.
+ * Critical: when "Course :" appears mid-page, only LATER students get that branch.
+ * Table-based parse was wrong (used last header for whole page).
+ */
 function parsePdfStudents(pdfPath) {
-  const py = `
-import pdfplumber, re, json, sys
+  const scriptPath = path.join(projectRoot, "tmp-c20", "_import_parse_pdf.py")
+  mkdirSync(path.dirname(scriptPath), { recursive: true })
+  writeFileSync(
+    scriptPath,
+    `import pdfplumber, re, json, sys
 fp = sys.argv[1]
 
 def norm_branch(c):
@@ -133,92 +140,74 @@ def norm_branch(c):
 students = []
 course = None
 adm_type = "REGULAR"
+pending = None
+pat = re.compile(
+    r"^(\\d+)\\s+(DTE\\d+)\\s+(.+?)\\s+(\\d{1,2}/\\d{1,2}/\\d{4})\\s+([MF])\\s+(\\S+)\\s+(\\d*)\\s*(\\d{10})\\s+(ONLINE|OFFLINE)\\s*$"
+)
+
+def flush():
+    global pending
+    if pending and pending.get("appl_id") and pending.get("branch"):
+        students.append(pending)
+    pending = None
+
 with pdfplumber.open(fp) as doc:
     for pg in doc.pages:
-        text = pg.extract_text() or ""
-        for ln in text.splitlines():
+        for ln in (pg.extract_text() or "").splitlines():
             m = re.search(r"Course\\s*:\\s*(.+)", ln, re.I)
-            if m: course = m.group(1).strip()
+            if m:
+                flush()
+                course = m.group(1).strip()
+                continue
             m2 = re.search(r"Admission Type\\s*:\\s*(.+)", ln, re.I)
-            if m2: adm_type = m2.group(1).strip()
-        for tbl in (pg.extract_tables() or []):
-            if not tbl: continue
-            header = " ".join([(c or "") for c in tbl[0]]).lower()
-            if "appln" not in header: continue
-            i = 1
-            while i < len(tbl):
-                row = tbl[i]
-                cells = [(c or "").strip() for c in row]
-                while len(cells) < 10: cells.append("")
-                sno, appl, name, father, dob, gender, cat, income, mobile, mode = cells[:10]
-                if not re.match(r"^\\d+$", (sno or "").strip()):
-                    i += 1
-                    continue
-                appl_parts = [appl]
-                name_parts = [name]
-                father_parts = [father]
-                j = i + 1
-                while j < len(tbl):
-                    r2 = tbl[j]
-                    c2 = [(c or "").strip() for c in r2]
-                    while len(c2) < 10: c2.append("")
-                    if re.match(r"^\\d+$", c2[0].strip()):
-                        break
-                    if c2[1]: appl_parts.append(c2[1])
-                    if c2[2]: name_parts.append(c2[2])
-                    if c2[3]: father_parts.append(c2[3])
-                    j += 1
-                appl_id = re.sub(r"\\s+", "", "".join(appl_parts)).upper()
-                m = re.match(r"(DTE\\d+)", appl_id)
-                if not m:
-                    i = j
-                    continue
-                base = m.group(1)
-                rest = appl_id[len(base):]
-                dm = re.match(r"(\\d+)", rest)
-                full = base + (dm.group(1) if dm else "")
-                if not re.match(r"^DTE\\d{12}$", full):
-                    i = j
-                    continue
-                nm = re.sub(r"\\s+", " ", " ".join(name_parts).replace("\\n", " ")).strip()
-                fa = re.sub(r"\\s+", " ", " ".join(father_parts).replace("\\n", " ")).strip()
-                gen = (gender or "").strip().upper()
-                mob = re.sub(r"\\D", "", mobile or "")
-                if gen not in ("M", "F") or not nm:
-                    i = j
-                    continue
-                br = norm_branch(course)
-                if not br:
-                    i = j
-                    continue
-                students.append({
-                    "appl_id": full,
-                    "name": nm,
-                    "father": fa,
-                    "dob": (dob or "").replace("\\n", " ").replace("12:00:00 AM", "").strip(),
-                    "gender": gen,
-                    "category": (cat or "").replace("\\n", " ").strip(),
-                    "income": (income or "").strip(),
-                    "mobile": mob if len(mob) == 10 else "",
-                    "admission_mode": (mode or "").replace("\\n", " ").strip(),
-                    "branch": br,
-                    "admission_type": adm_type,
+            if m2:
+                adm_type = m2.group(1).strip()
+                continue
+            m = pat.match(ln.strip())
+            if m:
+                flush()
+                pending = {
+                    "sno": m.group(1),
+                    "appl_prefix": m.group(2),
+                    "mid": m.group(3).strip(),
+                    "dob": m.group(4),
+                    "gender": m.group(5),
+                    "category": m.group(6),
+                    "income": m.group(7),
+                    "mobile": m.group(8),
+                    "admission_mode": m.group(9),
+                    "branch": norm_branch(course),
                     "course_raw": course,
-                    "sno": sno.strip(),
-                })
-                i = j
+                    "admission_type": adm_type,
+                }
+                continue
+            if pending is not None and "appl_id" not in pending:
+                if re.search(r"DTE|ONLINE|OFFLINE|Course|Admission|Gender|Generated|Candidate", ln, re.I):
+                    continue
+                m3 = re.match(r"^(\\d{2,4})(?:\\s+(.*?))?\\s*(?:12:00:00\\s*AM)?\\s*$", ln.strip(), re.I)
+                if m3 and re.match(r"^\\d{2,4}\\b", ln.strip()):
+                    pending["appl_id"] = pending["appl_prefix"] + m3.group(1)
+                    cont = (m3.group(2) or "").replace("12:00:00 AM", "").strip()
+                    pending["name"] = re.sub(r"\\s+", " ", pending["mid"] + ((" " + cont) if cont else "")).strip()
+                    pending["father"] = ""
+                    continue
+flush()
 
-seen = set()
 out = []
+seen = set()
 for s in students:
     aid = s.get("appl_id") or ""
-    if not aid or aid in seen or not s.get("name") or not s.get("branch"):
+    if not re.match(r"^DTE\\d{12}$", aid) or aid in seen:
+        continue
+    if not s.get("branch") or not s.get("name"):
         continue
     seen.add(aid)
     out.append(s)
 print(json.dumps({"count": len(out), "students": out}, ensure_ascii=False))
-`
-  const r = spawnSync("python", ["-c", py, pdfPath], {
+`,
+    "utf8",
+  )
+  const r = spawnSync("python", [scriptPath, pdfPath], {
     encoding: "utf8",
     maxBuffer: 20 * 1024 * 1024,
     env: { ...process.env, PYTHONIOENCODING: "utf-8" },
@@ -227,7 +216,6 @@ print(json.dumps({"count": len(out), "students": out}, ensure_ascii=False))
     throw new Error(`PDF parse failed: ${r.stderr || r.stdout || r.status}`)
   }
   const raw = (r.stdout || "").trim()
-  // last JSON line
   const line = raw.split(/\r?\n/).filter(Boolean).pop()
   const data = JSON.parse(line)
   return data.students || []
