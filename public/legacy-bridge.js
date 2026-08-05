@@ -8933,6 +8933,23 @@ setInterval(function () {
     }
   }
 
+  /**
+   * Syllabus scheme for a class year on a date.
+   * Admission 2020-21…2024-25 → C-20; 2025-26+ → C-25.
+   * Study year N ≈ current AY start − (N−1). So in 2026-27: I/II=C-25, III=C-20.
+   */
+  function attSchemeForStudyYear(studyYear, dateInput) {
+    var yn = typeof studyYear === 'number' ? studyYear : attStudyYearNum(studyYear);
+    if (yn !== 1 && yn !== 2 && yn !== 3) return null;
+    var term = attCalendarTermInfo(dateInput || new Date());
+    var start = Number(String(term.academic_year || '').split('-')[0]);
+    if (!Number.isFinite(start)) return null;
+    var admStart = start - (yn - 1);
+    if (admStart >= 2025) return 'C-25';
+    if (admStart >= 2020 && admStart <= 2024) return 'C-20';
+    return null;
+  }
+
   window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
     var sel = document.getElementById('attSubject');
     if (!sel) return;
@@ -8946,28 +8963,39 @@ setInterval(function () {
     var dateVal =
       (document.getElementById('attDate') && document.getElementById('attDate').value) || '';
     var term = attCalendarTermInfo(dateVal || new Date());
-    var sems = attSemestersForYear(year, dateVal);
     var studyY = attStudyYearNum(year);
+    var scheme = attSchemeForStudyYear(studyY, dateVal);
+    var sems = attSemestersForYear(year, dateVal);
     var runningSem = studyY ? attSemesterFromYearAndParity(studyY, term.parity) : null;
     var prev = sel.value || '';
     var lab = document.getElementById('attSubjectLabel');
     if (lab) {
-      lab.textContent =
-        runningSem != null
-          ? 'Subject (C-20 · Sem ' + runningSem + ' · ' + term.short + ' term)'
-          : 'Subject (C-20 · ' + term.short + ' term Sem ' + sems.join('/') + ')';
+      if (runningSem != null && scheme) {
+        lab.textContent =
+          'Subject (' + scheme + ' · Sem ' + runningSem + ' · ' + term.short + ' term)';
+      } else if (!studyY) {
+        lab.textContent = 'Subject (select Year / Class first)';
+      } else {
+        lab.textContent = 'Subject (auto scheme)';
+      }
     }
     var hint = document.getElementById('attSemHint');
     if (hint) {
       hint.innerHTML =
-        'Auto semester: <strong>AY ' +
+        'Auto: <strong>AY ' +
         attEsc(term.academic_year) +
         '</strong> · ' +
         attEsc(term.label) +
-        (runningSem != null
-          ? ' · Year ' + studyY + ' → <strong>Sem ' + runningSem + '</strong> only'
-          : ' · All years → Sem ' + sems.join(', ')) +
-        '. <span style="opacity:.85;">June starts odd (1/3/5); January starts even (2/4/6). Rolls every year (2027-28+ automatic).</span>';
+        (studyY
+          ? ' · Year ' +
+            studyY +
+            ' → <strong>' +
+            attEsc(scheme || '?') +
+            '</strong> · <strong>Sem ' +
+            runningSem +
+            '</strong> only'
+          : ' · Select <strong>Year / Class</strong> (I &amp; II = C-25, III final = C-20 in 2026-27)') +
+        '. <span style="opacity:.85;">June odd / January even. Scheme follows admission year and rolls automatically (2027-28+ III Year also C-25).</span>';
     }
     if (!code) {
       sel.innerHTML =
@@ -8975,16 +9003,18 @@ setInterval(function () {
         '<option value="__other__">Other / type below…</option>';
       return;
     }
-    if (!sems.length) {
+    if (!studyY || !scheme || !sems.length) {
       sel.innerHTML =
-        '<option value="">Select Year / Class first</option>' +
+        '<option value="">Select Year / Class (I / II / III)</option>' +
         '<option value="__other__">Other / type below…</option>';
       return;
     }
-    sel.innerHTML = '<option value="">Loading…</option>';
+    sel.innerHTML = '<option value="">Loading ' + scheme + '…</option>';
     try {
       var r = await fetch(
-        '/api/curriculum?scheme=C-20&branch=' +
+        '/api/curriculum?scheme=' +
+          encodeURIComponent(scheme) +
+          '&branch=' +
           encodeURIComponent(code) +
           '&include_y1=1&_ts=' +
           Date.now(),
@@ -8999,16 +9029,18 @@ setInterval(function () {
         return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
       });
       var pickLabel =
-        runningSem != null
-          ? 'Select subject (Sem ' + runningSem + ')'
-          : 'Select subject (Sem ' + sems.join('/') + ')';
+        'Select ' + scheme + ' subject (Sem ' + (runningSem != null ? runningSem : sems.join('/')) + ')';
       var html = '<option value="">' + attEsc(pickLabel) + '</option>';
       var lastSem = null;
       subjects.forEach(function (s) {
         if (lastSem !== Number(s.semester)) {
           lastSem = Number(s.semester);
           html +=
-            '<option disabled value="">—— Semester ' + lastSem + ' ——</option>';
+            '<option disabled value="">—— ' +
+            attEsc(scheme) +
+            ' · Semester ' +
+            lastSem +
+            ' ——</option>';
         }
         var label = s.code + ' — ' + s.name;
         html +=
@@ -9022,6 +9054,13 @@ setInterval(function () {
       });
       html += '<option value="__other__">Other / type below…</option>';
       sel.innerHTML = html;
+      if (!subjects.length) {
+        var otherEmpty = document.getElementById('attSubjectOther');
+        if (otherEmpty) {
+          otherEmpty.style.display = '';
+          otherEmpty.placeholder = scheme + ' subject name (type if not listed)';
+        }
+      }
       if (prev && prev !== '__other__' && !subjects.some(function (s) {
         return s.code + ' — ' + s.name === prev;
       })) {
@@ -9048,7 +9087,7 @@ setInterval(function () {
       }
     } catch (e) {
       sel.innerHTML =
-        '<option value="">Could not load C-20 subjects</option>' +
+        '<option value="">Could not load ' + attEsc(scheme || 'curriculum') + ' subjects</option>' +
         '<option value="__other__">Type subject below…</option>';
     }
   };

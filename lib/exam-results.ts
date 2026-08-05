@@ -218,10 +218,11 @@ export function computeCgpaFromAttempts(
     if (aScore >= pScore) bySub.set(a.subject_code, a)
   }
 
+  const scheme = String(opts.scheme || "C-20").toUpperCase()
   const curriculum =
-    opts.branch_code && (opts.scheme || "C-20") === "C-20"
+    opts.branch_code && (scheme === "C-20" || scheme === "C-25")
       ? getCurriculumSubjects({
-          scheme: "C-20",
+          scheme: scheme === "C-25" ? "C-25" : "C-20",
           branch: opts.branch_code,
           entryType: opts.entry_type || "regular",
           includeYear1ForLateral: true,
@@ -475,9 +476,10 @@ export function curriculumForStudent(ctx: {
   entry_type: EntryType
 }) {
   if (!ctx.branch_code) return []
-  if (ctx.scheme !== "C-20") return []
+  const scheme = String(ctx.scheme || "").toUpperCase()
+  if (scheme !== "C-20" && scheme !== "C-25") return []
   return getCurriculumSubjects({
-    scheme: "C-20",
+    scheme: scheme === "C-25" ? "C-25" : "C-20",
     branch: ctx.branch_code,
     entryType: ctx.entry_type,
     includeYear1ForLateral: false,

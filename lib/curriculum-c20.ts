@@ -1,8 +1,11 @@
 /**
  * C-20 diploma curriculum subjects by branch (DTE Karnataka).
  * Only branch-relevant subjects are returned for a student.
- * C-25 is a placeholder until syllabus PDFs are uploaded.
+ * C-25 (admission 2025-26+) lives in curriculum-c25.ts.
  */
+
+import { C25_BY_BRANCH } from "./curriculum-c25"
+import { inferAcademicYearFromDate } from "./academic-year"
 
 export type CurriculumSubject = {
   code: string
@@ -186,6 +189,9 @@ export function branchCodeFromDept(dept: string | null | undefined): BranchCode 
  * Syllabus scheme from admission academic year:
  * 2020-21 … 2024-25 → C-20
  * 2025-26 onwards → C-25
+ *
+ * As of AY 2026-27: I & II Year are C-25; only final year (III) is still C-20.
+ * From AY 2027-28, III Year also becomes C-25 (admission 2025-26 batch).
  */
 export function schemeFromAdmissionYear(admissionAy: string | null | undefined): "C-20" | "C-25" | "unknown" {
   const raw = String(admissionAy || "").trim()
@@ -197,6 +203,31 @@ export function schemeFromAdmissionYear(admissionAy: string | null | undefined):
   return "unknown"
 }
 
+/**
+ * Infer typical admission AY for a study year at a given calendar date.
+ * Study year 1 ≈ current academic year start; year 2 ≈ start−1; year 3 ≈ start−2.
+ */
+export function inferAdmissionYearForStudyYear(
+  studyYear: number | null | undefined,
+  d: Date = new Date(),
+): string | null {
+  const y = Number(studyYear)
+  if (y !== 1 && y !== 2 && y !== 3) return null
+  const ay = inferAcademicYearFromDate(d)
+  const start = Number(String(ay).split("-")[0])
+  if (!Number.isFinite(start)) return null
+  const adm = start - (y - 1)
+  return `${adm}-${String((adm + 1) % 100).padStart(2, "0")}`
+}
+
+/** Scheme for a class year on a date (auto-rolls: I/II → C-25 now; III → C-20 until 2027-28). */
+export function schemeForStudyYear(
+  studyYear: number | null | undefined,
+  d: Date = new Date(),
+): "C-20" | "C-25" | "unknown" {
+  return schemeFromAdmissionYear(inferAdmissionYearForStudyYear(studyYear, d))
+}
+
 export function getCurriculumSubjects(opts: {
   scheme: string
   branch: BranchCode
@@ -205,8 +236,10 @@ export function getCurriculumSubjects(opts: {
   includeYear1ForLateral?: boolean
 }): CurriculumSubject[] {
   const scheme = String(opts.scheme || "").toUpperCase()
-  if (scheme !== "C-20") return []
-  let list = C20_BY_BRANCH[opts.branch] || []
+  let list: CurriculumSubject[] = []
+  if (scheme === "C-20") list = C20_BY_BRANCH[opts.branch] || []
+  else if (scheme === "C-25") list = C25_BY_BRANCH[opts.branch] || []
+  else return []
   if (opts.entryType === "lateral" && !opts.includeYear1ForLateral) {
     list = list.filter((x) => !x.year1_only)
   }

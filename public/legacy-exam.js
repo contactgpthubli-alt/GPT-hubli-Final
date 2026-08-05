@@ -86,10 +86,10 @@
     if (panel.getAttribute('data-exam-live') === '1') return;
     panel.setAttribute('data-exam-live', '1');
     panel.innerHTML =
-      '<div class="info-box">📊 <strong>My Exam Results (C-20)</strong> — Enter pass/fail &amp; grade from your marksheet. ' +
-      'Subjects are loaded for <strong>your branch only</strong>. Admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
-      '<strong>2025-26+ = C-25</strong> (coming later). ITI/PUC lateral students skip Year-1 subjects. ' +
-      'HOD / Principal / Exam verify entries. Verified rows lock (Admin can unlock).</div>' +
+      '<div class="info-box">📊 <strong>My Exam Results</strong> — Enter pass/fail &amp; grade from your marksheet. ' +
+      'Subjects follow your scheme: admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
+      '<strong>2025-26+ = C-25</strong> (I &amp; II Year now). Final year (III) is still C-20 in 2026-27. ' +
+      'ITI/PUC lateral students skip Year-1 subjects. HOD / Principal / Exam verify entries. Verified rows lock (Admin can unlock).</div>' +
       '<div id="examStuMeta" style="padding:8px 4px;font-size:0.82rem;opacity:.85;"></div>' +
       '<div class="card" style="margin-bottom:14px;">' +
       '<div class="card-hd"><h3>Enter / update results</h3>' +
@@ -164,12 +164,7 @@
           'Term rule: every <strong>June</strong> starts odd semesters (1/3/5); every <strong>January</strong> starts even (2/4/6). ' +
           'Use the Semester dropdown to enter backlog / other sem results.</div>';
       }
-      if (st.scheme === 'C-25') {
-        if (host) {
-          host.innerHTML =
-            '<div class="info-box" style="background:#fef3c7;">C-25 syllabus (admission 2025-26+) is not loaded yet. Contact Exam Section.</div>';
-        }
-      }
+      // C-25 subjects are live for I/II Year; form paints from curriculum API.
       window.examStuPaintForm();
       window.examStuPaintList();
     } catch (e) {

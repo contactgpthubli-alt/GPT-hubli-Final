@@ -279,9 +279,7 @@ export async function POST(req: Request) {
   const ctx = await loadStudentContext(regNo)
   if (!ctx) return badRequest("Student not found")
   if (!ctx.branch_code) return badRequest("Student branch not set — cannot load subjects")
-  if (ctx.scheme === "C-25") {
-    return badRequest("C-25 syllabus subjects are not available yet. Contact Exam Section.")
-  }
+  // C-25 subjects are loaded (I/II Year). C-20 remains for final-year / older batches.
   if (ctx.scheme === "unknown") {
     return badRequest("Admission year missing — set Year of Admission / Admission Academic Year on profile (2020-21…2024-25 = C-20).")
   }

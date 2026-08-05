@@ -40,21 +40,6 @@ export async function GET(req: Request) {
         entry_type: entryType,
       })
     }
-    if (scheme === "C-25") {
-      return Response.json({
-        scheme: "C-25",
-        branch: branchParam,
-        subjects: [],
-        by_semester: {},
-        note: "C-25 syllabus will be available after college uploads the curriculum. Contact Exam Section.",
-        admission_academic_year: ctx.admission_academic_year,
-        entry_type: entryType,
-        lateral_note:
-          entryType === "lateral"
-            ? "ITI / PUC lateral students: Year-1 subjects are hidden by default."
-            : null,
-      })
-    }
   } else {
     if (!scheme) scheme = "C-20"
     if (!branchParam) {
@@ -71,24 +56,14 @@ export async function GET(req: Request) {
   }
 
   const subjects = getCurriculumSubjects({
-    scheme: scheme === "C-20" ? "C-20" : "C-20", // C-25 empty
+    scheme: scheme === "C-25" ? "C-25" : "C-20",
     branch: branchParam as BranchCode,
     entryType,
     includeYear1ForLateral: url.searchParams.get("include_y1") === "1",
   })
 
-  if (scheme === "C-25") {
-    return Response.json({
-      scheme: "C-25",
-      branch: branchParam,
-      subjects: [],
-      by_semester: {},
-      note: "C-25 subjects not loaded yet.",
-    })
-  }
-
   return Response.json({
-    scheme: "C-20",
+    scheme: scheme === "C-25" ? "C-25" : "C-20",
     branch: branchParam,
     subjects,
     by_semester: subjectsBySemester(subjects),
@@ -97,7 +72,13 @@ export async function GET(req: Request) {
       entryType === "lateral"
         ? "Lateral (ITI / PUC): Year-1 subjects hidden. Use include_y1=1 to show them."
         : null,
-    scheme_rule: "Admission 2020-21 to 2024-25 → C-20; 2025-26 onwards → C-25",
+    scheme_rule:
+      "Admission 2020-21 to 2024-25 → C-20; 2025-26 onwards → C-25. " +
+      "In AY 2026-27: I & II Year = C-25, III Year (final) = C-20. From 2027-28 III Year also C-25.",
+    note:
+      scheme === "C-25"
+        ? "C-25 subjects loaded from DTE scheme of studies (effect AY 2025-26)."
+        : null,
   })
 }
 
