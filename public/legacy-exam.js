@@ -88,8 +88,8 @@
     panel.innerHTML =
       '<div class="info-box">📊 <strong>My Exam Results</strong> — Enter pass/fail &amp; grade from your marksheet. ' +
       'Subjects follow your scheme: admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
-      '<strong>2025-26+ = C-25</strong> (I &amp; II Year now). Final year (III) is still C-20 in 2026-27. ' +
-      'ITI/PUC lateral students skip Year-1 subjects. HOD / Principal / Exam verify entries. Verified rows lock (Admin can unlock).</div>' +
+      '<strong>2025-26+ = C-25</strong> (I &amp; II Year — subject list not loaded yet; use free entry when available). ' +
+      'Final year (III) is still C-20. ITI/PUC lateral skip Year-1. HOD / Principal / Exam verify. Verified rows lock.</div>' +
       '<div id="examStuMeta" style="padding:8px 4px;font-size:0.82rem;opacity:.85;"></div>' +
       '<div class="card" style="margin-bottom:14px;">' +
       '<div class="card-hd"><h3>Enter / update results</h3>' +
@@ -724,6 +724,50 @@
           '</div>';
         facContent.appendChild(pPanel);
       }
+      // Subject Key List — all HODs (branch-scoped C-20 codes; C-25 empty until official list)
+      if (facContent && facMenu && !document.getElementById('facSubjectKeyNav')) {
+        var knav = document.createElement('div');
+        knav.className = 'sl';
+        knav.id = 'facSubjectKeyNav';
+        knav.setAttribute('data-fac', 'subjectkey');
+        knav.innerHTML = '<span class="sli">🔑</span>Subject Key List';
+        knav.onclick = function () {
+          facContent.querySelectorAll(':scope > div[id]').forEach(function (p) {
+            p.style.display = p.id === 'facSubjectKeyHod' ? '' : 'none';
+          });
+          facMenu.querySelectorAll('.sl').forEach(function (sl) { sl.classList.remove('act'); });
+          knav.classList.add('act');
+          var kp = document.getElementById('facSubjectKeyHod');
+          if (kp) kp.style.display = '';
+          window.examSubjectKeyLoad && window.examSubjectKeyLoad();
+        };
+        facMenu.appendChild(knav);
+        var kPanel = document.createElement('div');
+        kPanel.id = 'facSubjectKeyHod';
+        kPanel.style.display = 'none';
+        kPanel.innerHTML =
+          '<div class="info-box">🔑 <strong>Subject key list (your branch)</strong> — Official course codes for attendance, results, and verification. ' +
+          '<strong>C-20</strong> inventory is shown for final-year / older batches. ' +
+          '<strong>C-25</strong> (I &amp; II Year) is not loaded yet — do not invent subjects; type manually until Exam Section adds the key list. ' +
+          'CE Sem 1–4 keys match BTE provisional marks cards.</div>' +
+          '<div class="card" style="padding:14px;margin-bottom:12px;">' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">' +
+          '<div><label style="font-size:0.75rem;font-weight:700;">Scheme</label><br>' +
+          '<select id="hodKeyScheme" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="C-20">C-20 (final year / older)</option>' +
+          '<option value="C-25">C-25 (I &amp; II Year — not loaded)</option></select></div>' +
+          '<div><label style="font-size:0.75rem;font-weight:700;">Semester filter</label><br>' +
+          '<select id="hodKeySem" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="">All semesters</option>' +
+          '<option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>' +
+          '<option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option></select></div>' +
+          '<button type="button" class="btn ol" onclick="window.examSubjectKeyLoad&&window.examSubjectKeyLoad()">↻ Reload</button>' +
+          '<button type="button" class="btn pr" onclick="window.examSubjectKeyCopy&&window.examSubjectKeyCopy()">📋 Copy list</button>' +
+          '</div>' +
+          '<div id="hodKeyMeta" style="margin-top:10px;font-size:0.82rem;opacity:.85;"></div>' +
+          '<div id="hodKeyList" style="margin-top:12px;overflow-x:auto;"></div></div>';
+        facContent.appendChild(kPanel);
+      }
     }
 
     // Admin / Exam / Principal: pathway tab on exam shell
@@ -884,6 +928,145 @@
       if (sel && s.assignment) sel.value = s.assignment.pathway_key;
     });
   }
+
+  function hodBranchCodeGuess() {
+    if (window._hodPwBranch) return window._hodPwBranch;
+    var u = window.currentUser || {};
+    var raw = String(u.branch || u.dept || u.username || u.id || '').toUpperCase();
+    if (raw.indexOf('CE') >= 0 || raw.indexOf('CIVIL') >= 0) return 'CE';
+    if (raw.indexOf('CS') >= 0 || raw.indexOf('COMPUTER') >= 0) return 'CSE';
+    if (raw.indexOf('EC') >= 0 || raw.indexOf('ELECTRON') >= 0) return 'ECE';
+    if (raw.indexOf('ME') >= 0 || raw.indexOf('MECH') >= 0) return 'ME';
+    return '';
+  }
+
+  window.examSubjectKeyLoad = async function () {
+    var host = document.getElementById('hodKeyList');
+    var meta = document.getElementById('hodKeyMeta');
+    var schemeEl = document.getElementById('hodKeyScheme');
+    var semEl = document.getElementById('hodKeySem');
+    if (!host) return;
+    var scheme = (schemeEl && schemeEl.value) || 'C-20';
+    var semFilter = semEl && semEl.value ? Number(semEl.value) : null;
+    host.innerHTML = '<p style="opacity:.7;">Loading key list…</p>';
+    try {
+      // Resolve HOD branch via pathways (scoped) then curriculum
+      var branch = hodBranchCodeGuess();
+      if (!branch) {
+        try {
+          var off = await api('/api/exam/pathways?academic_year=' + encodeURIComponent(currentAyGuess()));
+          branch = off.branch_code || '';
+          window._hodPwBranch = branch;
+        } catch (e0) { /* ignore */ }
+      }
+      if (!branch) {
+        host.innerHTML = '<p style="color:#991b1b;">Could not resolve HOD branch. Check your login branch mapping.</p>';
+        return;
+      }
+      var data = await api(
+        '/api/curriculum?scheme=' +
+          encodeURIComponent(scheme) +
+          '&branch=' +
+          encodeURIComponent(branch) +
+          '&include_y1=1',
+      );
+      var subjects = (data && data.subjects) || [];
+      if (semFilter) {
+        subjects = subjects.filter(function (s) {
+          return Number(s.semester) === semFilter;
+        });
+      }
+      subjects.sort(function (a, b) {
+        return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
+      });
+      window._hodKeySubjects = subjects;
+      window._hodKeyBranch = branch;
+      window._hodKeyScheme = scheme;
+      if (meta) {
+        meta.innerHTML =
+          'Branch: <strong>' +
+          esc(branch) +
+          '</strong> · Scheme: <strong>' +
+          esc(scheme) +
+          '</strong> · ' +
+          subjects.length +
+          ' subject(s)' +
+          (data && data.note ? ' · <span style="color:#b45309;">' + esc(data.note) + '</span>' : '') +
+          (data && data.scheme_rule
+            ? '<div style="margin-top:4px;font-size:0.75rem;opacity:.8;">' + esc(data.scheme_rule) + '</div>'
+            : '');
+      }
+      if (!subjects.length) {
+        host.innerHTML =
+          scheme === 'C-25'
+            ? '<div class="info-box" style="background:#fef3c7;">C-25 key list is empty by design — official I &amp; II Year subjects are not entered yet. Type subjects manually for attendance. When Exam Section provides the list, it will appear here for all HODs.</div>'
+            : '<p style="opacity:.7;">No subjects for this filter.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+        '<thead><tr style="background:#f8fafc;text-align:left;">' +
+        '<th style="padding:8px;border-bottom:1px solid var(--border);">Sem</th>' +
+        '<th style="padding:8px;border-bottom:1px solid var(--border);">Key (code)</th>' +
+        '<th style="padding:8px;border-bottom:1px solid var(--border);">Course title</th>' +
+        '<th style="padding:8px;border-bottom:1px solid var(--border);">Notes</th>' +
+        '</tr></thead><tbody>';
+      subjects.forEach(function (s) {
+        var notes = [];
+        if (s.is_audit) notes.push('audit');
+        if (s.pathway) notes.push('pathway: ' + s.pathway);
+        if (s.year1_only) notes.push('Y1');
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);">' +
+          '<td style="padding:8px;font-weight:700;">' +
+          Number(s.semester) +
+          '</td>' +
+          '<td style="padding:8px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--navy);">' +
+          esc(s.code) +
+          '</td>' +
+          '<td style="padding:8px;">' +
+          esc(s.name) +
+          '</td>' +
+          '<td style="padding:8px;font-size:0.72rem;opacity:.75;">' +
+          esc(notes.join(' · ') || '—') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      host.innerHTML = html;
+    } catch (e) {
+      host.innerHTML = '<p style="color:#991b1b;">' + esc(e.message || String(e)) + '</p>';
+    }
+  };
+
+  window.examSubjectKeyCopy = function () {
+    var list = window._hodKeySubjects || [];
+    if (!list.length) {
+      alert('No subjects to copy. Load C-20 key list first (C-25 is empty until official list is added).');
+      return;
+    }
+    var lines = list.map(function (s) {
+      return 'Sem ' + s.semester + '\t' + s.code + '\t' + s.name;
+    });
+    var text =
+      'Branch ' +
+      (window._hodKeyBranch || '') +
+      ' · ' +
+      (window._hodKeyScheme || 'C-20') +
+      '\n' +
+      lines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          alert('Copied ' + list.length + ' subject keys to clipboard.');
+        },
+        function () {
+          prompt('Copy subject keys:', text);
+        },
+      );
+    } else {
+      prompt('Copy subject keys:', text);
+    }
+  };
 
   window.examPathwayLoad = async function () {
     var yearEl = document.getElementById('hodPwYear');

@@ -1,10 +1,9 @@
 /**
  * C-20 diploma curriculum subjects by branch (DTE Karnataka).
  * Only branch-relevant subjects are returned for a student.
- * C-25 (admission 2025-26+) lives in curriculum-c25.ts.
+ * C-25 (admission 2025-26+): subjects NOT loaded yet — empty until official key list is confirmed.
  */
 
-import { C25_BY_BRANCH } from "./curriculum-c25"
 import { inferAcademicYearFromDate } from "./academic-year"
 
 export type CurriculumSubject = {
@@ -38,23 +37,34 @@ function s(
 
 /** Branch-wise C-20 subjects (semesters 1–6). Elective pathways listed as choose-one options. */
 export const C20_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
+  // CE Sem 1–4 from BTE Provisional Marks Cards (reg 171CE24041, Hubballi)
   CE: [
+    // --- Semester I (Nov/Dec) ---
     s(1, "20CE11T", "Construction Materials", { year1_only: true }),
-    ...SHARED_Y1_BASE.map((x) => s(1, x.code, x.name, { year1_only: true })),
-    s(1, "20EE01P", "Fundamentals of Electrical & Electronics Engineering", { year1_only: true }),
-    s(2, "20CE21P", "Civil Engineering Graphics", { year1_only: true }),
+    s(1, "20EG01P", "Communication Skills", { year1_only: true }),
+    s(1, "20SC02P", "Statistics and Analytics", { year1_only: true }),
+    s(1, "20CS01P", "IT Skills", { year1_only: true }),
+    s(1, "20AU01T", "Environmental Sustainability", { year1_only: true, is_audit: true }),
+    // --- Semester II (Apr/May) ---
+    s(2, "20SC01T", "Engineering Mathematics", { year1_only: true }),
     s(2, "20PM01T", "Project Management Skills", { year1_only: true }),
-    s(2, "20KA21T", "Sahitya Sinchana / Balake Kannada", { is_audit: true, year1_only: true }),
-    s(3, "20CE31P", "Strength of Materials"),
-    s(3, "20CE32P", "Surveying"),
+    s(2, "20CE21P", "Civil Engineering Graphics", { year1_only: true }),
+    s(2, "20CE22P", "Basic Surveying", { year1_only: true }),
+    s(2, "20EE01P", "Fundamentals of Electrical & Electronics Engg", { year1_only: true }),
+    s(2, "20KA21T", "Sahithya Sinchana-1 / Balake Kannada-1", { is_audit: true, year1_only: true }),
+    // --- Semester III ---
+    s(3, "20CE31P", "Engineering Mechanics & Strength of Materials"),
+    s(3, "20CE32P", "Modern Surveying"),
     s(3, "20CE33P", "Construction Techniques"),
     s(3, "20CE34P", "Building Drawing using CADD"),
-    s(3, "20KA31T", "Sahitya Sinchana-II / Balake Kannada-II", { is_audit: true }),
+    s(3, "20KA31T", "Sahithya Sinchana-2 / Balake Kannada-2", { is_audit: true }),
+    // --- Semester IV ---
     s(4, "20CE41P", "Concrete Technology"),
-    s(4, "20CE42P", "Building Estimation & Valuation"),
+    s(4, "20CE42P", "Building Estimating & Valuation"),
     s(4, "20CE43P", "Site Management"),
-    s(4, "20CE44P", "Design and Detailing of RCC Structures"),
+    s(4, "20CE44P", "Design & Detailing of RCC Structures"),
     s(4, "20CE45T", "Indian Constitution", { is_audit: true }),
+    // --- Semester V–VI pathways ---
     s(5, "20CE51I", "Structural Engineering", { pathway: "specialization" }),
     s(5, "20CE52I", "Town Planning and Green Building", { pathway: "specialization" }),
     s(5, "20CE53I", "Transportation Engineering", { pathway: "specialization" }),
@@ -236,10 +246,9 @@ export function getCurriculumSubjects(opts: {
   includeYear1ForLateral?: boolean
 }): CurriculumSubject[] {
   const scheme = String(opts.scheme || "").toUpperCase()
-  let list: CurriculumSubject[] = []
-  if (scheme === "C-20") list = C20_BY_BRANCH[opts.branch] || []
-  else if (scheme === "C-25") list = C25_BY_BRANCH[opts.branch] || []
-  else return []
+  // C-25 subject key list not confirmed yet — return empty (free-type / wait for official list).
+  if (scheme !== "C-20") return []
+  let list = C20_BY_BRANCH[opts.branch] || []
   if (opts.entryType === "lateral" && !opts.includeYear1ForLateral) {
     list = list.filter((x) => !x.year1_only)
   }

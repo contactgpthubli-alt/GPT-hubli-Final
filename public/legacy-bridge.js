@@ -8936,7 +8936,7 @@ setInterval(function () {
   /**
    * Syllabus scheme for a class year on a date.
    * Admission 2020-21…2024-25 → C-20; 2025-26+ → C-25.
-   * Study year N ≈ current AY start − (N−1). So in 2026-27: I/II=C-25, III=C-20.
+   * C-25 key list is NOT in the app yet — I/II Year get free-type only.
    */
   function attSchemeForStudyYear(studyYear, dateInput) {
     var yn = typeof studyYear === 'number' ? studyYear : attStudyYearNum(studyYear);
@@ -8948,6 +8948,22 @@ setInterval(function () {
     if (admStart >= 2025) return 'C-25';
     if (admStart >= 2020 && admStart <= 2024) return 'C-20';
     return null;
+  }
+
+  function attBindOtherToggle(sel) {
+    if (!sel || sel.__otherBound) return;
+    sel.__otherBound = true;
+    sel.addEventListener('change', function () {
+      var o = document.getElementById('attSubjectOther');
+      if (!o) return;
+      if (sel.value === '__other__') {
+        o.style.display = '';
+        o.focus();
+      } else {
+        o.style.display = 'none';
+        o.value = '';
+      }
+    });
   }
 
   window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
@@ -8970,51 +8986,77 @@ setInterval(function () {
     var prev = sel.value || '';
     var lab = document.getElementById('attSubjectLabel');
     if (lab) {
-      if (runningSem != null && scheme) {
+      if (scheme === 'C-25') {
+        lab.textContent = 'Subject (C-25 · type manually — key list not loaded)';
+      } else if (runningSem != null && scheme === 'C-20') {
         lab.textContent =
-          'Subject (' + scheme + ' · Sem ' + runningSem + ' · ' + term.short + ' term)';
+          'Subject (C-20 · Sem ' + runningSem + ' · ' + term.short + ' term)';
       } else if (!studyY) {
         lab.textContent = 'Subject (select Year / Class first)';
       } else {
-        lab.textContent = 'Subject (auto scheme)';
+        lab.textContent = 'Subject';
       }
     }
     var hint = document.getElementById('attSemHint');
     if (hint) {
-      hint.innerHTML =
-        'Auto: <strong>AY ' +
-        attEsc(term.academic_year) +
-        '</strong> · ' +
-        attEsc(term.label) +
-        (studyY
-          ? ' · Year ' +
-            studyY +
-            ' → <strong>' +
-            attEsc(scheme || '?') +
-            '</strong> · <strong>Sem ' +
-            runningSem +
-            '</strong> only'
-          : ' · Select <strong>Year / Class</strong> (I &amp; II = C-25, III final = C-20 in 2026-27)') +
-        '. <span style="opacity:.85;">June odd / January even. Scheme follows admission year and rolls automatically (2027-28+ III Year also C-25).</span>';
+      if (scheme === 'C-25') {
+        hint.innerHTML =
+          'Year ' +
+          studyY +
+          ' is <strong>C-25</strong> (I &amp; II Year). Official C-25 subject codes are <strong>not in the system yet</strong> — ' +
+          'type the subject name below. Use <strong>Subject Key List</strong> in the HOD menu for C-20 inventory. ' +
+          'June odd / January even still applies for term.';
+      } else {
+        hint.innerHTML =
+          'Auto: <strong>AY ' +
+          attEsc(term.academic_year) +
+          '</strong> · ' +
+          attEsc(term.label) +
+          (studyY
+            ? ' · Year ' +
+              studyY +
+              ' → <strong>' +
+              attEsc(scheme || '?') +
+              '</strong> · <strong>Sem ' +
+              runningSem +
+              '</strong> only'
+            : ' · Select <strong>Year / Class</strong> (I &amp; II = C-25 type-only; III final = C-20 key list)') +
+          '. <span style="opacity:.85;">June odd / January even.</span>';
+      }
     }
     if (!code) {
       sel.innerHTML =
         '<option value="">Select branch first</option>' +
         '<option value="__other__">Other / type below…</option>';
+      attBindOtherToggle(sel);
       return;
     }
     if (!studyY || !scheme || !sems.length) {
       sel.innerHTML =
         '<option value="">Select Year / Class (I / II / III)</option>' +
         '<option value="__other__">Other / type below…</option>';
+      attBindOtherToggle(sel);
       return;
     }
-    sel.innerHTML = '<option value="">Loading ' + scheme + '…</option>';
+
+    // C-25: no invented subjects — free type only
+    if (scheme === 'C-25') {
+      sel.innerHTML =
+        '<option value="__other__" selected>Type C-25 subject name below…</option>';
+      var otherC25 = document.getElementById('attSubjectOther');
+      if (otherC25) {
+        otherC25.style.display = '';
+        otherC25.placeholder = 'e.g. Course code — Course title (C-25)';
+        if (prev && prev !== '__other__') otherC25.value = prev;
+      }
+      attBindOtherToggle(sel);
+      return;
+    }
+
+    sel.innerHTML = '<option value="">Loading C-20 key list…</option>';
     try {
       var r = await fetch(
-        '/api/curriculum?scheme=' +
-          encodeURIComponent(scheme) +
-          '&branch=' +
+        '/api/curriculum?scheme=C-20&branch=' +
           encodeURIComponent(code) +
           '&include_y1=1&_ts=' +
           Date.now(),
@@ -9029,18 +9071,14 @@ setInterval(function () {
         return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
       });
       var pickLabel =
-        'Select ' + scheme + ' subject (Sem ' + (runningSem != null ? runningSem : sems.join('/')) + ')';
+        'Select C-20 subject (Sem ' + (runningSem != null ? runningSem : sems.join('/')) + ')';
       var html = '<option value="">' + attEsc(pickLabel) + '</option>';
       var lastSem = null;
       subjects.forEach(function (s) {
         if (lastSem !== Number(s.semester)) {
           lastSem = Number(s.semester);
           html +=
-            '<option disabled value="">—— ' +
-            attEsc(scheme) +
-            ' · Semester ' +
-            lastSem +
-            ' ——</option>';
+            '<option disabled value="">—— C-20 · Semester ' + lastSem + ' ——</option>';
         }
         var label = s.code + ' — ' + s.name;
         html +=
@@ -9054,13 +9092,6 @@ setInterval(function () {
       });
       html += '<option value="__other__">Other / type below…</option>';
       sel.innerHTML = html;
-      if (!subjects.length) {
-        var otherEmpty = document.getElementById('attSubjectOther');
-        if (otherEmpty) {
-          otherEmpty.style.display = '';
-          otherEmpty.placeholder = scheme + ' subject name (type if not listed)';
-        }
-      }
       if (prev && prev !== '__other__' && !subjects.some(function (s) {
         return s.code + ' — ' + s.name === prev;
       })) {
@@ -9071,24 +9102,12 @@ setInterval(function () {
           other0.value = prev;
         }
       }
-      if (!sel.__otherBound) {
-        sel.__otherBound = true;
-        sel.addEventListener('change', function () {
-          var o = document.getElementById('attSubjectOther');
-          if (!o) return;
-          if (sel.value === '__other__') {
-            o.style.display = '';
-            o.focus();
-          } else {
-            o.style.display = 'none';
-            o.value = '';
-          }
-        });
-      }
+      attBindOtherToggle(sel);
     } catch (e) {
       sel.innerHTML =
-        '<option value="">Could not load ' + attEsc(scheme || 'curriculum') + ' subjects</option>' +
+        '<option value="">Could not load C-20 subjects</option>' +
         '<option value="__other__">Type subject below…</option>';
+      attBindOtherToggle(sel);
     }
   };
 

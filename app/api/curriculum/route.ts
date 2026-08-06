@@ -74,10 +74,11 @@ export async function GET(req: Request) {
         : null,
     scheme_rule:
       "Admission 2020-21 to 2024-25 → C-20; 2025-26 onwards → C-25. " +
-      "In AY 2026-27: I & II Year = C-25, III Year (final) = C-20. From 2027-28 III Year also C-25.",
+      "C-25 subject key list is not loaded yet (I & II Year: type subject manually). " +
+      "C-20 inventory is for final-year / older batches.",
     note:
       scheme === "C-25"
-        ? "C-25 subjects loaded from DTE scheme of studies (effect AY 2025-26)."
+        ? "C-25 subjects not available yet. Type the subject name manually. Contact Exam Section when the official key list is ready."
         : null,
   })
 }
