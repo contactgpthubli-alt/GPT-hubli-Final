@@ -5,7 +5,13 @@
 import { query } from "@/lib/db"
 import { getCurrentUser, unauthorized, badRequest } from "@/lib/auth"
 import { STAFF_ROLES } from "@/lib/roles"
-import { branchesMatch, hodBranchOf } from "@/lib/account-approvals"
+import {
+  branchesMatch,
+  hodBranchOf,
+  hodBranchCodeOf,
+  branchCodeFromRegNo,
+  studentBelongsToHod,
+} from "@/lib/account-approvals"
 import { branchCodeFromDept } from "@/lib/curriculum-c20"
 import { ensureExamResultsSchema } from "@/lib/exam-results"
 
@@ -119,7 +125,17 @@ export async function GET(req: Request) {
   const scheme = (url.searchParams.get("scheme") || "").trim().toUpperCase()
   const source = (url.searchParams.get("source") || "both").trim().toLowerCase() // published | verified | both
 
-  const hodBranch = user.role === "hod" ? hodBranchOf(user) : null
+  // Include email so HODCSGPTH / hodcsgpth@… resolve even if users.branch empty
+  const hodBranch =
+    user.role === "hod"
+      ? hodBranchOf({
+          branch: user.branch,
+          reg_no: user.reg_no,
+          display_name: user.display_name,
+          email: user.email,
+        })
+      : null
+  const hodCode = user.role === "hod" ? hodBranchCodeOf(user) : null
 
   // Infer scheme from subject codes: 25* = C-25, 20* = C-20
   function schemeSqlOnResult(alias: string, params: unknown[]): string {
@@ -308,32 +324,33 @@ export async function GET(req: Request) {
     return true
   }
 
-  function regMatchesHod(reg: string): boolean {
-    if (!hodBranch && !branchQ) return true
-    const want = canonBranchCode(hodBranch || branchQ)
+  function regMatchesHod(reg: string, dept?: string | null): boolean {
+    if (user.role === "hod") {
+      return studentBelongsToHod(reg, dept, user)
+    }
+    if (!branchQ) return true
+    const want = canonBranchCode(branchQ)
     if (!want) return true
-    const m = String(reg)
-      .toUpperCase()
-      .match(/(?:^|[^A-Z])(CS|CE|EC|ME)\d/)
-    if (!m) return true // non-standard reg — rely on branch field
-    const map: Record<string, string> = { CS: "CSE", CE: "CE", EC: "ECE", ME: "ME" }
-    return map[m[1]] === want
+    const fromReg = branchCodeFromRegNo(reg)
+    if (fromReg) return fromReg === want
+    const fromDept = canonBranchCode(dept || "")
+    return !fromDept || fromDept === want
   }
 
-  // Filter published by HOD / branch (strict code match — CE must not match CSE)
+  // Filter published by HOD / branch (reg-no code is primary: 171ME≠CSE even if dept wrong)
   const pubFiltered = published.filter(
-    (r) => branchOk(String(r.branch), null) && regMatchesHod(String(r.reg_no)),
+    (r) => branchOk(String(r.branch), null) && regMatchesHod(String(r.reg_no), String(r.branch)),
   )
   const attFiltered = attempts.filter(
     (r) =>
       branchOk(String(r.branch_code || ""), String(r.dept || ""), String(r.subject_code || "")) &&
-      regMatchesHod(String(r.reg_no)),
+      regMatchesHod(String(r.reg_no), String(r.dept || r.branch_code || "")),
   )
   // Subject rows: result branch + subject code prefix must match HOD (20CE ≠ CSE)
   const pubSubFiltered = pubSubjects.filter(
     (r) =>
       branchOk(r.branch, null, r.code) &&
-      regMatchesHod(r.reg_no) &&
+      regMatchesHod(r.reg_no, r.branch) &&
       subjectAllowedForHodPreview(r.code, r.branch),
   )
 
@@ -545,7 +562,8 @@ export async function GET(req: Request) {
       sem: sem,
       scheme: scheme || null,
       source,
-      hod_locked_branch: !!hodBranch,
+      hod_locked_branch: !!hodBranch || !!hodCode,
+      hod_code: hodCode,
       applied: {
         session: session || "All",
         sem: sem != null ? String(sem) : "All",

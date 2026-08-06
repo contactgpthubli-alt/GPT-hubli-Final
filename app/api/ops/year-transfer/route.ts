@@ -1,11 +1,17 @@
 /**
  * Study-year transfer (I / II / III) — single + bulk + remove from roster.
- * HOD: own branch only. Admin / Principal / Exam: all.
+ * HOD scoping: reg-no branch codes (CS/CE/EC/ME), not only users.branch field.
  */
 import { getCurrentUser, unauthorized, badRequest } from "@/lib/auth"
 import { query } from "@/lib/db"
-import { hodBranchOf, branchesMatch } from "@/lib/account-approvals"
-import { normalizeBranch } from "@/lib/branches"
+import {
+  hodBranchOf,
+  hodBranchCodeOf,
+  branchCodeFromRegNo,
+  branchCodeFromLabel,
+  studentBelongsToHod,
+  branchFullName,
+} from "@/lib/account-approvals"
 import { ensureStudentOpsSchema, OPS_CATEGORY_ROLES } from "@/lib/student-ops"
 import { logAcademicEvent } from "@/lib/student-academic"
 
@@ -52,8 +58,17 @@ function yearRomanFromRow(cy: unknown, year: unknown): string {
   return "—"
 }
 
+type SessionUser = {
+  id: number
+  role: string
+  display_name: string
+  branch?: string | null
+  reg_no?: string | null
+  email?: string
+}
+
 async function assertBranchAccess(
-  user: { role: string; branch?: string | null; reg_no?: string | null; display_name?: string | null },
+  user: SessionUser,
   reg: string,
 ): Promise<
   | {
@@ -74,29 +89,35 @@ async function assertBranchAccess(
     [reg.toUpperCase()],
   )
   if (!rows[0]) return { ok: false, error: "Student not found" }
-  const dept = normalizeBranch(rows[0].dept) || normalizeBranch(rows[0].branch)
+
   if (user.role === "hod") {
-    const my = hodBranchOf(user)
-    if (!my) return { ok: false, error: "HOD branch not set on account" }
-    // Match full name or code (CSE vs Computer Science…)
-    const ok =
-      branchesMatch(my, dept) ||
-      branchesMatch(my, rows[0].dept) ||
-      branchesMatch(my, rows[0].branch) ||
-      (dept && my && dept.toLowerCase().includes(my.toLowerCase().slice(0, 6))) ||
-      (my &&
-        dept &&
-        (my.toLowerCase().includes("computer") && String(dept).toLowerCase().includes("computer")))
-    if (!ok) {
-      return { ok: false, error: `Not your branch (HOD: ${my}, student: ${dept || "unknown"})` }
+    const hodCode = hodBranchCodeOf(user)
+    if (!hodCode) {
+      return {
+        ok: false,
+        error:
+          "Could not detect HOD branch from account (set branch, or use HODCS/HODCE/HODEC/HODME username).",
+      }
+    }
+    const belongs = studentBelongsToHod(String(rows[0].reg_no), rows[0].dept || rows[0].branch, user)
+    if (!belongs) {
+      const stuCode =
+        branchCodeFromRegNo(String(rows[0].reg_no)) ||
+        branchCodeFromLabel(rows[0].dept) ||
+        "unknown"
+      return {
+        ok: false,
+        error: `Not your branch (HOD=${hodCode}, student=${stuCode} via reg ${rows[0].reg_no})`,
+      }
     }
   } else if (!["admin", "principal", "exam", "acm"].includes(user.role)) {
     return { ok: false, error: "Not allowed" }
   }
+
   const cy = rows[0].current_study_year != null ? Number(rows[0].current_study_year) : null
   return {
     ok: true,
-    dept,
+    dept: rows[0].dept != null ? String(rows[0].dept) : null,
     name: String(rows[0].name || ""),
     fromYear: cy === 1 || cy === 2 || cy === 3 ? cy : parseYear(rows[0].year),
     yearLabel: rows[0].year != null ? String(rows[0].year) : null,
@@ -106,7 +127,7 @@ async function assertBranchAccess(
 async function applyYear(
   reg: string,
   toYear: 1 | 2 | 3,
-  user: { id: number; role: string; display_name: string },
+  user: SessionUser,
   note: string | null,
 ): Promise<{ reg_no: string; ok: boolean; error?: string; from?: number | null; to?: number }> {
   const access = await assertBranchAccess(user, reg)
@@ -116,7 +137,6 @@ async function applyYear(
   const labelRoman = yearLabel(toYear)
   const labelLong = yearLabelLong(toYear)
 
-  // Production students table has academic_updated_at, not always updated_at
   const { rowCount } = await query(
     `UPDATE students SET
        current_study_year = $2,
@@ -176,7 +196,7 @@ async function applyYear(
 
 async function removeFromList(
   reg: string,
-  user: { id: number; role: string; display_name: string },
+  user: SessionUser,
   note: string | null,
 ): Promise<{ reg_no: string; ok: boolean; error?: string }> {
   const access = await assertBranchAccess(user, reg)
@@ -217,23 +237,6 @@ async function removeFromList(
   return { reg_no: reg, ok: true }
 }
 
-function hodBranchLike(user: {
-  role: string
-  branch?: string | null
-  reg_no?: string | null
-  display_name?: string | null
-}): string | null {
-  if (user.role !== "hod") return null
-  const my = hodBranchOf(user)
-  if (!my) return null
-  const m = my.toLowerCase()
-  if (m.includes("computer") || m.includes("cse")) return "%computer%"
-  if (m.includes("civil")) return "%civil%"
-  if (m.includes("electron") || m.includes("ece")) return "%electron%"
-  if (m.includes("mech")) return "%mech%"
-  return `%${m}%`
-}
-
 /**
  * GET ?roster=1&year=1|2|3&q=
  * POST { action?: 'set_year'|'remove', reg_no | reg_nos, to_year?, note? }
@@ -251,6 +254,7 @@ export async function GET(req: Request) {
 
   const yearF = parseYear(url.searchParams.get("year") || "")
   const q = (url.searchParams.get("q") || "").trim().toLowerCase()
+  const hodCode = user.role === "hod" ? hodBranchCodeOf(user) : null
 
   const params: unknown[] = []
   let where = ` (s.name IS NULL OR s.name NOT LIKE '[MOVED]%')
@@ -259,10 +263,59 @@ export async function GET(req: Request) {
     ))
     AND COALESCE((s.ops_flags->>'removed_from_list')::boolean, false) IS NOT TRUE`
 
-  const like = hodBranchLike(user)
-  if (like) {
-    params.push(like)
-    where += ` AND (lower(COALESCE(s.dept,'')) LIKE $${params.length} OR lower(COALESCE(u.branch,'')) LIKE $${params.length})`
+  // HOD: filter by reg branch code (CS/CE/EC/ME). DTE students use dept name.
+  if (user.role === "hod") {
+    if (!hodCode) {
+      return unauthorized(
+        "Could not detect HOD branch. Use account with branch set or username HODCS/HODCE/HODEC/HODME.",
+      )
+    }
+    if (hodCode === "CSE") {
+      // 171CS… or DTE with computer dept — exclude 171ME/CE/EC even if dept wrong
+      where += ` AND (
+        UPPER(s.reg_no) ~ '171CS[0-9]'
+        OR (
+          UPPER(s.reg_no) NOT SIMILAR TO '171(CE|EC|ME)[0-9]%'
+          AND (
+            lower(COALESCE(s.dept,'')) LIKE '%computer%'
+            OR lower(COALESCE(u.branch,'')) LIKE '%computer%'
+          )
+        )
+      )`
+    } else if (hodCode === "CE") {
+      where += ` AND (
+        UPPER(s.reg_no) ~ '171CE[0-9]'
+        OR (
+          UPPER(s.reg_no) NOT SIMILAR TO '171(CS|EC|ME)[0-9]%'
+          AND (
+            lower(COALESCE(s.dept,'')) LIKE '%civil%'
+            OR lower(COALESCE(u.branch,'')) LIKE '%civil%'
+          )
+        )
+      )`
+    } else if (hodCode === "ECE") {
+      where += ` AND (
+        UPPER(s.reg_no) ~ '171EC[0-9]'
+        OR (
+          UPPER(s.reg_no) NOT SIMILAR TO '171(CS|CE|ME)[0-9]%'
+          AND (
+            lower(COALESCE(s.dept,'')) LIKE '%electron%'
+            OR lower(COALESCE(u.branch,'')) LIKE '%electron%'
+          )
+        )
+      )`
+    } else if (hodCode === "ME") {
+      where += ` AND (
+        UPPER(s.reg_no) ~ '171ME[0-9]'
+        OR (
+          UPPER(s.reg_no) NOT SIMILAR TO '171(CS|CE|EC)[0-9]%'
+          AND (
+            lower(COALESCE(s.dept,'')) LIKE '%mech%'
+            OR lower(COALESCE(u.branch,'')) LIKE '%mech%'
+          )
+        )
+      )`
+    }
   }
 
   if (yearF) {
@@ -298,9 +351,17 @@ export async function GET(req: Request) {
     params,
   )
 
+  // Final in-app filter (belt + suspenders): drop wrong reg codes
+  const filtered = rows.filter((r) => {
+    if (user.role !== "hod") return true
+    return studentBelongsToHod(String(r.reg_no), r.dept, user)
+  })
+
   return Response.json({
     ok: true,
-    students: rows.map((r) => ({
+    hod_branch: hodCode ? branchFullName(hodCode) : hodBranchOf(user),
+    hod_code: hodCode,
+    students: filtered.map((r) => ({
       reg_no: r.reg_no,
       name: r.name,
       dept: r.dept,
@@ -310,6 +371,7 @@ export async function GET(req: Request) {
       admission_academic_year: r.admission_academic_year,
       entry_type: r.entry_type,
       academic_status: r.academic_status,
+      reg_branch: branchCodeFromRegNo(String(r.reg_no)),
     })),
   })
 }
@@ -342,10 +404,13 @@ export async function POST(req: Request) {
   if (!regs.length) return badRequest("reg_no or reg_nos[] required")
   if (regs.length > 500) return badRequest("Max 500 students per bulk request")
 
-  const actor = {
+  const actor: SessionUser = {
     id: user.id,
     role: user.role,
     display_name: user.display_name,
+    branch: user.branch,
+    reg_no: user.reg_no,
+    email: user.email,
   }
 
   if (action === "remove") {
@@ -371,7 +436,6 @@ export async function POST(req: Request) {
     })
   }
 
-  // default: set_year
   const toYear = parseYear(b.to_year ?? b.year ?? b.toYear)
   if (!toYear) return badRequest("to_year must be I / II / III (or 1 / 2 / 3)")
 
@@ -393,7 +457,7 @@ export async function POST(req: Request) {
   const fail = results.length - ok
   const sampleErrors = results
     .filter((r) => !r.ok)
-    .slice(0, 5)
+    .slice(0, 8)
     .map((r) => `${r.reg_no}: ${r.error}`)
 
   return Response.json({

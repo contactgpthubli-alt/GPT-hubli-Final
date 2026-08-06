@@ -499,7 +499,15 @@
       var data = await api('/api/ops/year-transfer?' + qs);
       var list = data.students || [];
       window._opsYearRoster = list;
-      if (meta) meta.textContent = list.length + ' student(s) · select rows then Apply bulk year change';
+      if (meta) {
+        meta.innerHTML =
+          list.length +
+          ' student(s)' +
+          (data.hod_code
+            ? ' · HOD branch <strong>' + esc(data.hod_code) + '</strong> (filter by reg: CS/CE/EC/ME)'
+            : '') +
+          ' · select rows then Apply bulk year change';
+      }
       if (!body) return;
       if (!list.length) {
         body.innerHTML = '<tr><td colspan="5" style="padding:16px;opacity:.7;">No students match.</td></tr>';
