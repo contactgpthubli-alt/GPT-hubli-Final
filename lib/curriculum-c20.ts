@@ -152,24 +152,34 @@ export const C20_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
     s(6, "20EC61R", "Science and Research Pathway – Research Project", { pathway: "research" }),
     s(6, "20EC61E", "Entrepreneurship pathway – MVP / Incubation", { pathway: "entrepreneurship" }),
   ],
+  // ME Sem 1–4 from BTE Provisional Marks Cards (reg 171ME24042, Hubballi)
   ME: [
+    // --- Semester I (Nov/Dec) ---
+    s(1, "20SC01T", "Engineering Mathematics", { year1_only: true }),
     s(1, "20ME11T", "Materials for Engineering", { year1_only: true }),
-    ...SHARED_Y1_BASE.map((x) => s(1, x.code, x.name, { year1_only: true })),
-    s(1, "20EE01P", "Fundamentals of Electrical & Electronics Engineering", { year1_only: true }),
+    s(1, "20EG01P", "Communication Skills", { year1_only: true }),
     s(1, "20ME12P", "Computer Aided Engineering Drawing", { year1_only: true }),
-    s(2, "20ME21P", "Mechanical Workshop Practice-I", { year1_only: true }),
+    s(1, "20AU01T", "Environmental Sustainability", { year1_only: true, is_audit: true }),
+    // --- Semester II (Apr/May) ---
     s(2, "20PM01T", "Project Management Skills", { year1_only: true }),
-    s(2, "20KA21T", "Sahitya Sinchana / Balake Kannada", { is_audit: true, year1_only: true }),
+    s(2, "20SC02P", "Statistics and Analytics", { year1_only: true }),
+    s(2, "20EE01P", "Fundamentals of Electrical & Electronics Engg", { year1_only: true }),
+    s(2, "20CS01P", "IT Skills", { year1_only: true }),
+    s(2, "20ME21P", "Mechanical Workshop Practice - I", { year1_only: true }),
+    s(2, "20KA21T", "Sahithya Sinchana-1 / Balake Kannada-1", { is_audit: true, year1_only: true }),
+    // --- Semester III ---
     s(3, "20ME31P", "Mechanics of Materials"),
     s(3, "20ME32P", "Machine Tool Technology"),
     s(3, "20ME33P", "Manufacturing Processes"),
     s(3, "20ME34P", "Fluid Power Engineering"),
-    s(3, "20KA31T", "Sahitya Sinchana-II / Balake Kannada-II", { is_audit: true }),
+    s(3, "20KA31T", "Sahithya Sinchana-2 / Balake Kannada-2", { is_audit: true }),
+    // --- Semester IV ---
     s(4, "20ME41P", "Operations Management"),
     s(4, "20ME42P", "CNC Programming and Machining"),
     s(4, "20ME43P", "Product Design and Development"),
     s(4, "20ME44P", "Elements of Industrial Automation"),
     s(4, "20ME45T", "Indian Constitution", { is_audit: true }),
+    // --- Semester V–VI pathways ---
     s(5, "20ME51I", "Automation and Robotics", { pathway: "specialization" }),
     s(5, "20ME52I", "Heating, Ventilation and Air Conditioning (HVAC)", { pathway: "specialization" }),
     s(5, "20ME53I", "Advanced Manufacturing Technologies", { pathway: "specialization" }),
