@@ -80,16 +80,21 @@
     };
     // Admin
     injectNav('#dbAdmin', 'adOpsLiveNav', 'adOpsLive', 'adOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Management', '🏷️', after);
     injectNav('#dbAdmin', 'adOpsXferNav', 'adOpsTransfer', 'adOpsTransfer', 'Branch Transfer', '🔀', after);
     // Principal
     injectNav('#dbPrincipal', 'priOpsLiveNav', 'priOpsLive', 'priOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbPrincipal', 'priOpsCatNav', 'priOpsCategory', 'priOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbPrincipal', 'priOpsCatNav', 'priOpsCategory', 'priOpsCategory', 'Student Management', '🏷️', after);
     injectNav('#dbPrincipal', 'priOpsXferNav', 'priOpsTransfer', 'priOpsTransfer', 'Branch Transfer', '🔀', after);
     // Faculty shell (HOD + exam modules often live here)
     injectNav('#dbFaculty', 'facOpsLiveNav', 'facOpsLive', 'facOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbFaculty', 'facOpsCatNav', 'facOpsCategory', 'facOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbFaculty', 'facOpsCatNav', 'facOpsCategory', 'facOpsCategory', 'Student Management', '🏷️', after);
     injectNav('#dbFaculty', 'facOpsXferNav', 'facOpsTransfer', 'facOpsTransfer', 'Branch Transfer', '🔀', after);
+    // Rename if an older "Student Category" nav is already in the DOM
+    ;['adOpsCatNav', 'priOpsCatNav', 'facOpsCatNav'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="sli">🏷️</span>Student Management';
+    });
   }
 
   function panelHtmlLive(pid) {
@@ -134,7 +139,7 @@
 
   function panelHtmlCategory(pid) {
     return (
-      '<div class="info-box">🏷️ <strong>Student Category</strong> — Auto-fetch one student for flags, or use <strong>Bulk year transfer</strong> ' +
+      '<div class="info-box">🏷️ <strong>Student Management</strong> — Auto-fetch one student for flags, or use <strong>Bulk year transfer</strong> ' +
       'to move many students to Year I / II / III. Live database update. HOD = own branch only.</div>' +
       // ---- Single student ----
       '<div class="card" style="padding:16px;max-width:820px;margin-bottom:16px;">' +
