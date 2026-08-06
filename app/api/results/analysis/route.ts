@@ -109,11 +109,12 @@ function finalize(map: Map<string, { label: string; total: number; pass: number;
 }
 
 export async function GET(req: Request) {
-  const user = await getCurrentUser()
-  if (!user) return unauthorized()
-  if (!STAFF_ROLES.includes(user.role) || !VIEWERS.includes(user.role as (typeof VIEWERS)[number])) {
+  const authUser = await getCurrentUser()
+  if (!authUser) return unauthorized()
+  if (!STAFF_ROLES.includes(authUser.role) || !VIEWERS.includes(authUser.role as (typeof VIEWERS)[number])) {
     return unauthorized("Only Exam / ACM / HOD / Principal / Admin can view analysis")
   }
+  const user = authUser
   await ensureExamResultsSchema()
 
   const url = new URL(req.url)
@@ -126,16 +127,14 @@ export async function GET(req: Request) {
   const source = (url.searchParams.get("source") || "both").trim().toLowerCase() // published | verified | both
 
   // Include email so HODCSGPTH / hodcsgpth@… resolve even if users.branch empty
-  const hodBranch =
-    user.role === "hod"
-      ? hodBranchOf({
-          branch: user.branch,
-          reg_no: user.reg_no,
-          display_name: user.display_name,
-          email: user.email,
-        })
-      : null
-  const hodCode = user.role === "hod" ? hodBranchCodeOf(user) : null
+  const hodUser = {
+    branch: user.branch,
+    reg_no: user.reg_no,
+    display_name: user.display_name,
+    email: user.email,
+  }
+  const hodBranch = user.role === "hod" ? hodBranchOf(hodUser) : null
+  const hodCode = user.role === "hod" ? hodBranchCodeOf(hodUser) : null
 
   // Infer scheme from subject codes: 25* = C-25, 20* = C-20
   function schemeSqlOnResult(alias: string, params: unknown[]): string {
@@ -326,7 +325,7 @@ export async function GET(req: Request) {
 
   function regMatchesHod(reg: string, dept?: string | null): boolean {
     if (user.role === "hod") {
-      return studentBelongsToHod(reg, dept, user)
+      return studentBelongsToHod(reg, dept, hodUser)
     }
     if (!branchQ) return true
     const want = canonBranchCode(branchQ)
