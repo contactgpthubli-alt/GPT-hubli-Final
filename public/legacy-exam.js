@@ -724,48 +724,55 @@
           '</div>';
         facContent.appendChild(pPanel);
       }
-      // Subject Key List — all HODs (branch-scoped C-20 codes; C-25 empty until official list)
-      if (facContent && facMenu && !document.getElementById('facSubjectKeyNav')) {
+      // Student Key List — same idea as Exam Cell student roster (reg no = key), branch-scoped for HOD
+      if (facContent && facMenu && !document.getElementById('facStudentKeyNav')) {
+        // Remove mistaken Subject Key List if an older session left it in DOM
+        var badNav = document.getElementById('facSubjectKeyNav');
+        if (badNav && badNav.parentNode) badNav.parentNode.removeChild(badNav);
+        var badPanel = document.getElementById('facSubjectKeyHod');
+        if (badPanel && badPanel.parentNode) badPanel.parentNode.removeChild(badPanel);
+
         var knav = document.createElement('div');
         knav.className = 'sl';
-        knav.id = 'facSubjectKeyNav';
-        knav.setAttribute('data-fac', 'subjectkey');
-        knav.innerHTML = '<span class="sli">🔑</span>Subject Key List';
+        knav.id = 'facStudentKeyNav';
+        knav.setAttribute('data-fac', 'studentkey');
+        knav.innerHTML = '<span class="sli">🗝️</span>Student Key List';
         knav.onclick = function () {
           facContent.querySelectorAll(':scope > div[id]').forEach(function (p) {
-            p.style.display = p.id === 'facSubjectKeyHod' ? '' : 'none';
+            p.style.display = p.id === 'facStudentKeyHod' ? '' : 'none';
           });
           facMenu.querySelectorAll('.sl').forEach(function (sl) { sl.classList.remove('act'); });
           knav.classList.add('act');
-          var kp = document.getElementById('facSubjectKeyHod');
+          var kp = document.getElementById('facStudentKeyHod');
           if (kp) kp.style.display = '';
-          window.examSubjectKeyLoad && window.examSubjectKeyLoad();
+          window.examStudentKeyLoad && window.examStudentKeyLoad();
         };
         facMenu.appendChild(knav);
         var kPanel = document.createElement('div');
-        kPanel.id = 'facSubjectKeyHod';
+        kPanel.id = 'facStudentKeyHod';
         kPanel.style.display = 'none';
         kPanel.innerHTML =
-          '<div class="info-box">🔑 <strong>Subject key list (your branch)</strong> — Official course codes for attendance, results, and verification. ' +
-          '<strong>C-20</strong> inventory is shown for final-year / older batches. ' +
-          '<strong>C-25</strong> (I &amp; II Year) is not loaded yet — do not invent subjects; type manually until Exam Section adds the key list. ' +
-          'CE Sem 1–4 keys match BTE provisional marks cards.</div>' +
+          '<div class="info-box">🗝️ <strong>Student Key List (your branch)</strong> — Same style of student roster Exam Cell uses. ' +
+          '<strong>Key</strong> = Register Number. Filter by year, search, then copy or download for hall tickets / attendance / verification. ' +
+          'Civil HOD sees Civil only; CSE HOD sees CSE only.</div>' +
           '<div class="card" style="padding:14px;margin-bottom:12px;">' +
           '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">' +
-          '<div><label style="font-size:0.75rem;font-weight:700;">Scheme</label><br>' +
-          '<select id="hodKeyScheme" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="C-20">C-20 (final year / older)</option>' +
-          '<option value="C-25">C-25 (I &amp; II Year — not loaded)</option></select></div>' +
-          '<div><label style="font-size:0.75rem;font-weight:700;">Semester filter</label><br>' +
-          '<select id="hodKeySem" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="">All semesters</option>' +
-          '<option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>' +
-          '<option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option></select></div>' +
-          '<button type="button" class="btn ol" onclick="window.examSubjectKeyLoad&&window.examSubjectKeyLoad()">↻ Reload</button>' +
-          '<button type="button" class="btn pr" onclick="window.examSubjectKeyCopy&&window.examSubjectKeyCopy()">📋 Copy list</button>' +
+          '<div style="flex:1;min-width:180px;"><label style="font-size:0.75rem;font-weight:700;">Search</label><br>' +
+          '<input id="hodStuKeyQ" type="text" placeholder="Name / reg no…" ' +
+          'style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);" ' +
+          'oninput="window.examStudentKeyFilter&&window.examStudentKeyFilter()" /></div>' +
+          '<div><label style="font-size:0.75rem;font-weight:700;">Year</label><br>' +
+          '<select id="hodStuKeyYear" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);" ' +
+          'onchange="window.examStudentKeyFilter&&window.examStudentKeyFilter()">' +
+          '<option value="">All years</option>' +
+          '<option value="1">I Year</option><option value="2">II Year</option><option value="3">III Year</option>' +
+          '</select></div>' +
+          '<button type="button" class="btn ol" onclick="window.examStudentKeyLoad&&window.examStudentKeyLoad()">↻ Reload</button>' +
+          '<button type="button" class="btn pr" onclick="window.examStudentKeyCopy&&window.examStudentKeyCopy()">📋 Copy</button>' +
+          '<button type="button" class="btn go" onclick="window.examStudentKeyCsv&&window.examStudentKeyCsv()">📊 Excel / CSV</button>' +
           '</div>' +
-          '<div id="hodKeyMeta" style="margin-top:10px;font-size:0.82rem;opacity:.85;"></div>' +
-          '<div id="hodKeyList" style="margin-top:12px;overflow-x:auto;"></div></div>';
+          '<div id="hodStuKeyMeta" style="margin-top:10px;font-size:0.82rem;opacity:.85;"></div>' +
+          '<div id="hodStuKeyList" style="margin-top:12px;overflow-x:auto;"></div></div>';
         facContent.appendChild(kPanel);
       }
     }
@@ -940,17 +947,100 @@
     return '';
   }
 
-  window.examSubjectKeyLoad = async function () {
-    var host = document.getElementById('hodKeyList');
-    var meta = document.getElementById('hodKeyMeta');
-    var schemeEl = document.getElementById('hodKeyScheme');
-    var semEl = document.getElementById('hodKeySem');
+  function stuKeyYearNum(s) {
+    if (s.current_study_year != null && s.current_study_year !== '') return Number(s.current_study_year);
+    var y = String(s.year || s.study_year || '').toUpperCase().replace(/\s+/g, '');
+    if (y === '1' || y === 'I' || y.indexOf('1') === 0 || y.indexOf('IYEAR') === 0) return 1;
+    if (y === '2' || y === 'II' || y.indexOf('2') === 0 || y.indexOf('II') === 0) return 2;
+    if (y === '3' || y === 'III' || y.indexOf('3') === 0 || y.indexOf('III') === 0) return 3;
+    var n = Number(y);
+    return n === 1 || n === 2 || n === 3 ? n : null;
+  }
+
+  function stuKeyFiltered() {
+    var list = window._hodStuKeyAll || [];
+    var qEl = document.getElementById('hodStuKeyQ');
+    var yEl = document.getElementById('hodStuKeyYear');
+    var q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
+    var yf = yEl && yEl.value ? Number(yEl.value) : null;
+    return list.filter(function (s) {
+      if (yf) {
+        var yn = stuKeyYearNum(s);
+        if (yn !== yf) return false;
+      }
+      if (!q) return true;
+      var hay = [s.reg_no, s.name, s.display_name, s.email, s.dept, s.branch, s.year]
+        .join(' ')
+        .toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+
+  function paintStuKeyTable(rows) {
+    var host = document.getElementById('hodStuKeyList');
+    var meta = document.getElementById('hodStuKeyMeta');
     if (!host) return;
-    var scheme = (schemeEl && schemeEl.value) || 'C-20';
-    var semFilter = semEl && semEl.value ? Number(semEl.value) : null;
-    host.innerHTML = '<p style="opacity:.7;">Loading key list…</p>';
+    window._hodStuKeyVisible = rows;
+    if (meta) {
+      meta.innerHTML =
+        'Branch: <strong>' +
+        esc(window._hodStuKeyBranch || 'your branch') +
+        '</strong> · Showing <strong>' +
+        rows.length +
+        '</strong> / ' +
+        (window._hodStuKeyAll || []).length +
+        ' student(s). Key = Register Number (same pattern Exam Cell uses).';
+    }
+    if (!rows.length) {
+      host.innerHTML = '<p style="opacity:.7;padding:12px;">No students match this filter.</p>';
+      return;
+    }
+    var html =
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+      '<thead><tr style="background:#f8fafc;text-align:left;">' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">#</th>' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">Key (Reg No)</th>' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">Name</th>' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">Year</th>' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">Branch</th>' +
+      '<th style="padding:8px;border-bottom:1px solid var(--border);">Batch / Adm</th>' +
+      '</tr></thead><tbody>';
+    rows.forEach(function (s, i) {
+      var yn = stuKeyYearNum(s);
+      html +=
+        '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:8px;opacity:.7;">' +
+        (i + 1) +
+        '</td>' +
+        '<td style="padding:8px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--navy);">' +
+        esc(s.reg_no || '—') +
+        '</td>' +
+        '<td style="padding:8px;">' +
+        esc(s.name || s.display_name || '—') +
+        '</td>' +
+        '<td style="padding:8px;">' +
+        (yn != null ? yn : esc(s.year || '—')) +
+        '</td>' +
+        '<td style="padding:8px;">' +
+        esc(s.dept || s.branch || '—') +
+        '</td>' +
+        '<td style="padding:8px;font-size:0.78rem;">' +
+        esc(s.admission_academic_year || s.batch || '—') +
+        '</td></tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  }
+
+  window.examStudentKeyFilter = function () {
+    paintStuKeyTable(stuKeyFiltered());
+  };
+
+  window.examStudentKeyLoad = async function () {
+    var host = document.getElementById('hodStuKeyList');
+    if (!host) return;
+    host.innerHTML = '<p style="opacity:.7;">Loading student key list…</p>';
     try {
-      // Resolve HOD branch via pathways (scoped) then curriculum
       var branch = hodBranchCodeGuess();
       if (!branch) {
         try {
@@ -959,113 +1049,116 @@
           window._hodPwBranch = branch;
         } catch (e0) { /* ignore */ }
       }
-      if (!branch) {
-        host.innerHTML = '<p style="color:#991b1b;">Could not resolve HOD branch. Check your login branch mapping.</p>';
-        return;
-      }
-      var data = await api(
-        '/api/curriculum?scheme=' +
-          encodeURIComponent(scheme) +
-          '&branch=' +
-          encodeURIComponent(branch) +
-          '&include_y1=1',
-      );
-      var subjects = (data && data.subjects) || [];
-      if (semFilter) {
-        subjects = subjects.filter(function (s) {
-          return Number(s.semester) === semFilter;
+      var data = await api('/api/students?lite=1&_ts=' + Date.now());
+      var all = (data && data.students) || [];
+      // HOD API should already scope branch; keep a client filter as safety
+      if (branch) {
+        var bLow = branch.toLowerCase();
+        var map = { ce: 'civil', cse: 'computer', ece: 'electron', me: 'mech' };
+        var hint = map[bLow] || bLow;
+        all = all.filter(function (s) {
+          var d = String(s.dept || s.branch || '').toLowerCase();
+          if (!d) return true;
+          if (bLow === 'cse') return d.indexOf('computer') >= 0 || d.indexOf('cse') >= 0;
+          if (bLow === 'ce') return d.indexOf('civil') >= 0;
+          if (bLow === 'ece') return d.indexOf('electron') >= 0 || d.indexOf('ece') >= 0;
+          if (bLow === 'me') return d.indexOf('mech') >= 0;
+          return d.indexOf(hint) >= 0;
         });
       }
-      subjects.sort(function (a, b) {
-        return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
+      all.sort(function (a, b) {
+        return String(a.reg_no || '').localeCompare(String(b.reg_no || ''));
       });
-      window._hodKeySubjects = subjects;
-      window._hodKeyBranch = branch;
-      window._hodKeyScheme = scheme;
-      if (meta) {
-        meta.innerHTML =
-          'Branch: <strong>' +
-          esc(branch) +
-          '</strong> · Scheme: <strong>' +
-          esc(scheme) +
-          '</strong> · ' +
-          subjects.length +
-          ' subject(s)' +
-          (data && data.note ? ' · <span style="color:#b45309;">' + esc(data.note) + '</span>' : '') +
-          (data && data.scheme_rule
-            ? '<div style="margin-top:4px;font-size:0.75rem;opacity:.8;">' + esc(data.scheme_rule) + '</div>'
-            : '');
-      }
-      if (!subjects.length) {
-        host.innerHTML =
-          scheme === 'C-25'
-            ? '<div class="info-box" style="background:#fef3c7;">C-25 key list is empty by design — official I &amp; II Year subjects are not entered yet. Type subjects manually for attendance. When Exam Section provides the list, it will appear here for all HODs.</div>'
-            : '<p style="opacity:.7;">No subjects for this filter.</p>';
-        return;
-      }
-      var html =
-        '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
-        '<thead><tr style="background:#f8fafc;text-align:left;">' +
-        '<th style="padding:8px;border-bottom:1px solid var(--border);">Sem</th>' +
-        '<th style="padding:8px;border-bottom:1px solid var(--border);">Key (code)</th>' +
-        '<th style="padding:8px;border-bottom:1px solid var(--border);">Course title</th>' +
-        '<th style="padding:8px;border-bottom:1px solid var(--border);">Notes</th>' +
-        '</tr></thead><tbody>';
-      subjects.forEach(function (s) {
-        var notes = [];
-        if (s.is_audit) notes.push('audit');
-        if (s.pathway) notes.push('pathway: ' + s.pathway);
-        if (s.year1_only) notes.push('Y1');
-        html +=
-          '<tr style="border-bottom:1px solid var(--border);">' +
-          '<td style="padding:8px;font-weight:700;">' +
-          Number(s.semester) +
-          '</td>' +
-          '<td style="padding:8px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:700;color:var(--navy);">' +
-          esc(s.code) +
-          '</td>' +
-          '<td style="padding:8px;">' +
-          esc(s.name) +
-          '</td>' +
-          '<td style="padding:8px;font-size:0.72rem;opacity:.75;">' +
-          esc(notes.join(' · ') || '—') +
-          '</td></tr>';
-      });
-      html += '</tbody></table>';
-      host.innerHTML = html;
+      window._hodStuKeyAll = all;
+      window._hodStuKeyBranch = branch || (data && data.scope && data.scope.branch) || 'branch';
+      paintStuKeyTable(stuKeyFiltered());
     } catch (e) {
       host.innerHTML = '<p style="color:#991b1b;">' + esc(e.message || String(e)) + '</p>';
     }
   };
 
-  window.examSubjectKeyCopy = function () {
-    var list = window._hodKeySubjects || [];
+  window.examStudentKeyCopy = function () {
+    var list = window._hodStuKeyVisible || stuKeyFiltered();
     if (!list.length) {
-      alert('No subjects to copy. Load C-20 key list first (C-25 is empty until official list is added).');
+      alert('No students to copy.');
       return;
     }
-    var lines = list.map(function (s) {
-      return 'Sem ' + s.semester + '\t' + s.code + '\t' + s.name;
+    var lines = list.map(function (s, i) {
+      return (
+        i +
+        1 +
+        '\t' +
+        (s.reg_no || '') +
+        '\t' +
+        (s.name || s.display_name || '') +
+        '\t' +
+        (stuKeyYearNum(s) != null ? stuKeyYearNum(s) : s.year || '') +
+        '\t' +
+        (s.dept || s.branch || '')
+      );
     });
     var text =
-      'Branch ' +
-      (window._hodKeyBranch || '') +
-      ' · ' +
-      (window._hodKeyScheme || 'C-20') +
-      '\n' +
+      'Student Key List · ' +
+      (window._hodStuKeyBranch || '') +
+      '\n#\tReg No\tName\tYear\tBranch\n' +
       lines.join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(
         function () {
-          alert('Copied ' + list.length + ' subject keys to clipboard.');
+          alert('Copied ' + list.length + ' student keys to clipboard.');
         },
         function () {
-          prompt('Copy subject keys:', text);
+          prompt('Copy student keys:', text);
         },
       );
     } else {
-      prompt('Copy subject keys:', text);
+      prompt('Copy student keys:', text);
     }
+  };
+
+  window.examStudentKeyCsv = function () {
+    var list = window._hodStuKeyVisible || stuKeyFiltered();
+    if (!list.length) {
+      alert('No students to export.');
+      return;
+    }
+    var rows = [['#', 'Reg No (Key)', 'Name', 'Year', 'Branch', 'Admission AY']];
+    list.forEach(function (s, i) {
+      rows.push([
+        String(i + 1),
+        s.reg_no || '',
+        s.name || s.display_name || '',
+        stuKeyYearNum(s) != null ? String(stuKeyYearNum(s)) : String(s.year || ''),
+        s.dept || s.branch || '',
+        s.admission_academic_year || s.batch || '',
+      ]);
+    });
+    var csv = rows
+      .map(function (r) {
+        return r
+          .map(function (c) {
+            var t = String(c == null ? '' : c);
+            if (/[",\n]/.test(t)) return '"' + t.replace(/"/g, '""') + '"';
+            return t;
+          })
+          .join(',');
+      })
+      .join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download =
+      'student-key-list-' +
+      String(window._hodStuKeyBranch || 'branch').toLowerCase() +
+      '-' +
+      new Date().toISOString().slice(0, 10) +
+      '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
   };
 
   window.examPathwayLoad = async function () {
