@@ -3969,21 +3969,29 @@ function __initGptBridge() {
       labels.push(label);
     }
     ACM_PRINT_CORE_FIELDS.forEach(add);
-    // Live schema used on Student → My Profile (includes admin custom fields)
+    // Live schema used on Student → My Profile (includes admin custom fields like "TEST Section")
     try {
-      var schema = (typeof stuProfileSchema !== 'undefined' && Array.isArray(stuProfileSchema))
-        ? stuProfileSchema
-        : (typeof defaultStuSections !== 'undefined' ? defaultStuSections : null);
+      var schema = null;
+      if (typeof window.stuProfileSchema !== 'undefined' && Array.isArray(window.stuProfileSchema) && window.stuProfileSchema.length) {
+        schema = window.stuProfileSchema;
+      } else if (typeof stuProfileSchema !== 'undefined' && Array.isArray(stuProfileSchema) && stuProfileSchema.length) {
+        schema = stuProfileSchema;
+      } else if (typeof defaultStuSections !== 'undefined' && Array.isArray(defaultStuSections)) {
+        schema = defaultStuSections;
+      }
       if (schema) {
         schema.forEach(function (sec) {
-          if (sec && sec.visible === false) return;
+          if (!sec || sec.visible === false) return;
           (sec.fields || []).forEach(function (f) {
-            if (f && f.label) add(f.label);
+            if (!f) return;
+            // Builder fields: label is primary; also accept name/title fallbacks
+            var lab = f.label || f.name || f.title || '';
+            if (lab) add(lab);
           });
         });
       }
     } catch (e) { /* ignore */ }
-    // Any extra keys already present on loaded class
+    // Any extra keys already present on loaded class (approved custom values)
     (window._acmPrintClass || []).forEach(function (s) {
       var extra = s && s.extra;
       if (typeof extra === 'string') {
@@ -3993,11 +4001,50 @@ function __initGptBridge() {
         Object.keys(extra).forEach(function (k) {
           if (k === 'profile_edit_locked') return;
           if (/photo/i.test(k)) return;
+          if (typeof extra[k] === 'string' && extra[k].indexOf('data:image/') === 0) return;
           add(k);
         });
       }
     });
+    // Cache from last schema API fetch (in case global schema not yet mutated)
+    if (Array.isArray(window._printSchemaLabels)) {
+      window._printSchemaLabels.forEach(add);
+    }
     return labels;
+  }
+
+  /** Always reload admin My Profile schema before Print/Export so new sections appear. */
+  async function acmEnsurePrintSchema() {
+    try {
+      if (typeof window.loadStudentProfileSchema === 'function') {
+        await window.loadStudentProfileSchema(true);
+      } else {
+        var data = await apiReqQuiet('/api/profile-schema?key=student&_ts=' + Date.now());
+        if (data && Array.isArray(data.schema)) {
+          if (typeof stuProfileSchema !== 'undefined' && Array.isArray(stuProfileSchema)) {
+            stuProfileSchema.length = 0;
+            data.schema.forEach(function (sec) { stuProfileSchema.push(sec); });
+          }
+          window.stuProfileSchema = data.schema.slice();
+        }
+      }
+      // Flatten labels for fallback
+      var flat = [];
+      var sch =
+        (typeof window.stuProfileSchema !== 'undefined' && window.stuProfileSchema) ||
+        (typeof stuProfileSchema !== 'undefined' ? stuProfileSchema : null);
+      if (Array.isArray(sch)) {
+        sch.forEach(function (sec) {
+          if (!sec || sec.visible === false) return;
+          (sec.fields || []).forEach(function (f) {
+            if (f && f.label) flat.push(String(f.label).trim());
+          });
+        });
+      }
+      window._printSchemaLabels = flat;
+    } catch (e) {
+      console.warn('[acm-print] schema load', e);
+    }
   }
 
   function acmPrintActiveRoot() {
@@ -4126,10 +4173,12 @@ function __initGptBridge() {
         if (!map['Email']) put('Email', v);
         return;
       }
-      // Prefer exact schema label if we have a normalized match
+      // Prefer exact schema label if we have a normalized match (custom admin fields)
       if (labelByNorm[nk]) put(labelByNorm[nk], v);
       else {
-        map[k] = String(v); // keep unknown extra keys as columns too
+        // New custom key not yet in schema list — still export as its own column
+        map[k] = String(v);
+        labelByNorm[nk] = k;
       }
     });
 
@@ -4254,7 +4303,8 @@ function __initGptBridge() {
   };
 
   window.acmPrintLoadClass = async function () {
-    // Always re-fetch students so year/branch data is fresh
+    // Always re-fetch schema + students so admin-added fields (e.g. TEST Section) appear
+    await acmEnsurePrintSchema();
     window._acmStudentsCache = null;
     await acmEnsureStudents();
 
@@ -4263,7 +4313,7 @@ function __initGptBridge() {
     if (!root) {
       // Fallback: any print branch select on the page
       var anyBranch = document.querySelector('[data-acm-print-branch="1"]');
-      root = anyBranch ? (anyBranch.closest('[data-acm-root="1"]') || anyBranch.closest('#facACM, #adACM') || document) : null;
+      root = anyBranch ? (anyBranch.closest('[data-acm-root="1"]') || anyBranch.closest('#facACM, #adACM, #facHodPrint') || document) : null;
     }
     if (!root) {
       alert('Print panel not found. Open Print / Export (ACM, Exam Cell, or HOD menu).');
@@ -4373,8 +4423,9 @@ function __initGptBridge() {
     acmPrintRefreshPreview();
   };
 
-  /** Show full field checklist as soon as Print tab is opened. */
-  window.acmPrintInitFields = function () {
+  /** Show full field checklist as soon as Print tab is opened (includes latest admin schema). */
+  window.acmPrintInitFields = async function () {
+    await acmEnsurePrintSchema();
     window._acmPrintFieldUnion = acmPrintAllProfileLabels();
     ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint', 'facHodPrint', 'facHodPrintInner'].forEach(function (id) {
       var el = document.getElementById(id);

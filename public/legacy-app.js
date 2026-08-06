@@ -3465,15 +3465,25 @@ async function saveStuProfile() {
       throw new Error(data.error || ('HTTP ' + res.status));
     }
     stuProfileSchema = payload;
+    try { window.stuProfileSchema = payload; } catch (e0) { /* ignore */ }
+    // Keep Print/Export column list in sync with new admin sections (e.g. Test Section)
+    try {
+      window._printSchemaLabels = null;
+      window._acmPrintFieldUnion = null;
+      if (typeof window.acmPrintInitFields === 'function') {
+        window.acmPrintInitFields();
+      }
+    } catch (e1) { /* ignore */ }
     renderStuDynamicProfile();
     renderStuPreview();
     if (status) {
-      status.textContent = '✅ Saved to database · live on Student My Profile';
+      status.textContent = '✅ Saved to database · live on Student My Profile + Print/Export';
       status.style.color = '#065f46';
     }
     alert(
       '✅ Student My Profile form saved to the database.\\n\\n' +
       '• New sections/fields are live for students.\\n' +
+      '• Print / Export also picks up these columns after Load Students.\\n' +
       '• When a student fills them and Admin/ACM approves the request, values are stored in the student database (extra profile fields).'
     );
   } catch (e) {
