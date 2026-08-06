@@ -1,0 +1,521 @@
+/**
+ * Live Academic Ops — dashboard, export, student category, branch transfer.
+ * Roles: Exam, ACM, HOD, Principal, Admin.
+ */
+(function () {
+  'use strict';
+
+  function esc(t) {
+    var d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var r = await fetch(path, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: Object.assign(
+        { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+        opts.body ? { 'Content-Type': 'application/json' } : {},
+        opts.headers || {},
+      ),
+      method: opts.method || 'GET',
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    var data = await r.json().catch(function () { return null; });
+    if (!r.ok) throw new Error((data && (data.error || data.message)) || ('HTTP ' + r.status));
+    return data;
+  }
+
+  function roleOk() {
+    var u = window.currentUser || {};
+    return ['admin', 'principal', 'exam', 'acm', 'hod'].indexOf(u.role) >= 0;
+  }
+
+  function canTransferWrite() {
+    var u = window.currentUser || {};
+    return ['admin', 'principal', 'exam', 'hod'].indexOf(u.role) >= 0;
+  }
+
+  /* ---------- Nav inject into shells ---------- */
+  function injectNav(shellSel, navId, panelId, showSecId, label, icon, afterMatch) {
+    var menu = document.querySelector(shellSel + ' .sb-menu');
+    var content = document.querySelector(shellSel + ' .db-content');
+    if (!menu || !content) return;
+    if (!document.getElementById(navId)) {
+      var insertAfter = null;
+      menu.querySelectorAll('.sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        var id = sl.id || '';
+        if (afterMatch(oc, id, sl)) insertAfter = sl;
+      });
+      var nav = document.createElement('div');
+      nav.className = 'sl';
+      nav.id = navId;
+      nav.setAttribute('onclick', "showSec('" + showSecId + "',this)");
+      nav.innerHTML = '<span class="sli">' + icon + '</span>' + label;
+      if (insertAfter && insertAfter.nextSibling) {
+        insertAfter.parentNode.insertBefore(nav, insertAfter.nextSibling);
+      } else if (insertAfter) {
+        insertAfter.parentNode.appendChild(nav);
+      } else {
+        menu.appendChild(nav);
+      }
+    }
+    if (!document.getElementById(panelId)) {
+      var panel = document.createElement('div');
+      panel.id = panelId;
+      panel.style.display = 'none';
+      panel.innerHTML = '<div class="info-box">Loading…</div>';
+      content.appendChild(panel);
+    }
+  }
+
+  function ensureOpsMenus() {
+    if (!roleOk()) return;
+    var after = function (oc) {
+      return oc.indexOf('Home') !== -1 || oc.indexOf('Exam') !== -1 || oc.indexOf('ACM') !== -1;
+    };
+    // Admin
+    injectNav('#dbAdmin', 'adOpsLiveNav', 'adOpsLive', 'adOpsLive', 'Live Academic', '📡', after);
+    injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbAdmin', 'adOpsXferNav', 'adOpsTransfer', 'adOpsTransfer', 'Branch Transfer', '🔀', after);
+    // Principal
+    injectNav('#dbPrincipal', 'priOpsLiveNav', 'priOpsLive', 'priOpsLive', 'Live Academic', '📡', after);
+    injectNav('#dbPrincipal', 'priOpsCatNav', 'priOpsCategory', 'priOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbPrincipal', 'priOpsXferNav', 'priOpsTransfer', 'priOpsTransfer', 'Branch Transfer', '🔀', after);
+    // Faculty shell (HOD + exam modules often live here)
+    injectNav('#dbFaculty', 'facOpsLiveNav', 'facOpsLive', 'facOpsLive', 'Live Academic', '📡', after);
+    injectNav('#dbFaculty', 'facOpsCatNav', 'facOpsCategory', 'facOpsCategory', 'Student Category', '🏷️', after);
+    injectNav('#dbFaculty', 'facOpsXferNav', 'facOpsTransfer', 'facOpsTransfer', 'Branch Transfer', '🔀', after);
+  }
+
+  function panelHtmlLive(pid) {
+    return (
+      '<div class="info-box">📡 <strong>Live Academic Dashboard</strong> — Exam fees (only Exam-validated <em>Paid</em>), ' +
+      'profile completeness (all fields), and verified results for the <strong>running semester</strong>. ' +
+      'Exam · ACM · HOD (own branch) · Principal · Admin.</div>' +
+      '<div id="' + pid + '_meta" style="font-size:0.8rem;opacity:.85;margin:0 0 10px;"></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="' + pid + '_cards"></div>' +
+      '<div class="card" style="margin-bottom:12px;">' +
+      '<div class="card-hd"><h3>Lists</h3><div class="card-acts">' +
+      '<select id="' + pid + '_tab" onchange="window.opsLiveLoad&&window.opsLiveLoad(\'' + pid + '\')" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);">' +
+      '<option value="all">All students</option>' +
+      '<option value="fees_paid">Fees Paid</option>' +
+      '<option value="fees_unpaid">Fees Not Paid</option>' +
+      '<option value="profile_complete">Profile Complete</option>' +
+      '<option value="profile_incomplete">Profile Incomplete</option>' +
+      '<option value="results_filled">Results Filled (running sem)</option>' +
+      '<option value="results_missing">Results Not Filled</option>' +
+      '</select> ' +
+      '<button type="button" class="btn ol" onclick="window.opsLiveLoad&&window.opsLiveLoad(\'' + pid + '\')">↻ Refresh</button> ' +
+      '<button type="button" class="btn go" onclick="window.opsExport&&window.opsExport()">⬇ Export Excel</button>' +
+      '</div></div>' +
+      '<div id="' + pid + '_table" style="padding:12px;overflow:auto;"></div></div>'
+    );
+  }
+
+  function panelHtmlCategory(pid) {
+    return (
+      '<div class="info-box">🏷️ <strong>Student Category</strong> — Standalone tools. Enter register number to auto-fetch. ' +
+      'Mark ITI / PUC / Repeater / Not eligible / Year back / Change of branch. ' +
+      'Year back &amp; Not eligible freeze academic progression.</div>' +
+      '<div class="card" style="padding:16px;max-width:720px;">' +
+      '<div class="form-row"><div class="fg"><label>Register number</label>' +
+      '<input type="text" id="' + pid + '_reg" placeholder="171CS25001" style="text-transform:uppercase;" ' +
+      'onkeydown="if(event.key===\'Enter\'){window.opsCatFetch&&window.opsCatFetch(\'' + pid + '\');}" /></div>' +
+      '<div class="fg" style="align-self:end;"><button type="button" class="btn pr" onclick="window.opsCatFetch&&window.opsCatFetch(\'' + pid + '\')">Auto-fetch</button></div></div>' +
+      '<div id="' + pid + '_info" style="margin:12px 0;font-size:0.88rem;"></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;" id="' + pid + '_flags">' +
+      ['iti:ITI', 'puc:PUC', 'repeater:Repeater', 'not_eligible:Not eligible', 'year_back:Year back', 'change_of_branch:Change of branch']
+        .map(function (pair) {
+          var k = pair.split(':')[0];
+          var lab = pair.split(':')[1];
+          return (
+            '<label style="display:flex;gap:8px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:10px;cursor:pointer;">' +
+            '<input type="checkbox" data-flag="' + k + '" id="' + pid + '_' + k + '" /> <strong>' + lab + '</strong></label>'
+          );
+        })
+        .join('') +
+      '</div>' +
+      '<div class="fg" style="margin-top:12px;"><label>Notes / reason</label>' +
+      '<input type="text" id="' + pid + '_notes" placeholder="Optional note" /></div>' +
+      '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">' +
+      '<button type="button" class="btn go" onclick="window.opsCatSave&&window.opsCatSave(\'' + pid + '\')">💾 Save category</button>' +
+      '</div>' +
+      '<div id="' + pid + '_msg" style="margin-top:10px;font-size:0.85rem;"></div></div>'
+    );
+  }
+
+  function panelHtmlTransfer(pid) {
+    var write = canTransferWrite();
+    var acmNote =
+      (window.currentUser || {}).role === 'acm'
+        ? '<div class="info-box" style="background:#fef3c7;">ACM has <strong>view-only</strong> access to branch transfer history.</div>'
+        : '';
+    return (
+      acmNote +
+      '<div class="info-box">🔀 <strong>Branch Transfer</strong> — After Year 1, keep old + new register numbers (dual login). ' +
+      'Outgoing HOD <em>releases</em>; Incoming HOD <em>accepts</em>; then data moves to the new branch. ' +
+      'New reg is typed by HOD / Exam / Admin / Principal. Full audit trail.</div>' +
+      (write
+        ? '<div class="card" style="padding:16px;margin-bottom:14px;">' +
+          '<h3 style="margin:0 0 10px;">Create transfer</h3>' +
+          '<div class="form-row">' +
+          '<div class="fg"><label>Current (old) reg no</label><input id="' + pid + '_old" style="text-transform:uppercase;" /></div>' +
+          '<div class="fg"><label>New reg no (typed)</label><input id="' + pid + '_new" style="text-transform:uppercase;" /></div>' +
+          '<div class="fg"><label>To branch</label><select id="' + pid + '_to">' +
+          '<option value="Civil Engineering">Civil Engineering</option>' +
+          '<option value="Computer Science and Engineering">Computer Science and Engineering</option>' +
+          '<option value="Electronics and Communication Engineering">Electronics and Communication Engineering</option>' +
+          '<option value="Mechanical Engineering">Mechanical Engineering</option></select></div></div>' +
+          '<div class="fg"><label>Notes</label><input id="' + pid + '_notes" /></div>' +
+          '<button type="button" class="btn pr" style="margin-top:10px;" onclick="window.opsXferCreate&&window.opsXferCreate(\'' +
+          pid +
+          '\')">Create draft</button></div>'
+        : '') +
+      '<div class="card"><div class="card-hd"><h3>Transfer history</h3>' +
+      '<button type="button" class="btn ol" onclick="window.opsXferLoad&&window.opsXferLoad(\'' +
+      pid +
+      '\')">↻ Refresh</button></div>' +
+      '<div id="' + pid + '_list" style="padding:12px;overflow:auto;"></div></div>'
+    );
+  }
+
+  window.opsEnsurePanel = function (secId) {
+    ensureOpsMenus();
+    var el = document.getElementById(secId);
+    if (!el) return;
+    if (secId.indexOf('OpsLive') >= 0) {
+      if (el.getAttribute('data-ops') !== 'live') {
+        el.setAttribute('data-ops', 'live');
+        el.innerHTML = panelHtmlLive(secId);
+      }
+      window.opsLiveLoad(secId);
+    } else if (secId.indexOf('OpsCategory') >= 0) {
+      if (el.getAttribute('data-ops') !== 'cat') {
+        el.setAttribute('data-ops', 'cat');
+        el.innerHTML = panelHtmlCategory(secId);
+      }
+    } else if (secId.indexOf('OpsTransfer') >= 0) {
+      if (el.getAttribute('data-ops') !== 'xfer') {
+        el.setAttribute('data-ops', 'xfer');
+        el.innerHTML = panelHtmlTransfer(secId);
+      }
+      window.opsXferLoad(secId);
+    }
+  };
+
+  window.opsLiveLoad = async function (pid) {
+    var host = document.getElementById(pid + '_table');
+    var cards = document.getElementById(pid + '_cards');
+    var meta = document.getElementById(pid + '_meta');
+    var tab = (document.getElementById(pid + '_tab') || {}).value || 'all';
+    if (host) host.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    try {
+      var data = await api('/api/ops/live?tab=' + encodeURIComponent(tab));
+      var s = data.summary || {};
+      if (meta && data.meta) {
+        meta.innerHTML =
+          'AY <strong>' +
+          esc(data.meta.active_academic_year || '') +
+          '</strong> · ' +
+          esc(data.meta.term_label || '') +
+          ' · ' +
+          esc(data.meta.note || '');
+      }
+      if (cards) {
+        cards.innerHTML = [
+          ['Total', s.total],
+          ['Fees paid', s.fees_paid],
+          ['Fees unpaid', s.fees_unpaid],
+          ['Profile OK', s.profile_complete],
+          ['Profile incomplete', s.profile_incomplete],
+          ['Results filled', s.results_filled],
+          ['Results missing', s.results_missing],
+        ]
+          .map(function (x) {
+            return (
+              '<div style="min-width:110px;padding:10px 12px;border-radius:12px;background:#f1f5f9;border:1px solid var(--border);">' +
+              '<div style="font-size:0.7rem;opacity:.7;">' +
+              esc(x[0]) +
+              '</div><div style="font-size:1.25rem;font-weight:800;">' +
+              esc(String(x[1] != null ? x[1] : '—')) +
+              '</div></div>'
+            );
+          })
+          .join('');
+      }
+      var rows = data.rows || [];
+      if (!host) return;
+      if (!rows.length) {
+        host.innerHTML = '<p style="opacity:.7;">No rows.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+        '<th style="text-align:left;padding:6px;">Reg</th><th style="text-align:left;">Name</th><th>Branch</th>' +
+        '<th>Fees</th><th>Profile</th><th>Results</th><th>Run sem</th><th>Type</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        html +=
+          '<tr style="border-top:1px solid var(--border);">' +
+          '<td style="padding:6px;font-family:monospace;font-size:0.72rem;">' +
+          esc(r.reg_no) +
+          '</td><td style="padding:6px;">' +
+          esc(r.name) +
+          '</td><td style="padding:6px;font-size:0.72rem;">' +
+          esc(r.branch) +
+          '</td><td style="padding:6px;text-align:center;">' +
+          (r.fees_paid ? '<span class="badge active">Paid</span>' : '<span class="badge pending">Unpaid</span>') +
+          '</td><td style="padding:6px;text-align:center;">' +
+          (r.profile_complete
+            ? '<span class="badge active">OK</span>'
+            : '<span class="badge pending" title="' + esc((r.profile_missing || []).join(', ')) + '">Incomplete</span>') +
+          '</td><td style="padding:6px;text-align:center;">' +
+          (r.results_filled ? '<span class="badge active">Filled</span>' : '<span class="badge pending">Missing</span>') +
+          '</td><td style="padding:6px;text-align:center;">' +
+          esc(r.running_sem != null ? String(r.running_sem) : '—') +
+          '</td><td style="padding:6px;">' +
+          esc(r.entry_type_label || '') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      host.innerHTML = html;
+    } catch (e) {
+      if (host) host.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.opsExport = function () {
+    window.open('/api/ops/export?_ts=' + Date.now(), '_blank');
+  };
+
+  window.opsCatFetch = async function (pid) {
+    var regEl = document.getElementById(pid + '_reg');
+    var info = document.getElementById(pid + '_info');
+    var msg = document.getElementById(pid + '_msg');
+    var reg = (regEl && regEl.value ? regEl.value : '').trim().toUpperCase();
+    if (!reg) {
+      alert('Enter register number');
+      return;
+    }
+    if (msg) msg.textContent = 'Fetching…';
+    try {
+      var data = await api('/api/ops/category?reg_no=' + encodeURIComponent(reg));
+      var s = data.student || {};
+      if (info) {
+        info.innerHTML =
+          '<strong>' +
+          esc(s.name) +
+          '</strong> · ' +
+          esc(s.reg_no) +
+          ' · ' +
+          esc(s.dept || '') +
+          ' · Year ' +
+          esc(String(s.current_study_year || s.year || '—')) +
+          ' · Status <strong>' +
+          esc(s.academic_status || '') +
+          '</strong>' +
+          (s.progress_locked ? ' · <span class="badge pending">Locked</span>' : '') +
+          (s.previous_reg_no ? ' · Prev reg ' + esc(s.previous_reg_no) : '') +
+          (s.alt_reg_no ? ' · Alt reg ' + esc(s.alt_reg_no) : '');
+      }
+      var flags = s.ops_flags || {};
+      ;['iti', 'puc', 'repeater', 'not_eligible', 'year_back', 'change_of_branch'].forEach(function (k) {
+        var cb = document.getElementById(pid + '_' + k);
+        if (cb) cb.checked = !!flags[k];
+      });
+      var notes = document.getElementById(pid + '_notes');
+      if (notes) notes.value = flags.notes || '';
+      if (msg) msg.textContent = 'Loaded.';
+      window._opsCatReg = reg;
+    } catch (e) {
+      if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.opsCatSave = async function (pid) {
+    var reg =
+      window._opsCatReg ||
+      ((document.getElementById(pid + '_reg') || {}).value || '').trim().toUpperCase();
+    if (!reg) {
+      alert('Fetch a student first');
+      return;
+    }
+    var flags = {};
+    ;['iti', 'puc', 'repeater', 'not_eligible', 'year_back', 'change_of_branch'].forEach(function (k) {
+      var cb = document.getElementById(pid + '_' + k);
+      flags[k] = !!(cb && cb.checked);
+    });
+    var notes = (document.getElementById(pid + '_notes') || {}).value || '';
+    flags.notes = notes;
+    var msg = document.getElementById(pid + '_msg');
+    try {
+      await api('/api/ops/category', {
+        method: 'POST',
+        body: { reg_no: reg, flags: flags, reason: notes },
+      });
+      if (msg) msg.innerHTML = '<span style="color:#166534;">Saved.</span>';
+      window.opsCatFetch(pid);
+    } catch (e) {
+      if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.opsXferLoad = async function (pid) {
+    var list = document.getElementById(pid + '_list');
+    if (list) list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    try {
+      var data = await api('/api/ops/branch-transfer');
+      var rows = data.transfers || [];
+      var write = !!data.can_write && !data.read_only;
+      if (!list) return;
+      if (!rows.length) {
+        list.innerHTML = '<p style="opacity:.7;">No transfers yet.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>ID</th><th>Student</th><th>Old→New</th><th>From→To</th><th>Status</th><th>Audit</th><th></th></tr></thead><tbody>';
+      rows.forEach(function (t) {
+        var audit =
+          (t.released_by_name
+            ? 'Released by ' + t.released_by_name + (t.released_at ? ' @ ' + String(t.released_at).slice(0, 16) : '')
+            : '') +
+          (t.accepted_by_name
+            ? ' · Accepted by ' + t.accepted_by_name + (t.accepted_at ? ' @ ' + String(t.accepted_at).slice(0, 16) : '')
+            : '') +
+          (t.created_by_name ? ' · Created by ' + t.created_by_name : '');
+        var acts = '';
+        if (write && t.status === 'draft') {
+          acts +=
+            '<button type="button" class="btn ol" style="padding:3px 8px;font-size:0.7rem;" onclick="window.opsXferAct(\'release\',' +
+            t.id +
+            ',\'' +
+            pid +
+            '\')">Release (out)</button> ';
+        }
+        if (write && t.status === 'released') {
+          acts +=
+            '<button type="button" class="btn go" style="padding:3px 8px;font-size:0.7rem;" onclick="window.opsXferAct(\'accept\',' +
+            t.id +
+            ',\'' +
+            pid +
+            '\')">Accept (in)</button> ';
+        }
+        if (write && (t.status === 'draft' || t.status === 'released')) {
+          acts +=
+            '<button type="button" class="btn ol" style="padding:3px 8px;font-size:0.7rem;" onclick="window.opsXferAct(\'cancel\',' +
+            t.id +
+            ',\'' +
+            pid +
+            '\')">Cancel</button>';
+        }
+        html +=
+          '<tr style="border-top:1px solid var(--border);vertical-align:top;">' +
+          '<td style="padding:6px;">' +
+          t.id +
+          '</td><td style="padding:6px;">' +
+          esc(t.student_name) +
+          '</td><td style="padding:6px;font-family:monospace;font-size:0.7rem;">' +
+          esc(t.old_reg_no) +
+          ' → ' +
+          esc(t.new_reg_no) +
+          '</td><td style="padding:6px;font-size:0.72rem;">' +
+          esc(t.from_branch) +
+          ' → ' +
+          esc(t.to_branch) +
+          '</td><td style="padding:6px;"><span class="badge ' +
+          (t.status === 'accepted' ? 'active' : 'pending') +
+          '">' +
+          esc(t.status) +
+          '</span></td><td style="padding:6px;font-size:0.68rem;opacity:.85;max-width:220px;">' +
+          esc(audit) +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          acts +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      if (list) list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.opsXferCreate = async function (pid) {
+    var oldR = ((document.getElementById(pid + '_old') || {}).value || '').trim().toUpperCase();
+    var newR = ((document.getElementById(pid + '_new') || {}).value || '').trim().toUpperCase();
+    var to = ((document.getElementById(pid + '_to') || {}).value || '').trim();
+    var notes = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
+    if (!oldR || !newR || !to) {
+      alert('Fill old reg, new reg, and destination branch');
+      return;
+    }
+    try {
+      await api('/api/ops/branch-transfer', {
+        method: 'POST',
+        body: { action: 'create', old_reg_no: oldR, new_reg_no: newR, to_branch: to, notes: notes },
+      });
+      alert('Draft created. Outgoing HOD should Release, then incoming HOD Accept.');
+      window.opsXferLoad(pid);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.opsXferAct = async function (action, id, pid) {
+    if (!confirm(action.toUpperCase() + ' transfer #' + id + '?')) return;
+    try {
+      await api('/api/ops/branch-transfer', {
+        method: 'POST',
+        body: { action: action, id: id },
+      });
+      window.opsXferLoad(pid);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  function hookShowSec() {
+    if (typeof window.showSec !== 'function') {
+      setTimeout(hookShowSec, 200);
+      return;
+    }
+    if (window.showSec._opsHooked) return;
+    var orig = window.showSec;
+    window.showSec = function (secId, linkEl) {
+      var r = orig.apply(this, arguments);
+      try {
+        if (secId && String(secId).indexOf('Ops') >= 0) {
+          window.opsEnsurePanel(secId);
+        }
+      } catch (e) {
+        console.warn('[ops]', e);
+      }
+      return r;
+    };
+    window.showSec._opsHooked = true;
+  }
+
+  function boot() {
+    if (!roleOk()) return;
+    ensureOpsMenus();
+    hookShowSec();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(boot, 400);
+    });
+  } else {
+    setTimeout(boot, 400);
+  }
+  // Re-inject after login paints dashboards
+  setInterval(function () {
+    if (roleOk()) ensureOpsMenus();
+  }, 4000);
+
+  console.log('[legacy-ops] live academic dashboard + category + branch transfer');
+})();

@@ -4,7 +4,7 @@
  */
 
 export type StudyYear = 1 | 2 | 3
-export type AcademicStatus = "active" | "detained" | "year_back" | "passed_out"
+export type AcademicStatus = "active" | "detained" | "year_back" | "passed_out" | "not_eligible"
 export type EntryType = "regular" | "lateral"
 
 export type AcademicSnapshot = {
@@ -158,6 +158,7 @@ export function parseAcademicStatus(input: string | null | undefined): AcademicS
     .trim()
   if (s === "detained" || s === "detain") return "detained"
   if (s === "year_back" || s === "yearback" || s === "year back") return "year_back"
+  if (s === "not_eligible" || s === "not eligible" || s === "ineligible") return "not_eligible"
   if (s === "passed_out" || s === "pass_out" || s === "alumni" || s === "passed out") return "passed_out"
   return "active"
 }
@@ -301,8 +302,12 @@ export function computeProgression(
 ): ProgressResult {
   const active = normalizeAcademicYear(activeAcademicYear) || activeAcademicYear
   const admission = normalizeAcademicYear(input.admission_academic_year)
-  const status = input.academic_status || "active"
-  const locked = !!input.progress_locked || status === "detained" || status === "year_back"
+  const status: AcademicStatus = input.academic_status || "active"
+  const locked =
+    !!input.progress_locked ||
+    status === "detained" ||
+    status === "year_back" ||
+    status === "not_eligible"
   const entryYear: StudyYear = input.entry_study_year === 2 || input.entry_study_year === 3
     ? input.entry_study_year
     : 1
@@ -328,15 +333,23 @@ export function computeProgression(
     }
   }
 
-  // Detention / year-back: freeze
+  // Detention / year-back / not eligible: freeze
   if (locked) {
     const frozen = current ?? entryYear
+    const frozenStatus: AcademicStatus =
+      status === "year_back"
+        ? "year_back"
+        : status === "not_eligible"
+          ? "not_eligible"
+          : status === "detained"
+            ? "detained"
+            : "detained"
     return {
       current_study_year: frozen,
-      academic_status: status === "year_back" ? "year_back" : status === "detained" ? "detained" : "detained",
+      academic_status: frozenStatus,
       progress_locked: true,
       pass_out_academic_year: input.pass_out_academic_year || null,
-      year_label: studyYearLabel(frozen, status),
+      year_label: studyYearLabel(frozen, frozenStatus),
       changed: false,
       reason: "progress_locked",
     }
@@ -401,7 +414,7 @@ export function computeProgression(
           return `${last}-${String((last + 1) % 100).padStart(2, "0")}`
         })(),
       year_label: "Alumni",
-      changed: status !== "passed_out",
+      changed: true,
       reason: "auto_alumni",
     }
   }

@@ -471,7 +471,7 @@ export async function applyProgressionBulk(actorUserId: number | null) {
     )
     UPDATE students s SET
       current_study_year = CASE
-        WHEN c.locked OR c.st IN ('detained','year_back') THEN COALESCE(s.current_study_year, LEAST(3, GREATEST(1, c.entry_y)))
+        WHEN c.locked OR c.st IN ('detained','year_back','not_eligible') THEN COALESCE(s.current_study_year, LEAST(3, GREATEST(1, c.entry_y)))
         WHEN c.st = 'passed_out' THEN COALESCE(s.current_study_year, 3)
         WHEN c.computed IS NULL THEN COALESCE(s.current_study_year, 1)
         WHEN c.computed >= 4 THEN 3
@@ -479,13 +479,13 @@ export async function applyProgressionBulk(actorUserId: number | null) {
         ELSE LEAST(3, GREATEST(1, c.computed))
       END,
       academic_status = CASE
-        WHEN c.locked OR c.st IN ('detained','year_back') THEN c.st
+        WHEN c.locked OR c.st IN ('detained','year_back','not_eligible') THEN c.st
         WHEN c.st = 'passed_out' THEN 'passed_out'
         WHEN c.computed IS NOT NULL AND c.computed >= 4 THEN 'passed_out'
         ELSE 'active'
       END,
       progress_locked = CASE
-        WHEN c.st IN ('detained','year_back') OR c.locked THEN TRUE
+        WHEN c.st IN ('detained','year_back','not_eligible') OR c.locked THEN TRUE
         ELSE FALSE
       END,
       pass_out_academic_year = CASE
@@ -499,7 +499,7 @@ export async function applyProgressionBulk(actorUserId: number | null) {
         ELSE NULL
       END,
       year = CASE
-        WHEN c.locked OR c.st IN ('detained','year_back') THEN
+        WHEN c.locked OR c.st IN ('detained','year_back','not_eligible') THEN
           CASE COALESCE(s.current_study_year, LEAST(3, GREATEST(1, c.entry_y)))
             WHEN 1 THEN '1st Year' WHEN 2 THEN '2nd Year' WHEN 3 THEN '3rd Year' ELSE COALESCE(s.year, '1st Year') END
         WHEN c.st = 'passed_out' OR (c.computed IS NOT NULL AND c.computed >= 4 AND NOT c.locked) THEN 'Alumni'

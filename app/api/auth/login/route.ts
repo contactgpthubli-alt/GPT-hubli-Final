@@ -21,9 +21,9 @@ export async function POST(req: Request) {
     }
 
     // Accept full email, email local-part (username), staff username (reg_no),
-    // student reg no, or display_name as the login identifier.
+    // student reg no (including branch-transfer aliases), or display_name.
     // Soft-deleted rows are excluded so they cannot authenticate.
-    const { rows } = await query(
+    let { rows } = await query(
       `SELECT id, email, password_hash, role, display_name, reg_no, branch, status,
               force_password_change, is_demo, deleted_at
          FROM users
@@ -45,6 +45,27 @@ export async function POST(req: Request) {
         LIMIT 1`,
       [identifier],
     )
+
+    // Dual login after branch transfer: old or new register number → same user
+    if (!rows[0]) {
+      try {
+        const { rows: aliasRows } = await query(
+          `SELECT u.id, u.email, u.password_hash, u.role, u.display_name, u.reg_no, u.branch, u.status,
+                  u.force_password_change, u.is_demo, u.deleted_at
+             FROM student_login_aliases a
+             JOIN users u ON u.id = a.user_id
+            WHERE a.active
+              AND upper(a.alias_reg_no) = upper($1)
+              AND u.deleted_at IS NULL
+              AND u.status IS DISTINCT FROM 'deleted'
+            LIMIT 1`,
+          [identifier],
+        )
+        if (aliasRows[0]) rows = aliasRows
+      } catch {
+        /* table may not exist yet on first boot */
+      }
+    }
 
     const user = rows[0]
     if (!user || !(await verifyPassword(password, user.password_hash))) {
