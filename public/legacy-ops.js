@@ -94,14 +94,26 @@
 
   function panelHtmlLive(pid) {
     return (
-      '<div class="info-box">📡 <strong>Live Academic Dashboard</strong> — Exam fees (only Exam-validated <em>Paid</em>), ' +
-      'profile completeness (all fields), and verified results for the <strong>running semester</strong>. ' +
-      'Exam · ACM · HOD (own branch) · Principal · Admin.</div>' +
+      '<div class="info-box">📡 <strong>Live Academic Dashboard</strong> — Default: <strong>regular 3-year</strong> students only. ' +
+      'Filter by year (I / II / III) and admission batch. Exam fees (Exam-validated <em>Paid</em>), profile completeness, ' +
+      'and verified results for the <strong>running semester</strong>. HOD = own branch.</div>' +
       '<div id="' + pid + '_meta" style="font-size:0.8rem;opacity:.85;margin:0 0 10px;"></div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="' + pid + '_cards"></div>' +
-      '<div class="card" style="margin-bottom:12px;">' +
-      '<div class="card-hd"><h3>Lists</h3><div class="card-acts">' +
-      '<select id="' + pid + '_tab" onchange="window.opsLiveLoad&&window.opsLiveLoad(\'' + pid + '\')" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);">' +
+      '<div class="card" style="padding:12px;margin-bottom:12px;">' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Entry</label><br>' +
+      '<select id="' + pid + '_entry" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);">' +
+      '<option value="regular" selected>Regular (3 year)</option>' +
+      '<option value="lateral">Lateral / ITI / PUC</option>' +
+      '<option value="all">All entry types</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Year (Roman)</label><br>' +
+      '<select id="' + pid + '_year" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);">' +
+      '<option value="">All years (I–III)</option>' +
+      '<option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Admission year (batch)</label><br>' +
+      '<select id="' + pid + '_batch" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);min-width:120px;">' +
+      '<option value="">All batches</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">List</label><br>' +
+      '<select id="' + pid + '_tab" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);">' +
       '<option value="all">All students</option>' +
       '<option value="fees_paid">Fees Paid</option>' +
       '<option value="fees_unpaid">Fees Not Paid</option>' +
@@ -109,10 +121,13 @@
       '<option value="profile_incomplete">Profile Incomplete</option>' +
       '<option value="results_filled">Results Filled (running sem)</option>' +
       '<option value="results_missing">Results Not Filled</option>' +
-      '</select> ' +
-      '<button type="button" class="btn ol" onclick="window.opsLiveLoad&&window.opsLiveLoad(\'' + pid + '\')">↻ Refresh</button> ' +
-      '<button type="button" class="btn go" onclick="window.opsExport&&window.opsExport()">⬇ Export Excel</button>' +
+      '</select></div>' +
+      '<button type="button" class="btn pr" onclick="window.opsLiveLoad&&window.opsLiveLoad(\'' + pid + '\')">↻ Apply / Refresh</button> ' +
+      '<button type="button" class="btn go" onclick="window.opsExport&&window.opsExport(\'' + pid + '\')">⬇ Export Excel</button>' +
       '</div></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="' + pid + '_cards"></div>' +
+      '<div class="card" style="margin-bottom:12px;">' +
+      '<div class="card-hd"><h3>Lists</h3></div>' +
       '<div id="' + pid + '_table" style="padding:12px;overflow:auto;"></div></div>'
     );
   }
@@ -213,16 +228,47 @@
     var cards = document.getElementById(pid + '_cards');
     var meta = document.getElementById(pid + '_meta');
     var tab = (document.getElementById(pid + '_tab') || {}).value || 'all';
+    var entry = (document.getElementById(pid + '_entry') || {}).value || 'regular';
+    var year = (document.getElementById(pid + '_year') || {}).value || '';
+    var batch = (document.getElementById(pid + '_batch') || {}).value || '';
     if (host) host.innerHTML = '<p style="opacity:.7;">Loading…</p>';
     try {
-      var data = await api('/api/ops/live?tab=' + encodeURIComponent(tab));
+      var qs =
+        'tab=' + encodeURIComponent(tab) +
+        '&entry=' + encodeURIComponent(entry) +
+        (year ? '&year=' + encodeURIComponent(year) : '') +
+        (batch ? '&admission_year=' + encodeURIComponent(batch) : '');
+      var data = await api('/api/ops/live?' + qs);
       var s = data.summary || {};
+      // Populate admission batch options
+      var batchEl = document.getElementById(pid + '_batch');
+      if (batchEl && data.meta && Array.isArray(data.meta.admission_years)) {
+        var prevB = batchEl.value || batch;
+        var opts = '<option value="">All batches</option>';
+        data.meta.admission_years.forEach(function (y) {
+          opts +=
+            '<option value="' +
+            esc(y) +
+            '"' +
+            (y === prevB ? ' selected' : '') +
+            '>' +
+            esc(y) +
+            '</option>';
+        });
+        batchEl.innerHTML = opts;
+        if (prevB) batchEl.value = prevB;
+      }
       if (meta && data.meta) {
         meta.innerHTML =
           'AY <strong>' +
           esc(data.meta.active_academic_year || '') +
           '</strong> · ' +
           esc(data.meta.term_label || '') +
+          ' · Filter: <strong>' +
+          esc(entry) +
+          '</strong>' +
+          (year ? ' · Year <strong>' + esc(year) + '</strong>' : '') +
+          (batch ? ' · Batch <strong>' + esc(batch) + '</strong>' : '') +
           ' · ' +
           esc(data.meta.note || '');
       }
@@ -288,8 +334,18 @@
     }
   };
 
-  window.opsExport = function () {
-    window.open('/api/ops/export?_ts=' + Date.now(), '_blank');
+  window.opsExport = function (pid) {
+    var entry = (document.getElementById(pid + '_entry') || {}).value || 'regular';
+    var year = (document.getElementById(pid + '_year') || {}).value || '';
+    var batch = (document.getElementById(pid + '_batch') || {}).value || '';
+    var qs =
+      '_ts=' +
+      Date.now() +
+      '&entry=' +
+      encodeURIComponent(entry) +
+      (year ? '&year=' + encodeURIComponent(year) : '') +
+      (batch ? '&admission_year=' + encodeURIComponent(batch) : '');
+    window.open('/api/ops/export?' + qs, '_blank');
   };
 
   window.opsCatFetch = async function (pid) {

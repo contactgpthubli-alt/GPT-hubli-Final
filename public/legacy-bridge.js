@@ -873,12 +873,30 @@ function __initGptBridge() {
         else facMenu.appendChild(nav);
       }
       addFacNav('facBranchStudentsNav', 'facBranchStudents', 'students', '🎓', 'Students', 'approvals');
-      // Student Data nav may already exist as facStudentDataNav — ensure visible for HOD
-      if (document.getElementById('facStudentDataNav') && currentUser && currentUser.role === 'hod') {
-        document.getElementById('facStudentDataNav').style.display = '';
-      } else {
-        addFacNav('facStudentDataNavHod', 'facStudentData', 'studentdata', '📊', 'Student Data', 'students');
+      // One Student Data menu only — prefer existing nav, remove any duplicate
+      var existingSd = document.getElementById('facStudentDataNav') || document.getElementById('facStudentDataNavHod');
+      if (existingSd && currentUser && currentUser.role === 'hod') {
+        existingSd.style.display = '';
+        existingSd.setAttribute('data-fac', 'studentdata');
+        existingSd.setAttribute('onclick', "showSec('facStudentData',this)");
+        existingSd.innerHTML = '<span class="sli">📊</span>Student Data';
+      } else if (currentUser && currentUser.role === 'hod') {
+        addFacNav('facStudentDataNav', 'facStudentData', 'studentdata', '📊', 'Student Data', 'students');
       }
+      // Strip duplicates (same label / data-fac)
+      var seenSd = false;
+      facMenu.querySelectorAll('.sl').forEach(function (sl) {
+        var lab = (sl.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        var df = sl.getAttribute('data-fac') || '';
+        if (df === 'studentdata' || lab === 'student data' || lab.indexOf('student data') >= 0) {
+          if (seenSd) {
+            if (sl.parentNode) sl.parentNode.removeChild(sl);
+          } else {
+            seenSd = true;
+            sl.style.display = (currentUser && currentUser.role === 'hod') ? '' : sl.style.display;
+          }
+        }
+      });
       // Print / Export — same ACM / Exam tool (branch pre-locked for HOD)
       addFacNav('facHodPrintNav', 'facHodPrint', 'printexport', '🖨️', 'Print / Export', 'studentdata');
 
@@ -1982,10 +2000,9 @@ function __initGptBridge() {
       '<div class="fg" style="margin:0;"><label>Branch</label>' +
       '<select data-acm-print-branch="1" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;">' +
       '<option value="">— Select —</option>' + opts + '</select></div>' +
-      '<div class="fg" style="margin:0;"><label>Year</label>' +
+      '<div class="fg" style="margin:0;"><label>Year (Roman)</label>' +
       '<select data-acm-print-year="1" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;">' +
       '<option value="">— Select —</option>' +
-      '<option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option>' +
       '<option value="I">I</option><option value="II">II</option><option value="III">III</option>' +
       '</select></div>' +
       '<div class="fg" style="margin:0;"><label>Admission Year (optional)</label>' +
@@ -4185,15 +4202,26 @@ function __initGptBridge() {
     return map;
   }
 
-  function acmPrintYearMatch(studentYear, filterYear) {
+  /** Map any year label → 1 | 2 | 3 (supports Roman I/II/III and 1st/2nd/3rd). */
+  function acmPrintYearNum(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number' && v >= 1 && v <= 3) return v;
+    var s = String(v).toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!s) return null;
+    if (/^(i|1|1st|first)(\s*year)?$/.test(s) || s.indexOf('1st') === 0 || s === 'i') return 1;
+    if (/^(ii|2|2nd|second)(\s*year)?$/.test(s) || s.indexOf('2nd') === 0 || s === 'ii') return 2;
+    if (/^(iii|3|3rd|third)(\s*year)?$/.test(s) || s.indexOf('3rd') === 0 || s === 'iii') return 3;
+    var n = parseInt(s, 10);
+    if (n >= 1 && n <= 3) return n;
+    return null;
+  }
+  function acmPrintYearMatch(studentYear, filterYear, studyYearNum) {
     if (!filterYear) return true;
-    var y = String(studentYear || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    var f = String(filterYear || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    if (!y) return false;
-    if (y === f || y.indexOf(f) !== -1 || f.indexOf(y) !== -1) return true;
-    var yn = y.replace(/year/g, '').replace(/\s+/g, '');
-    var fn = f.replace(/year/g, '').replace(/\s+/g, '');
-    return !!(yn && fn && (yn.indexOf(fn) !== -1 || fn.indexOf(yn) !== -1));
+    var want = acmPrintYearNum(filterYear);
+    if (want == null) return false;
+    var have = acmPrintYearNum(studyYearNum != null ? studyYearNum : studentYear);
+    if (have == null) have = acmPrintYearNum(studentYear);
+    return have === want;
   }
 
   function acmPrintBranchMatch(studentDept, filterBranch) {
@@ -4370,7 +4398,8 @@ function __initGptBridge() {
 
     var list = all.filter(function (s) {
       if (!acmPrintBranchMatch(s.dept, branch)) return false;
-      if (!acmPrintYearMatch(s.year, year)) return false;
+      var sy = s.current_study_year != null ? s.current_study_year : (s.study_year != null ? s.study_year : null);
+      if (!acmPrintYearMatch(s.year, year, sy)) return false;
       if (admYear) {
         var ay = studentAdmYear(s);
         if (!ay || ay.indexOf(admYear) === -1) return false;

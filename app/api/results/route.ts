@@ -1,6 +1,8 @@
 import { query } from "@/lib/db"
 import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/auth"
 import { STAFF_ROLES, RESULT_WRITERS } from "@/lib/roles"
+import { hodBranchOf } from "@/lib/account-approvals"
+import { branchCodeFromDept } from "@/lib/curriculum-c20"
 
 async function fetchResults(where: string, params: unknown[]) {
   const { rows } = await query(
@@ -19,6 +21,18 @@ async function fetchResults(where: string, params: unknown[]) {
   return rows
 }
 
+function hodBranchLike(user: { role: string; branch?: string | null; reg_no?: string | null; display_name?: string | null }) {
+  if (user.role !== "hod") return null
+  const my = hodBranchOf(user)
+  if (!my) return null
+  const code = branchCodeFromDept(my)
+  if (code === "CSE") return "%computer%"
+  if (code === "CE") return "%civil%"
+  if (code === "ECE") return "%electron%"
+  if (code === "ME") return "%mech%"
+  return `%${String(my).toLowerCase()}%`
+}
+
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
@@ -26,6 +40,13 @@ export async function GET() {
     return Response.json({ results: await fetchResults("WHERE r.reg_no = $1", [user.reg_no]) })
   }
   if (!STAFF_ROLES.includes(user.role)) return unauthorized()
+  // HOD: only own department results
+  const like = hodBranchLike(user)
+  if (like) {
+    return Response.json({
+      results: await fetchResults("WHERE lower(COALESCE(r.branch,'')) LIKE $1", [like]),
+    })
+  }
   return Response.json({ results: await fetchResults("", []) })
 }
 

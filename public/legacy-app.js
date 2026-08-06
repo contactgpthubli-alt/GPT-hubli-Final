@@ -47,17 +47,28 @@ function showSec(secId, linkEl) {
   // Check if inside db-content first
   const dbContent = el.closest('.db-content');
   if (dbContent) {
-    // Normal case: section is inside db-content
+    // Normal case: section is inside db-content — hide every top-level panel
     dbContent.querySelectorAll(':scope > div').forEach(d => { d.style.display = 'none'; });
-    // Also restore db-content visibility in case it was hidden
     dbContent.style.display = '';
   } else {
     // Officer section case: section is a sibling of db-content inside db-main
     const dbMain = el.closest('.db-main');
     if (!dbMain) return;
-    // Hide db-content div and all sibling officer section divs
     dbMain.querySelectorAll(':scope > div').forEach(d => { d.style.display = 'none'; });
   }
+  // Hard hide known section panels so nothing sticks under the active page (Branch Transfer / Print / etc.)
+  const stickyIds = [
+    'facResults', 'facHome', 'facBranchStudents', 'facStudentData', 'facHodPrint',
+    'facOpsLive', 'facOpsCategory', 'facOpsTransfer', 'facExamModule', 'facTimetable',
+    'facAttendance', 'facApprovals', 'facACM', 'facStuProfile', 'facUserApprovals',
+    'adOpsLive', 'adOpsCategory', 'adOpsTransfer',
+    'priOpsLive', 'priOpsCategory', 'priOpsTransfer', 'priStudentData', 'priStudentsDesk',
+  ];
+  stickyIds.forEach(id => {
+    if (id === secId) return;
+    const n = document.getElementById(id);
+    if (n) n.style.display = 'none';
+  });
   el.style.removeProperty('display');
   el.style.display = 'block';
   if (linkEl) {
@@ -82,7 +93,11 @@ function showSec(secId, linkEl) {
     adExam:'Exam Module',
     facExamModule:'Exam Module', facOffice:'Office Modules', facEST:'EST Module', facCash:'Cash / Fees Search',
     facSearch:'Student Search', facStaff:'Staff & Invigilation', facActivities:'Institute Activities',
-    facTimetable:'Timetable Upload', facResModule:'Result Management',
+    facTimetable:'Timetable Upload', facResModule:'Result Management', facResults:'Result Management',
+    facOpsLive:'Live Academic', facOpsCategory:'Student Category', facOpsTransfer:'Branch Transfer',
+    facHodPrint:'Print / Export',
+    adOpsLive:'Live Academic', adOpsCategory:'Student Category', adOpsTransfer:'Branch Transfer',
+    priOpsLive:'Live Academic', priOpsCategory:'Student Category', priOpsTransfer:'Branch Transfer',
     facPlacement:'Placement Cell', facNSS:'NSS — National Service Scheme', facYRC:'Youth Red Cross',
     facAlumni:'Alumni Cell', facSports:'Sports Section', facWelfare:'Student Welfare Office',
     facStudentAssoc:'Student Association', facStores:'Stores Section', facLibraryUpload:'E-Book Upload (Library)',
@@ -100,6 +115,10 @@ function showSec(secId, linkEl) {
   };
   const tEl = el.closest('.db')?.querySelector('.db-title');
   if (tEl && titles[secId]) tEl.textContent = titles[secId];
+  // Refresh HOD Results Mgmt when opened
+  if (secId === 'facResults' || secId === 'facResModule') {
+    try { if (typeof facFilterResults === 'function') setTimeout(facFilterResults, 30); } catch (e) { /* ignore */ }
+  }
 }
 
 // ===== EST TABS (old function kept for backward compat — new showESTTab added in new JS block below) =====
@@ -462,7 +481,7 @@ window.showACMTab = showACMTab;
 
 // ===== EXAM TAB SWITCHER =====
 function showExamTab(tabId, btn) {
-  ['exResults','exPDC','exAttShort','exFees','exKeylist','exNotEligible'].forEach(id => {
+  ['exResults','exPDC','exAttShort','exFees','exKeylist','exNotEligible','exAnalysis'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const el = document.getElementById(tabId); if (el) el.style.display = 'block';
@@ -470,6 +489,7 @@ function showExamTab(tabId, btn) {
     btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
     btn.classList.add('act');
   }
+  if (tabId === 'exAnalysis' && typeof window.resAnalysisLoad === 'function') window.resAnalysisLoad('exAnalysis');
 }
 
 // ===== TAB SWITCHER (Login / Create Account) =====
@@ -1526,22 +1546,75 @@ function saveResultEntry() {
 
 // ===== HOD Result Management =====
 function showFacResTab(tabId, btn) {
-  ['frView','frEdit'].forEach(id => { const el=document.getElementById(id); if(el)el.style.display='none'; });
+  ['frView','frEdit','frAnalysis'].forEach(id => { const el=document.getElementById(id); if(el)el.style.display='none'; });
   const el = document.getElementById(tabId); if(el) el.style.display='block';
   if (btn) { btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('act')); btn.classList.add('act'); }
   if (tabId === 'frView') facFilterResults();
+  if (tabId === 'frAnalysis' && typeof window.resAnalysisLoad === 'function') window.resAnalysisLoad('frAnalysis');
+}
+/** Normalize branch text for HOD filtering (Civil / CSE / ECE / ME). */
+function facResBranchKey(s) {
+  const t = String(s || '').toLowerCase();
+  if (/computer|cse|cs\b/.test(t)) return 'cse';
+  if (/civil|ce\b/.test(t)) return 'ce';
+  if (/electron|ece|ec\b/.test(t)) return 'ece';
+  if (/mech|me\b/.test(t)) return 'me';
+  return t.replace(/[^a-z0-9]/g, '');
+}
+function facResHodBranch() {
+  const u = window.currentUser || {};
+  // Prefer explicit branch, then display name / reg hints
+  let b = u.branch || u.dept || '';
+  if (!b && u.display_name) {
+    const m = String(u.display_name).match(/\b(CSE|CS|CE|ECE|EC|ME|Civil|Computer|Electronics|Mechanical)\b/i);
+    if (m) b = m[1];
+  }
+  if (!b && u.reg_no) {
+    const m = String(u.reg_no).toUpperCase().match(/171(CS|CE|EC|ME)/);
+    if (m) b = m[1];
+  }
+  return b;
 }
 function facFilterResults() {
   const sem = (document.getElementById('facResSemFilter')||{}).value||'';
   const session = (document.getElementById('facResSessionFilter')||{}).value||'';
   const q = ((document.getElementById('facResSearch')||{}).value||'').toLowerCase();
-  // HOD of Civil - filter by Civil branch for demo
-  const filtered = resultDB.filter(r =>
-    r.branch.toLowerCase().includes('civil') &&
-    (!sem || r.sem===parseInt(sem)) &&
-    (!session || r.session===session) &&
-    (!q || r.reg.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
-  );
+  const role = (window.currentUser && window.currentUser.role) || '';
+  const hodBranch = facResHodBranch();
+  const hodKey = facResBranchKey(hodBranch);
+  // HOD: only own branch. Other staff with Results Mgmt: all (or their branch if set).
+  const filtered = resultDB.filter(r => {
+    if (role === 'hod' && hodKey) {
+      if (facResBranchKey(r.branch) !== hodKey) return false;
+    } else if (role === 'hod' && !hodKey) {
+      // No branch on account — refuse to show every department
+      return false;
+    }
+    if (sem && r.sem !== parseInt(sem, 10)) return false;
+    if (session && String(r.session) !== String(session)) return false;
+    if (q && !(String(r.reg).toLowerCase().includes(q) || String(r.name).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  // Dynamic title + session options
+  const titleEl = document.querySelector('#facResults .card-hd h3');
+  if (titleEl) {
+    const label = hodBranch
+      ? (hodKey === 'cse' ? 'Computer Science and Engineering' :
+         hodKey === 'ce' ? 'Civil Engineering' :
+         hodKey === 'ece' ? 'Electronics and Communication Engineering' :
+         hodKey === 'me' ? 'Mechanical Engineering' : hodBranch)
+      : 'All Branches';
+    titleEl.textContent = label + ' — Results';
+  }
+  const sessSel = document.getElementById('facResSessionFilter');
+  if (sessSel && !sessSel.getAttribute('data-live-sessions')) {
+    const sessions = [...new Set(resultDB.map(r => r.session).filter(Boolean))].sort().reverse();
+    const cur = sessSel.value;
+    sessSel.innerHTML = '<option value="">All Sessions</option>' +
+      sessions.map(s => '<option value="' + String(s).replace(/"/g, '&quot;') + '">' + s + '</option>').join('');
+    if (cur) sessSel.value = cur;
+    sessSel.setAttribute('data-live-sessions', '1');
+  }
   const tbody = document.getElementById('facResultViewBody');
   if (!tbody) return;
   if (!filtered.length) {
@@ -1549,8 +1622,9 @@ function facFilterResults() {
     return;
   }
   tbody.innerHTML = filtered.map(r => {
-    const subRows = r.subjects.map(s =>
+    const subRows = (r.subjects || []).map(s =>
       `<div style="font-size:0.7rem;">${s.code}: Int:${s.internal} Ext:${s.external} <strong style="color:${getGradeColor(s.grade)}">${s.grade}</strong></div>`).join('');
+    const sessSafe = String(r.session || '').replace(/'/g, "\\'");
     return `<tr>
       <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">${r.reg}</td>
       <td><strong>${r.name}</strong></td>
@@ -1562,8 +1636,8 @@ function facFilterResults() {
       <td colspan="4"></td>
       <td colspan="9" style="font-size:0.72rem;">
         <strong>SGPA: ${r.sgpa}</strong> &nbsp; ${getResultBadge(r.result)} &nbsp;
-        <button class="btn pr" style="padding:3px 10px;font-size:0.7rem;" onclick="editResultAdmin('${r.reg}',${r.sem},'${r.session}')">✏️ Edit</button>
-        <button class="btn go" style="padding:3px 10px;font-size:0.7rem;" onclick="viewFullResultAdmin('${r.reg}',${r.sem},'${r.session}')">🖨️ Print</button>
+        <button class="btn pr" style="padding:3px 10px;font-size:0.7rem;" onclick="editResultAdmin('${r.reg}',${r.sem},'${sessSafe}')">✏️ Edit</button>
+        <button class="btn go" style="padding:3px 10px;font-size:0.7rem;" onclick="viewFullResultAdmin('${r.reg}',${r.sem},'${sessSafe}')">🖨️ Print</button>
       </td>
     </tr>`;
   }).join('');
