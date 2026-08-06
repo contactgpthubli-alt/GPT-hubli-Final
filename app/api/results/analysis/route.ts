@@ -247,19 +247,52 @@ export async function GET(req: Request) {
     }))
   }
 
-  function matchesBranchFilter(value: string, filter: string) {
-    if (!filter) return true
-    if (branchesMatch(value, filter)) return true
-    const v = value.toUpperCase()
-    const f = filter.toUpperCase()
-    if (v.includes(f) || f.includes(v)) return true
-    const vc = (branchCodeFromDept(value) || value).toUpperCase()
-    const fc = (branchCodeFromDept(filter) || filter).toUpperCase()
-    return vc === fc || vc.includes(fc) || fc.includes(vc)
+  /** Canonical branch code: CE | CSE | ECE | ME (never substring-match CE vs CSE). */
+  function canonBranchCode(value: string | null | undefined): string | null {
+    if (!value) return null
+    const raw = String(value).trim()
+    if (!raw) return null
+    // Explicit short codes first (exact)
+    const u = raw.toUpperCase().replace(/[^A-Z0-9]/g, "")
+    if (u === "CSE" || u === "CS") return "CSE"
+    if (u === "CE" || u === "CIVIL") return "CE"
+    if (u === "ECE" || u === "EC") return "ECE"
+    if (u === "ME" || u === "MECH") return "ME"
+    // From full dept names
+    const fromDept = branchCodeFromDept(raw)
+    if (fromDept) return fromDept
+    // From subject / result branch labels
+    const lower = raw.toLowerCase()
+    if (lower.includes("computer") || lower.includes("cse")) return "CSE"
+    if (lower.includes("civil")) return "CE"
+    if (lower.includes("electron") || lower.includes("ece")) return "ECE"
+    if (lower.includes("mech")) return "ME"
+    // Subject code prefixes: 20CS… 25CE…
+    const codeM = raw.toUpperCase().match(/^(?:20|25)?(CS|CE|EC|ME)/)
+    if (codeM) {
+      if (codeM[1] === "CS") return "CSE"
+      if (codeM[1] === "CE") return "CE"
+      if (codeM[1] === "EC") return "ECE"
+      if (codeM[1] === "ME") return "ME"
+    }
+    return null
   }
 
-  function branchOk(branchOrCode: string | null | undefined, dept?: string | null) {
-    const candidates = [String(branchOrCode || ""), String(dept || "")].filter(Boolean)
+  function matchesBranchFilter(value: string, filter: string) {
+    if (!filter) return true
+    // Official full-name equality (safe)
+    if (branchesMatch(value, filter)) return true
+    // Exact code equality only — NEVER "CSE".includes("CE")
+    const vc = canonBranchCode(value)
+    const fc = canonBranchCode(filter)
+    if (vc && fc) return vc === fc
+    return false
+  }
+
+  function branchOk(branchOrCode: string | null | undefined, dept?: string | null, subjectCode?: string | null) {
+    const candidates = [String(branchOrCode || ""), String(dept || ""), String(subjectCode || "")].filter(
+      Boolean,
+    )
     if (!candidates.length) {
       // unknown branch — only allow for non-HOD when no explicit branch filter
       if (hodBranch) return false
@@ -275,12 +308,47 @@ export async function GET(req: Request) {
     return true
   }
 
-  // Filter published by HOD / branch
-  const pubFiltered = published.filter((r) => branchOk(String(r.branch), null))
-  const attFiltered = attempts.filter((r) =>
-    branchOk(String(r.branch_code || ""), String(r.dept || "")),
+  function regMatchesHod(reg: string): boolean {
+    if (!hodBranch && !branchQ) return true
+    const want = canonBranchCode(hodBranch || branchQ)
+    if (!want) return true
+    const m = String(reg)
+      .toUpperCase()
+      .match(/(?:^|[^A-Z])(CS|CE|EC|ME)\d/)
+    if (!m) return true // non-standard reg — rely on branch field
+    const map: Record<string, string> = { CS: "CSE", CE: "CE", EC: "ECE", ME: "ME" }
+    return map[m[1]] === want
+  }
+
+  // Filter published by HOD / branch (strict code match — CE must not match CSE)
+  const pubFiltered = published.filter(
+    (r) => branchOk(String(r.branch), null) && regMatchesHod(String(r.reg_no)),
   )
-  const pubSubFiltered = pubSubjects.filter((r) => branchOk(r.branch, null))
+  const attFiltered = attempts.filter(
+    (r) =>
+      branchOk(String(r.branch_code || ""), String(r.dept || ""), String(r.subject_code || "")) &&
+      regMatchesHod(String(r.reg_no)),
+  )
+  // Subject rows: result branch + subject code prefix must match HOD (20CE ≠ CSE)
+  const pubSubFiltered = pubSubjects.filter(
+    (r) =>
+      branchOk(r.branch, null, r.code) &&
+      regMatchesHod(r.reg_no) &&
+      subjectAllowedForHodPreview(r.code, r.branch),
+  )
+
+  function subjectAllowedForHodPreview(code: string, resultBranch: string): boolean {
+    if (!hodBranch && !branchQ) return true
+    const want = canonBranchCode(hodBranch || branchQ)
+    if (!want) return true
+    const fromCode = canonBranchCode(code)
+    if (fromCode && fromCode !== want) return false
+    if (!fromCode) {
+      const fromBr = canonBranchCode(resultBranch)
+      if (fromBr && fromBr !== want) return false
+    }
+    return true
+  }
 
   // ---- Student-level aggregates (prefer published results) ----
   const bySem = new Map()
@@ -369,8 +437,19 @@ export async function GET(req: Request) {
     for (const a of attFiltered) {
       const code = String(a.subject_code || "").toUpperCase()
       if (!code) continue
+      // Final safety: subject code must match locked branch (CS≠CE)
+      if (hodBranch || branchQ) {
+        const want = canonBranchCode(hodBranch || branchQ)
+        const got = canonBranchCode(code) || canonBranchCode(String(a.branch_code || ""))
+        if (want && got && want !== got) continue
+        // Common / shared papers (20KA, 20SC, 20PM, 20EG…) allowed for any branch
+      }
       const passed = isPassResult(String(a.result), String(a.grade))
-      const br = String(a.branch_code || branchCodeFromDept(String(a.dept || "")) || "?")
+      const br =
+        canonBranchCode(String(a.branch_code || "")) ||
+        canonBranchCode(String(a.dept || "")) ||
+        canonBranchCode(code) ||
+        "?"
       const k = subjectKey(code, String(a.exam_session), Number(a.semester), br)
       bump(bySubject, k, `${code} — ${a.subject_name || code}`, passed, null, {
         code,
@@ -385,11 +464,28 @@ export async function GET(req: Request) {
     }
   }
 
+  function subjectAllowedForHod(code: string, resultBranch: string): boolean {
+    if (!hodBranch && !branchQ) return true
+    const want = canonBranchCode(hodBranch || branchQ)
+    if (!want) return true
+    const fromCode = canonBranchCode(code)
+    // Branch-specific papers must match (20CE… only for CE, 20CS… only for CSE)
+    if (fromCode && fromCode !== want) return false
+    // Shared papers (KA/SC/PM/EG/…) have no branch prefix — require result row branch match
+    if (!fromCode) {
+      const fromBr = canonBranchCode(resultBranch)
+      if (fromBr && fromBr !== want) return false
+    }
+    return true
+  }
+
   if (source === "published" || (source === "both" && bySubject.size === 0)) {
     for (const s of pubSubFiltered) {
       if (!s.code) continue
+      if (!subjectAllowedForHod(s.code, s.branch)) continue
       const passed = s.result === "pass"
-      const br = branchCodeFromDept(s.branch) || s.branch || "?"
+      const br =
+        canonBranchCode(s.branch) || canonBranchCode(s.code) || branchCodeFromDept(s.branch) || "?"
       const k = subjectKey(s.code, s.session, s.sem, br)
       bump(bySubject, k, `${s.code} — ${s.name || s.code}`, passed, null, {
         code: s.code,
@@ -405,7 +501,9 @@ export async function GET(req: Request) {
     // fill subjects that only exist in published
     for (const s of pubSubFiltered) {
       if (!s.code) continue
-      const br = branchCodeFromDept(s.branch) || s.branch || "?"
+      if (!subjectAllowedForHod(s.code, s.branch)) continue
+      const br =
+        canonBranchCode(s.branch) || canonBranchCode(s.code) || branchCodeFromDept(s.branch) || "?"
       const k = subjectKey(s.code, s.session, s.sem, br)
       if (bySubject.has(k)) continue
       const passed = s.result === "pass"
