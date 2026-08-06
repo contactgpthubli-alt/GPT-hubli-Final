@@ -1791,6 +1791,14 @@ function __initGptBridge() {
           typeof window.renderStudentDataBrowser === 'function') {
         window.renderStudentDataBrowser(secId);
       }
+      // Results Management — force open + live data (fixes blank page for HOD)
+      if (secId === 'facResults' || secId === 'facResModule') {
+        try {
+          if (typeof window.ensureFacResultsPanel === 'function') window.ensureFacResultsPanel();
+          if (typeof window.reloadFacResults === 'function') window.reloadFacResults();
+          else if (typeof window.facFilterResults === 'function') window.facFilterResults();
+        } catch (eRes) { console.warn('[bridge] facResults open', eRes); }
+      }
       // HOD Print / Export (same ACM/Exam tool)
       if (secId === 'facHodPrint') {
         try {
@@ -2597,15 +2605,24 @@ function __initGptBridge() {
         }
       }
       document.querySelectorAll('#dbFaculty tbody').forEach(function (tb) {
+        // Never wipe live result / student / ops tables
         if (tb.id && (
           tb.id.indexOf('bridge') === 0 ||
           tb.id.indexOf('facStu') === 0 ||
           tb.id.indexOf('facSd') === 0 ||
-          tb.id.indexOf('adStu') === 0
+          tb.id.indexOf('adStu') === 0 ||
+          tb.id === 'facResultViewBody' ||
+          tb.id === 'resultMasterBody' ||
+          tb.id === 'pdfLogBody' ||
+          tb.id.indexOf('Ops') >= 0
         )) return;
+        // Skip anything inside Results Management
+        if (tb.closest('#facResults') || tb.closest('#frView') || tb.closest('#frAnalysis')) return;
         var text = tb.textContent || '';
         var html = tb.innerHTML || '';
-        if (/Staff Member|Student\b|hrs ago|XXXX|Mr\.|Mrs\.|onclick="alert\(/i.test(text + html)) {
+        // Require stronger demo signals — bare "Student" matched live result tables
+        if (/Staff Member|hrs ago|XXXX|Mr\.|Mrs\.|onclick="alert\(/i.test(text + html) &&
+            !/171[A-Z]{2}\d{5}|SGPA|Sem\s*\d/i.test(text)) {
           var cols = (tb.closest('table') && tb.closest('table').querySelectorAll('thead th').length) || 5;
           tb.innerHTML = '<tr><td colspan="' + cols + '" style="text-align:center;padding:18px;opacity:.75;">No records yet.</td></tr>';
         }
@@ -2677,12 +2694,41 @@ function __initGptBridge() {
       if (hodNav) hodNav.style.display = user.role === 'hod' ? '' : 'none';
       if (user.role === 'hod') {
         document.querySelectorAll(
-          '#dbFaculty [data-fac="accountapprovals"], #dbFaculty [data-fac="students"], #dbFaculty [data-fac="studentdata"], #dbFaculty [data-fac="approvals"]'
+          '#dbFaculty [data-fac="accountapprovals"], #dbFaculty [data-fac="students"], #dbFaculty [data-fac="studentdata"], #dbFaculty [data-fac="approvals"], #dbFaculty [data-fac="results"], #dbFaculty [data-fac="attendance"], #dbFaculty [data-fac="timetable"], #dbFaculty [data-fac="home"]'
         ).forEach(function (el) {
           el.style.display = '';
         });
         hideHodTeachingStaffProfile();
         try { ensureStaffDeskProfile(user); } catch (e) { /* ignore */ }
+        // Prefetch results so Results Mgmt is not empty on first open
+        try {
+          if (typeof window.reloadFacResults === 'function') {
+            setTimeout(function () { /* warm cache only if panel exists */ }, 0);
+          }
+          fetch('/api/results?_ts=' + Date.now(), {
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+          })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (!data || !Array.isArray(data.results) || typeof resultDB === 'undefined') return;
+              resultDB.length = 0;
+              data.results.forEach(function (row) {
+                resultDB.push({
+                  reg: row.reg,
+                  name: row.name,
+                  branch: row.branch,
+                  sem: Number(row.sem),
+                  session: row.session,
+                  subjects: row.subjects || [],
+                  sgpa: row.sgpa != null ? Number(row.sgpa) : null,
+                  result: row.result,
+                });
+              });
+            })
+            .catch(function () { /* ignore */ });
+        } catch (ePref) { /* ignore */ }
       }
       try { renderAccountApprovals(); } catch (e) { console.warn('[bridge] account approvals', e); }
       try { upgradeStudentDbFilters(); } catch (e) { /* ignore */ }

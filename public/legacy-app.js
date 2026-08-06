@@ -173,9 +173,13 @@ function showSec(secId, linkEl) {
   };
   const tEl = el.closest('.db')?.querySelector('.db-title');
   if (tEl && titles[secId]) tEl.textContent = titles[secId];
-  // Refresh HOD Results Mgmt when opened
+  // Refresh HOD Results Mgmt when opened — force panel + live reload
   if (secId === 'facResults' || secId === 'facResModule') {
-    try { if (typeof facFilterResults === 'function') setTimeout(facFilterResults, 30); } catch (e) { /* ignore */ }
+    try {
+      if (typeof ensureFacResultsPanel === 'function') ensureFacResultsPanel();
+      if (typeof reloadFacResults === 'function') setTimeout(function () { reloadFacResults(); }, 40);
+      else if (typeof facFilterResults === 'function') setTimeout(facFilterResults, 40);
+    } catch (e) { console.warn('[results] open', e); }
   }
 }
 
@@ -1612,11 +1616,19 @@ function showFacResTab(tabId, btn) {
 }
 /** Normalize branch text for HOD filtering (Civil / CSE / ECE / ME). */
 function facResBranchKey(s) {
-  const t = String(s || '').toLowerCase();
-  if (/computer|cse|cs\b/.test(t)) return 'cse';
-  if (/civil|ce\b/.test(t)) return 'ce';
-  if (/electron|ece|ec\b/.test(t)) return 'ece';
-  if (/mech|me\b/.test(t)) return 'me';
+  const raw = String(s || '');
+  const m = raw.toUpperCase().match(/(?:^|[^A-Z])(CS|CE|EC|ME)(?:\d|$|[^A-Z])/);
+  if (m) {
+    if (m[1] === 'CS') return 'cse';
+    if (m[1] === 'CE') return 'ce';
+    if (m[1] === 'EC') return 'ece';
+    if (m[1] === 'ME') return 'me';
+  }
+  const t = raw.toLowerCase();
+  if (/computer|cse|\bcs\b/.test(t)) return 'cse';
+  if (/civil|\bce\b/.test(t)) return 'ce';
+  if (/electron|ece|\bec\b/.test(t)) return 'ece';
+  if (/mech|\bme\b/.test(t)) return 'me';
   return t.replace(/[^a-z0-9]/g, '');
 }
 function facResHodBranch() {
@@ -1633,69 +1645,185 @@ function facResHodBranch() {
   }
   return b;
 }
+function facResBranchLabel(hodKey, hodBranch) {
+  if (hodKey === 'cse') return 'Computer Science and Engineering';
+  if (hodKey === 'ce') return 'Civil Engineering';
+  if (hodKey === 'ece') return 'Electronics and Communication Engineering';
+  if (hodKey === 'me') return 'Mechanical Engineering';
+  return hodBranch || 'All Branches';
+}
+
+/** Ensure Results Management panel exists + is visible (repairs blank page). */
+function ensureFacResultsPanel() {
+  var content = document.querySelector('#dbFaculty .db-content');
+  if (!content) return null;
+  var panel = document.getElementById('facResults');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'facResults';
+    panel.style.display = 'none';
+    content.appendChild(panel);
+  }
+  // Rebuild if structure was wiped / missing filters
+  if (!document.getElementById('facResultViewBody') || !document.getElementById('facResSemFilter')) {
+    panel.innerHTML =
+      '<div class="warn-box">📊 <strong>Results Management</strong> — View official published results for your department (live from database).</div>' +
+      '<div class="tabs" style="margin-bottom:16px;">' +
+      '<button type="button" class="tab act" onclick="showFacResTab(\'frView\',this)">👁️ View Results</button>' +
+      '<button type="button" class="tab" onclick="showFacResTab(\'frEdit\',this)">✏️ Add / Edit Result</button>' +
+      '<button type="button" class="tab" onclick="showFacResTab(\'frAnalysis\',this);window.resAnalysisLoad&&window.resAnalysisLoad(\'frAnalysis\')">📈 Result Analysis</button>' +
+      '</div>' +
+      '<div id="frView">' +
+      '<div class="card" style="padding:18px;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">' +
+      '<div class="fg" style="margin:0;flex:1;min-width:140px;"><label>Semester</label>' +
+      '<select id="facResSemFilter" onchange="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;">' +
+      '<option value="">All Semesters</option>' +
+      '<option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option>' +
+      '<option value="4">Sem 4</option><option value="5">Sem 5</option><option value="6">Sem 6</option></select></div>' +
+      '<div class="fg" style="margin:0;flex:1;min-width:140px;"><label>Session</label>' +
+      '<select id="facResSessionFilter" onchange="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;">' +
+      '<option value="">All Sessions</option></select></div>' +
+      '<div class="fg" style="margin:0;flex:2;min-width:160px;"><label>Search by Reg. No. / Name</label>' +
+      '<input type="text" id="facResSearch" placeholder="Search…" oninput="facFilterResults()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:7px;" /></div>' +
+      '<button type="button" class="btn ol" onclick="window.reloadFacResults&&window.reloadFacResults()">↻ Refresh</button>' +
+      '</div></div>' +
+      '<div class="card"><div class="card-hd"><h3 id="facResTitle">Results</h3></div>' +
+      '<div style="overflow-x:auto;"><table id="facResultViewTable"><thead><tr>' +
+      '<th>Reg. No.</th><th>Student Name</th><th>Sem.</th><th>Session</th><th>Subjects</th>' +
+      '<th>SGPA</th><th>Result</th><th>Actions</th></tr></thead>' +
+      '<tbody id="facResultViewBody"><tr><td colspan="8" style="text-align:center;padding:20px;opacity:.7;">Loading…</td></tr></tbody>' +
+      '</table></div></div></div>' +
+      '<div id="frEdit" style="display:none;"><div class="card" style="padding:22px;">' +
+      '<div class="info-box">Use View Results for published ledgers. Manual edit is for corrections after load.</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">' +
+      '<div class="fg" style="margin:0;"><label>Register Number</label><input type="text" id="editResReg" /></div>' +
+      '<div class="fg" style="margin:0;"><label>Semester</label><select id="editResSem"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></div>' +
+      '<div class="fg" style="margin:0;"><label>Session</label><input type="text" id="editResSession" placeholder="Nov/Dec-2025" /></div>' +
+      '<button type="button" class="btn pr" onclick="loadEditResult()">Load →</button></div>' +
+      '<div id="editResFields" style="display:none;margin-top:14px;">' +
+      '<div class="form-row"><div class="fg"><label>Name</label><input id="erName" readonly /></div>' +
+      '<div class="fg"><label>Branch</label><input id="erBranch" readonly /></div></div>' +
+      '<div id="erSubjectRows"></div>' +
+      '<div class="form-row"><div class="fg"><label>SGPA</label><input type="number" id="erSGPA" step="0.01" /></div>' +
+      '<div class="fg"><label>Result</label><select id="erResult"><option>Pass</option><option>Fail</option></select></div></div>' +
+      '<button type="button" class="btn gr" onclick="saveHODResult()">💾 Save Result</button></div></div></div>' +
+      '<div id="frAnalysis" style="display:none;"></div>';
+  }
+  // Always force panel visible when opening Results
+  ;['facHome', 'facBranchStudents', 'facStudentData', 'facHodPrint', 'facOpsLive', 'facOpsCategory', 'facOpsTransfer',
+    'facAttendance', 'facTimetable', 'facApprovals', 'facUserApprovals', 'facExamResultsHod'].forEach(function (id) {
+    var n = document.getElementById(id);
+    if (n) n.style.display = 'none';
+  });
+  panel.style.removeProperty('display');
+  panel.style.display = 'block';
+  var frView = document.getElementById('frView');
+  if (frView) frView.style.display = 'block';
+  var frEdit = document.getElementById('frEdit');
+  if (frEdit) frEdit.style.display = 'none';
+  var frAn = document.getElementById('frAnalysis');
+  if (frAn) frAn.style.display = 'none';
+  return panel;
+}
+window.ensureFacResultsPanel = ensureFacResultsPanel;
+
+async function reloadFacResults() {
+  ensureFacResultsPanel();
+  var tbody = document.getElementById('facResultViewBody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;opacity:.7;">Loading live results…</td></tr>';
+  try {
+    var r = await fetch('/api/results?_ts=' + Date.now(), {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+    });
+    var data = await r.json().catch(function () { return null; });
+    if (r.ok && data && Array.isArray(data.results) && typeof resultDB !== 'undefined') {
+      resultDB.length = 0;
+      data.results.forEach(function (row) {
+        resultDB.push({
+          reg: row.reg,
+          name: row.name,
+          branch: row.branch,
+          sem: Number(row.sem),
+          session: row.session,
+          subjects: row.subjects || [],
+          sgpa: row.sgpa != null ? Number(row.sgpa) : null,
+          result: row.result,
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('[results] reload failed', e);
+  }
+  facFilterResults();
+}
+window.reloadFacResults = reloadFacResults;
+
 function facFilterResults() {
+  ensureFacResultsPanel();
   const sem = (document.getElementById('facResSemFilter')||{}).value||'';
   const session = (document.getElementById('facResSessionFilter')||{}).value||'';
   const q = ((document.getElementById('facResSearch')||{}).value||'').toLowerCase();
   const role = (window.currentUser && window.currentUser.role) || '';
   const hodBranch = facResHodBranch();
   const hodKey = facResBranchKey(hodBranch);
+  const list = (typeof resultDB !== 'undefined' && Array.isArray(resultDB)) ? resultDB : [];
   // HOD: only own branch. Other staff with Results Mgmt: all (or their branch if set).
-  const filtered = resultDB.filter(r => {
+  const filtered = list.filter(r => {
     if (role === 'hod' && hodKey) {
       if (facResBranchKey(r.branch) !== hodKey) return false;
     } else if (role === 'hod' && !hodKey) {
-      // No branch on account — refuse to show every department
-      return false;
+      // try match via reg branch code
+      const rk = facResBranchKey(String(r.reg || ''));
+      if (rk && hodKey && rk !== hodKey) return false;
     }
     if (sem && r.sem !== parseInt(sem, 10)) return false;
     if (session && String(r.session) !== String(session)) return false;
     if (q && !(String(r.reg).toLowerCase().includes(q) || String(r.name).toLowerCase().includes(q))) return false;
     return true;
   });
-  // Dynamic title + session options
-  const titleEl = document.querySelector('#facResults .card-hd h3');
+  // Dynamic title + session options (always refresh session list)
+  const titleEl = document.getElementById('facResTitle') || document.querySelector('#facResults .card-hd h3');
   if (titleEl) {
-    const label = hodBranch
-      ? (hodKey === 'cse' ? 'Computer Science and Engineering' :
-         hodKey === 'ce' ? 'Civil Engineering' :
-         hodKey === 'ece' ? 'Electronics and Communication Engineering' :
-         hodKey === 'me' ? 'Mechanical Engineering' : hodBranch)
-      : 'All Branches';
-    titleEl.textContent = label + ' — Results';
+    titleEl.textContent = facResBranchLabel(hodKey, hodBranch) + ' — Results (' + filtered.length + ')';
   }
   const sessSel = document.getElementById('facResSessionFilter');
-  if (sessSel && !sessSel.getAttribute('data-live-sessions')) {
-    const sessions = [...new Set(resultDB.map(r => r.session).filter(Boolean))].sort().reverse();
+  if (sessSel) {
+    const sessions = [...new Set(list.map(r => r.session).filter(Boolean))].sort().reverse();
     const cur = sessSel.value;
     sessSel.innerHTML = '<option value="">All Sessions</option>' +
       sessions.map(s => '<option value="' + String(s).replace(/"/g, '&quot;') + '">' + s + '</option>').join('');
     if (cur) sessSel.value = cur;
-    sessSel.setAttribute('data-live-sessions', '1');
   }
   const tbody = document.getElementById('facResultViewBody');
   if (!tbody) return;
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--text-muted);">No results found for your department.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">' +
+      'No results found for your department.' +
+      (list.length ? ' (try All Sessions / All Semesters)' : ' Click ↻ Refresh after login.') +
+      '</td></tr>';
     return;
   }
+  const gradeFn = typeof getGradeColor === 'function' ? getGradeColor : function () { return 'inherit'; };
+  const badgeFn = typeof getResultBadge === 'function' ? getResultBadge : function (x) { return x || ''; };
   tbody.innerHTML = filtered.map(r => {
     const subRows = (r.subjects || []).map(s =>
-      `<div style="font-size:0.7rem;">${s.code}: Int:${s.internal} Ext:${s.external} <strong style="color:${getGradeColor(s.grade)}">${s.grade}</strong></div>`).join('');
-    const sessSafe = String(r.session || '').replace(/'/g, "\\'");
+      `<div style="font-size:0.7rem;">${s.code || ''}: ` +
+      `${s.grade != null ? '<strong style="color:' + gradeFn(s.grade) + '">' + s.grade + '</strong>' : ''}` +
+      `${s.name ? ' · ' + s.name : ''}</div>`).join('');
+    const sessSafe = String(r.session || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     return `<tr>
       <td style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;">${r.reg}</td>
-      <td><strong>${r.name}</strong></td>
+      <td><strong>${r.name || ''}</strong></td>
       <td style="text-align:center;">Sem ${r.sem}</td>
-      <td style="font-size:0.72rem;">${r.session}</td>
-      <td colspan="9">${subRows}</td>
-    </tr>
-    <tr style="background:var(--primary-light);">
-      <td colspan="4"></td>
-      <td colspan="9" style="font-size:0.72rem;">
-        <strong>SGPA: ${r.sgpa}</strong> &nbsp; ${getResultBadge(r.result)} &nbsp;
-        <button class="btn pr" style="padding:3px 10px;font-size:0.7rem;" onclick="editResultAdmin('${r.reg}',${r.sem},'${sessSafe}')">✏️ Edit</button>
-        <button class="btn go" style="padding:3px 10px;font-size:0.7rem;" onclick="viewFullResultAdmin('${r.reg}',${r.sem},'${sessSafe}')">🖨️ Print</button>
+      <td style="font-size:0.72rem;">${r.session || ''}</td>
+      <td>${subRows || '—'}</td>
+      <td style="text-align:center;font-weight:700;">${r.sgpa != null ? r.sgpa : '—'}</td>
+      <td>${badgeFn(r.result)}</td>
+      <td>
+        <button class="btn pr" style="padding:3px 10px;font-size:0.7rem;" onclick="viewFullResultAdmin('${r.reg}',${r.sem},'${sessSafe}')">🖨️</button>
       </td>
     </tr>`;
   }).join('');
