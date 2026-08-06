@@ -34,9 +34,9 @@ export default function Page() {
       {/* Exam results self-entry, HOD pathways, live fees + multi K2 (manual paid tick) */}
       <Script src="/legacy-exam.js?v=20260806c25" strategy="afterInteractive" />
       {/* Live academic dashboard, student category, branch transfer (Exam/ACM/HOD/Principal/Admin) */}
-      <Script src="/legacy-ops.js?v=20260806year" strategy="afterInteractive" />
+      <Script src="/legacy-ops.js?v=20260806year2" strategy="afterInteractive" />
       {/* Result analysis: sem / year / subject pass–fail % (live) */}
-      <Script src="/legacy-result-analysis.js?v=20260806filt" strategy="afterInteractive" />
+      <Script src="/legacy-result-analysis.js?v=20260806filt2" strategy="afterInteractive" />
       {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}
       <Script src="/gpth-print.js?v=20260805t" strategy="lazyOnload" />
       <Script src="/legacy-tc.js?v=20260805t" strategy="lazyOnload" />

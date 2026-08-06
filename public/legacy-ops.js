@@ -187,8 +187,9 @@
       '<select id="' + pid + '_bulk_to" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
       '<option value="1">I (1st Year)</option>' +
       '<option value="2">II (2nd Year)</option>' +
-      '<option value="3">III (3rd Year)</option></select></div>' +
+      '<option value="3" selected>III (3rd Year)</option></select></div>' +
       '<button type="button" class="btn go" onclick="window.opsYearBulk&&window.opsYearBulk(\'' + pid + '\')">⬆ Apply bulk year change</button>' +
+      '<button type="button" class="btn re" onclick="window.opsYearRemove&&window.opsYearRemove(\'' + pid + '\')">🗑 Remove from list</button>' +
       '</div>' +
       '<div id="' + pid + '_bulk_meta" style="font-size:0.8rem;opacity:.85;margin-bottom:8px;"></div>' +
       '<div style="overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:10px;">' +
@@ -250,9 +251,9 @@
       }
       window.opsLiveLoad(secId);
     } else if (secId.indexOf('OpsCategory') >= 0) {
-      // Force rebuild when markup version changes (year transfer UI)
-      if (el.getAttribute('data-ops') !== 'cat-v2') {
-        el.setAttribute('data-ops', 'cat-v2');
+      // Force rebuild when markup version changes (year transfer + remove)
+      if (el.getAttribute('data-ops') !== 'cat-v3') {
+        el.setAttribute('data-ops', 'cat-v3');
         el.innerHTML = panelHtmlCategory(secId);
       }
       // Auto-load roster for bulk table
@@ -544,16 +545,21 @@
     });
   };
 
-  window.opsYearBulk = async function (pid) {
-    var toEl = document.getElementById(pid + '_bulk_to');
-    var msg = document.getElementById(pid + '_bulk_msg');
-    var note = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
-    var toYear = toEl ? toEl.value : '';
+  function opsYearSelectedRegs(pid) {
     var regs = [];
     document.querySelectorAll('.' + pid + '_bulk_cb:checked').forEach(function (cb) {
       var r = cb.getAttribute('data-year-reg');
       if (r) regs.push(r);
     });
+    return regs;
+  }
+
+  window.opsYearBulk = async function (pid) {
+    var toEl = document.getElementById(pid + '_bulk_to');
+    var msg = document.getElementById(pid + '_bulk_msg');
+    var note = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
+    var toYear = toEl ? toEl.value : '';
+    var regs = opsYearSelectedRegs(pid);
     if (!regs.length) {
       alert('Select at least one student');
       return;
@@ -563,25 +569,106 @@
       return;
     }
     var roman = toYear === '1' ? 'I' : toYear === '2' ? 'II' : 'III';
-    if (!confirm('Move ' + regs.length + ' student(s) to Year ' + roman + '?\n\nThis updates the live database.')) {
+    var fromFilter = ((document.getElementById(pid + '_bulk_from') || {}).value || '');
+    var fromRoman = fromFilter === '1' ? 'I' : fromFilter === '2' ? 'II' : fromFilter === '3' ? 'III' : 'current';
+    if (fromFilter && fromFilter === toYear) {
+      alert(
+        'Target year is the same as the filter year (' +
+          roman +
+          ' → ' +
+          roman +
+          ').\n\nChoose a different “Move selected to” year (e.g. III) so students leave this list.',
+      );
+      return;
+    }
+    if (
+      !confirm(
+        'Move ' +
+          regs.length +
+          ' student(s) to Year ' +
+          roman +
+          '?\n\nThey will leave the Year ' +
+          fromRoman +
+          ' filter after success.\nLive database will update.',
+      )
+    ) {
       return;
     }
     if (msg) msg.textContent = 'Updating ' + regs.length + ' students…';
     try {
       var data = await api('/api/ops/year-transfer', {
         method: 'POST',
-        body: { reg_nos: regs, to_year: Number(toYear), note: note || 'Bulk year transfer' },
+        body: {
+          action: 'set_year',
+          reg_nos: regs,
+          to_year: Number(toYear),
+          note: note || 'Bulk year transfer',
+        },
+      });
+      var errTxt =
+        data.errors && data.errors.length
+          ? '<br><span style="color:#991b1b;font-size:0.78rem;">' +
+            esc(data.errors.join(' · ')) +
+            '</span>'
+          : '';
+      if (msg) {
+        msg.innerHTML =
+          (data.updated
+            ? '<span style="color:#166534;">Moved <strong>' +
+              esc(String(data.updated || 0)) +
+              '</strong> → Year ' +
+              esc(data.to_roman || roman) +
+              '.</span> '
+            : '') +
+          (data.failed
+            ? '<span style="color:#991b1b;">Failed: ' + esc(String(data.failed)) + '.</span>'
+            : '') +
+          errTxt;
+      }
+      // Reload roster — transferred students leave the filtered year list
+      await window.opsYearRoster(pid);
+    } catch (e) {
+      if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.opsYearRemove = async function (pid) {
+    var msg = document.getElementById(pid + '_bulk_msg');
+    var note = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
+    var regs = opsYearSelectedRegs(pid);
+    if (!regs.length) {
+      alert('Select at least one student to remove from the list');
+      return;
+    }
+    if (
+      !confirm(
+        'Remove ' +
+          regs.length +
+          ' student(s) from the active roster list?\n\nThey will no longer appear here (status → removed). Student login/account is not deleted.',
+      )
+    ) {
+      return;
+    }
+    if (msg) msg.textContent = 'Removing ' + regs.length + ' students…';
+    try {
+      var data = await api('/api/ops/year-transfer', {
+        method: 'POST',
+        body: {
+          action: 'remove',
+          reg_nos: regs,
+          note: note || 'Removed from roster list',
+        },
       });
       if (msg) {
         msg.innerHTML =
-          '<span style="color:#166534;">Updated <strong>' +
+          '<span style="color:#166534;">Removed <strong>' +
           esc(String(data.updated || 0)) +
-          '</strong> to Year ' +
-          esc(data.to_roman || roman) +
-          (data.failed ? ' · Failed: ' + data.failed : '') +
-          '.</span>';
+          '</strong> from list.</span>' +
+          (data.failed
+            ? ' <span style="color:#991b1b;">Failed: ' + esc(String(data.failed)) + '</span>'
+            : '');
       }
-      window.opsYearRoster(pid);
+      await window.opsYearRoster(pid);
     } catch (e) {
       if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
     }

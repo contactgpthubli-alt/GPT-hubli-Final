@@ -131,7 +131,8 @@
           '<option value="ECE">ECE</option><option value="ME">ME</option></select></div>') +
       '<div><label style="font-size:0.72rem;font-weight:700;">Scheme</label><br>' +
       '<select id="' + pid + '_scheme" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
-      '<option value="">All</option><option value="C-20">C-20</option><option value="C-25">C-25</option></select></div>' +
+      '<option value="" selected>All schemes</option>' +
+      '<option value="C-20">C-20 only</option><option value="C-25">C-25 only</option></select></div>' +
       '<div><label style="font-size:0.72rem;font-weight:700;">Data source</label><br>' +
       '<select id="' + pid + '_source" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
       '<option value="both">Published + Verified</option>' +
@@ -303,6 +304,21 @@
           kpiCard('Fail %', (s.fail_pct || 0) + '%', 'of filtered rows', '#b91c1c') +
           kpiCard('Avg SGPA', s.avg_sgpa != null ? s.avg_sgpa : '—', 'from published', '#7c3aed') +
           kpiCard('Subject attempts', s.subject_rows || 0, 'in subject table', '#0891b2');
+      }
+      // Helpful zero-state
+      if ((s.student_result_rows || 0) === 0 && meta) {
+        var tip = '';
+        if (wantSession === 'May 2026' && wantScheme === 'C-20') {
+          tip =
+            ' <span style="color:#b45309;">Tip: <strong>May 2026</strong> is C-25 Sem 2. Use scheme <strong>C-25</strong> or <strong>All schemes</strong>, or pick session <strong>Nov/Dec-2025</strong> / <strong>Apr/May-2026</strong> for C-20.</span>';
+        } else if (wantScheme === 'C-20' || wantScheme === 'C-25') {
+          tip =
+            ' <span style="color:#b45309;">Tip: try scheme <strong>All schemes</strong>, or change exam session.</span>';
+        } else {
+          tip =
+            ' <span style="color:#b45309;">Tip: set Exam session to <strong>All sessions</strong> to see everything for your branch.</span>';
+        }
+        meta.innerHTML += tip;
       }
 
       var el;

@@ -148,7 +148,8 @@ export async function GET(req: Request) {
   const resWhere: string[] = []
   if (session) {
     resParams.push(session)
-    resWhere.push(`r.session = $${resParams.length}`)
+    // Exact first; also accept common spacing/case variants
+    resWhere.push(`(r.session = $${resParams.length} OR trim(r.session) ILIKE trim($${resParams.length}))`)
   }
   if (sem != null) {
     resParams.push(sem)
@@ -175,7 +176,9 @@ export async function GET(req: Request) {
   const attWhere: string[] = [`a.status = 'verified'`]
   if (session) {
     attParams.push(session)
-    attWhere.push(`a.exam_session = $${attParams.length}`)
+    attWhere.push(
+      `(a.exam_session = $${attParams.length} OR trim(a.exam_session) ILIKE trim($${attParams.length}))`,
+    )
   }
   if (sem != null) {
     attParams.push(sem)
@@ -212,7 +215,9 @@ export async function GET(req: Request) {
     const psWhere: string[] = []
     if (session) {
       psParams.push(session)
-      psWhere.push(`r.session = $${psParams.length}`)
+      psWhere.push(
+        `(r.session = $${psParams.length} OR trim(r.session) ILIKE trim($${psParams.length}))`,
+      )
     }
     if (sem != null) {
       psParams.push(sem)
