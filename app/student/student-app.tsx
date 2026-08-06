@@ -3068,6 +3068,17 @@ export default function StudentApp() {
                   Sign out
                 </button>
               </div>
+              <p
+                style={{
+                  marginTop: 16,
+                  marginBottom: 0,
+                  textAlign: "center",
+                  fontSize: "0.72rem",
+                  color: "var(--stu-muted)",
+                }}
+              >
+                Developed by <strong>Akshay Uppar</strong>
+              </p>
             </div>
           </>
         )}

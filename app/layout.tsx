@@ -5,7 +5,9 @@ import './legacy.css'
 export const metadata: Metadata = {
   title: 'Government Polytechnic Hubli — Management System',
   description:
-    'Official management system of Government Polytechnic Hubli — student, faculty, admin and principal portals with results, attendance, fees, grievances and more.',
+    'Official management system of Government Polytechnic Hubli — student, faculty, admin and principal portals with results, attendance, fees, grievances and more. Developed by Akshay Uppar.',
+  authors: [{ name: 'Akshay Uppar' }],
+  creator: 'Akshay Uppar',
   generator: 'v0.app',
 }
 

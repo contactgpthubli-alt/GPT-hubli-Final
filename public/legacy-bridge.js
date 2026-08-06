@@ -4781,7 +4781,8 @@ function __initGptBridge() {
       '<div class="cms-foot">' +
       'Private portal — authorised users only.<br>' +
       '<a href="/student" style="display:inline-block;margin:6px 0 2px;font-weight:700;">📱 Open Student Mobile App</a><br>' +
-      '<a id="cmsRegisterLink" href="#">New student? Create account</a>' +
+      '<a id="cmsRegisterLink" href="#">New student? Create account</a><br>' +
+      '<span style="display:inline-block;margin-top:10px;font-size:0.72rem;opacity:.9;">Developed by <strong>Akshay Uppar</strong></span>' +
       '</div></div></div></div>';
 
     landing.insertBefore(gate, landing.firstChild);

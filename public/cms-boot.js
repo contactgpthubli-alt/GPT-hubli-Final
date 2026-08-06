@@ -40,7 +40,8 @@
         '<div class="cms-card-bd">' +
         '<div class="cms-msg" style="color:#64748b;font-weight:600;">Loading secure sign-in…</div>' +
         '<div class="cms-foot" style="margin-top:12px;">Private portal — authorised users only.<br>' +
-        '<a href="/student" style="display:inline-block;margin-top:6px;font-weight:700;">📱 Open Student Mobile App</a>' +
+        '<a href="/student" style="display:inline-block;margin-top:6px;font-weight:700;">📱 Open Student Mobile App</a><br>' +
+        '<span style="display:inline-block;margin-top:10px;font-size:0.72rem;opacity:.85;">Developed by <strong>Akshay Uppar</strong></span>' +
         "</div></div></div></div>";
 
       landing.insertBefore(gate, landing.firstChild);
