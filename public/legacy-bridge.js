@@ -778,9 +778,10 @@ function __initGptBridge() {
       '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
       '<thead><tr>' +
       '<th style="width:36px;"><input type="checkbox" id="' + pfx + 'SelectAll" class="stu-select-all-cb" title="Select all visible" /></th>' +
-      '<th>Reg No</th><th>Name / Email</th><th>Branch</th><th>Year</th><th>Account</th><th>Profile</th><th>Actions</th>' +
+      '<th>Reg No</th><th>Name / Email</th><th>Branch</th><th>Year</th><th>Account</th><th>Profile</th>' +
+      '<th title="Student raised profile edit request">Raised edit request</th><th>Actions</th>' +
       '</tr></thead>' +
-      '<tbody id="' + pfx + 'TableBody"><tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">Loading…</td></tr></tbody>' +
+      '<tbody id="' + pfx + 'TableBody"><tr><td colspan="9" style="text-align:center;padding:24px;opacity:.7;">Loading…</td></tr></tbody>' +
       '</table></div></div>' +
       '<div id="' + pfx + 'ViewModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;align-items:center;justify-content:center;padding:16px;">' +
       '<div style="background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
@@ -5704,9 +5705,15 @@ async function updateStuProfileLockUI() {
       lockBanner.id = 'stuProfileLockedBanner';
       lockBanner.className = 'info-box';
       lockBanner.style.cssText = 'margin-top:14px;margin-bottom:0;border-left:4px solid #b45309;';
-      lockBanner.innerHTML = '🔒 <strong>Profile is view-only</strong> — Admin has locked edit requests. Contact the office if you need a change.';
+      lockBanner.innerHTML =
+        '🔒 <strong>Profile is view-only</strong> — You can still <strong>raise an edit request</strong> below. ' +
+        'Approver will review and apply changes (no need to wait for unlock first).';
       container.parentNode.insertBefore(lockBanner, container.nextSibling);
     }
+  } else {
+    lockBanner.innerHTML =
+      '🔒 <strong>Profile is view-only</strong> — You can still <strong>raise an edit request</strong> below. ' +
+      'Approver will review and apply changes (no need to wait for unlock first).';
   }
   if (!pendingBanner) {
     var host = document.getElementById('stuDynamicProfileSections');
@@ -5715,37 +5722,28 @@ async function updateStuProfileLockUI() {
       pendingBanner.id = 'stuProfilePendingBanner';
       pendingBanner.className = 'info-box';
       pendingBanner.style.cssText = 'display:none;margin-top:14px;margin-bottom:0;border-left:4px solid #1a4fa0;';
-      pendingBanner.innerHTML = '⏳ <strong>Update request pending</strong> — your profile stays view-only until Admin/HOD approves or rejects it.';
+      pendingBanner.innerHTML = '⏳ <strong>Edit request raised</strong> — waiting for Admin / HOD / ACM review. Profile stays view-only until decided.';
       host.parentNode.insertBefore(pendingBanner, host.nextSibling);
     }
   }
 
   var pending = false;
-  if (!locked) {
-    try {
-      var pr = await profileApiGet('/api/profile-requests?mine=1');
-      pending = !!(pr && ((pr.mine_pending > 0) || (pr.pending && pr.pending.length > 0)));
-    } catch (e) { pending = false; }
-  }
+  try {
+    var pr = await profileApiGet('/api/profile-requests?mine=1');
+    pending = !!(pr && ((pr.mine_pending > 0) || (pr.pending && pr.pending.length > 0)));
+  } catch (e) { pending = false; }
   window._stuProfileRequestPending = pending;
 
-  if (lockBanner) lockBanner.style.display = locked ? '' : 'none';
-  if (pendingBanner) pendingBanner.style.display = (!locked && pending) ? '' : 'none';
-  if (banner && (locked || pending)) banner.style.display = 'none';
+  if (lockBanner) lockBanner.style.display = (locked && !pending && !window._stuProfileEditEnabled) ? '' : 'none';
+  if (pendingBanner) pendingBanner.style.display = pending ? '' : 'none';
+  if (banner && pending) banner.style.display = 'none';
 
   if (btn) {
-    if (locked) {
+    if (pending) {
       btn.disabled = true;
       btn.style.opacity = '0.55';
       btn.style.cursor = 'not-allowed';
-      btn.textContent = '🔒 Editing Locked by Admin';
-      btn.classList.remove('gr');
-      window._stuProfileEditEnabled = false;
-    } else if (pending) {
-      btn.disabled = true;
-      btn.style.opacity = '0.55';
-      btn.style.cursor = 'not-allowed';
-      btn.textContent = '⏳ Request Pending Approval';
+      btn.textContent = '⏳ Edit Request Pending';
       btn.classList.remove('gr');
       window._stuProfileEditEnabled = false;
     } else if (!window._stuProfileEditEnabled) {
@@ -5754,7 +5752,7 @@ async function updateStuProfileLockUI() {
       btn.style.cursor = '';
       btn.textContent = window._stuProfileFirstTime
         ? '📝 Fill My Profile (First Time)'
-        : '📝 Request Profile Update';
+        : '📝 Raise Edit Request';
       btn.classList.remove('gr');
     }
   }
@@ -5768,23 +5766,19 @@ async function updateStuProfileLockUI() {
       firstBanner.id = 'stuProfileFirstTimeBanner';
       firstBanner.className = 'info-box';
       firstBanner.style.cssText = 'display:none;margin-top:14px;margin-bottom:0;border-left:4px solid var(--green);';
-      firstBanner.innerHTML = '👋 <strong>Welcome!</strong> Please fill your complete My Profile for the first time, then submit for Admin approval. After approval, editing will be locked until Admin unlocks it.';
+      firstBanner.innerHTML = '👋 <strong>Welcome!</strong> Please fill your complete My Profile for the first time, then submit for approval. After approval the profile is view-only — use <strong>Raise Edit Request</strong> anytime for changes.';
       hostFt.parentNode.insertBefore(firstBanner, hostFt.nextSibling);
     }
   }
   if (firstBanner) {
-    firstBanner.style.display = (!locked && window._stuProfileFirstTime) ? '' : 'none';
+    firstBanner.style.display = (!pending && window._stuProfileFirstTime) ? '' : 'none';
   }
 }
 window.updateStuProfileLockUI = updateStuProfileLockUI;
 
 /** Unlock fields on Student → My Profile for a request draft (fee years follow Current Year rules). */
 function enableStuProfileEdit() {
-  if (window._stuProfileEditLocked) {
-    alert('🔒 Profile editing is locked by Admin. Contact the office to request changes.');
-    updateStuProfileLockUI();
-    return false;
-  }
+  // Students may always open a draft request (even if view-only / "locked")
   var container = document.getElementById('stuDynamicProfileSections');
   if (!container) { alert('Profile section not found.'); return false; }
 
@@ -5823,7 +5817,7 @@ function enableStuProfileEdit() {
 
   var btn = document.getElementById('stuProfileUpdateBtn');
   if (btn) {
-    btn.textContent = '📝 Submit Update Request';
+    btn.textContent = '📝 Submit Edit Request';
     btn.classList.add('gr');
   }
   var banner = document.getElementById('stuProfileEditBanner');
@@ -5835,44 +5829,34 @@ window.enableStuProfileEdit = enableStuProfileEdit;
 
 /**
  * Student My Profile:
- *  - Default: view-only (no field is editable without starting a request)
- *  - 1st click → if Admin has not locked editing, enable fields for a request draft
- *  - 2nd click → submit request (data does NOT save until Admin approves)
- *  - After submit → back to view-only until Admin unlocks / student requests again
+ *  - Default: view-only
+ *  - Raise Edit Request → draft fields (works even when Admin locked view-only)
+ *  - Submit → pending on Approvals (data saves only after approve)
+ *  - No need for Admin to unlock first
  */
 async function submitStuProfileUpdate() {
   var container = document.getElementById('stuDynamicProfileSections');
   if (!container) { alert('Profile section not found.'); return; }
 
-  if (window._stuProfileEditLocked) {
-    alert('🔒 Profile editing is locked by Admin. Contact the office to request changes.');
-    updateStuProfileLockUI();
-    return;
-  }
-
-  // First action: unlock fields only for drafting a request (not a permanent edit)
+  // First action: open draft for a raised edit request
   if (!window._stuProfileEditEnabled) {
     // Block starting a new draft if a request is already pending approval
     try {
       var pending = await profileApiGet('/api/profile-requests?mine=1');
       if (pending && ((pending.mine_pending > 0) || (pending.pending && pending.pending.length > 0))) {
-        alert('⏳ You already have a profile update request pending Admin/HOD approval.\n\nEditing stays locked until it is reviewed.');
+        alert('⏳ You already have an edit request pending Admin/HOD approval.\n\nWait until it is reviewed, then raise a new request if needed.');
+        updateStuProfileLockUI();
         return;
       }
     } catch (e) { /* allow attempt if check fails */ }
 
     enableStuProfileEdit();
     alert(
-      '✏️ Request draft opened.\n\n' +
-      '• Current Year is a dropdown: 1st Year / 2nd Year / 3rd Year / YEAR BACK / Completed\n' +
-      '• Fee sections unlock based on year:\n' +
-      '    1st Year → only 1st year fees\n' +
-      '    2nd Year → 1st + 2nd year fees\n' +
-      '    3rd Year / YEAR BACK → all 3 years\n' +
-      '    Completed → all 3 years view-only\n\n' +
-      'Each fee year has: Amount, Receipt No, Fees Paid Date.\n' +
-      'Changes save only after Admin/HOD approval.\n\n' +
-      'Edit, then click "Submit Update Request".'
+      '✏️ Edit request draft opened.\n\n' +
+      '• Change the fields you need\n' +
+      '• Fee sections unlock based on Current Year\n' +
+      '• Nothing saves until Admin / HOD / ACM approves\n\n' +
+      'Edit, then click "Submit Edit Request".'
     );
     return;
   }
@@ -6824,7 +6808,7 @@ function filterAdminStudentList() {
 
   // Group display order: by branch then name (already sorted from API; keep stable)
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;opacity:.7;">No students match your filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;opacity:.7;">No students match your filters.</td></tr>';
     if (meta) meta.textContent = 'Showing 0 of ' + list.length + ' student account(s)';
     updateStuBulkBarCount();
     return;
@@ -6835,9 +6819,12 @@ function filterAdminStudentList() {
     var reg = s.reg_no || '—';
     var regAttr = s.reg_no ? escHtml(String(s.reg_no)) : '';
     var nameAttr = escHtml(String(s.name || s.display_name || reg));
-    var pending = s.pending_profile_requests > 0
-      ? ' <span class="badge pending" title="Pending profile request">' + s.pending_profile_requests + ' req</span>'
-      : '';
+    var nReq = Number(s.pending_profile_requests) || 0;
+    var raisedCol = nReq > 0
+      ? '<span class="badge pending" style="font-weight:800;">⚡ ' + nReq + ' raised</span>' +
+        '<div style="margin-top:4px;"><button class="btn pr stu-act-btn" type="button" data-stu-action="goto-approvals" data-stu-reg="' +
+        regAttr + '" style="padding:3px 8px;font-size:0.72rem;">Open Approvals</button></div>'
+      : '<span style="font-size:0.75rem;opacity:.55;">—</span>';
     var lock = s.profile_edit_locked ? ' 🔒' : ' 🔓';
     var canToggle = !!(s.reg_no);
     var lockBtn = !canToggle
@@ -6859,7 +6846,8 @@ function filterAdminStudentList() {
     var cb = canToggle
       ? '<input type="checkbox" class="stu-select-cb" data-stu-reg="' + regAttr + '" title="Select for bulk lock/unlock" />'
       : '<input type="checkbox" disabled title="No reg number" />';
-    return '<tr data-stu-key="' + escHtml(key) + '" data-stu-reg="' + regAttr + '">' +
+    var rowHi = nReq > 0 ? ' style="background:#fffbeb;"' : '';
+    return '<tr data-stu-key="' + escHtml(key) + '" data-stu-reg="' + regAttr + '"' + rowHi + '>' +
       '<td style="width:36px;text-align:center;">' + cb + '</td>' +
       '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;">' + escHtml(reg) + '</td>' +
       '<td><strong>' + escHtml(s.name || '—') + '</strong>' +
@@ -6868,7 +6856,8 @@ function filterAdminStudentList() {
       '<td>' + escHtml(s.dept || '—') + '</td>' +
       '<td>' + escHtml(s.year || '—') + ' ' + statusBadge + batchHint + '</td>' +
       '<td>' + accountStatusBadge(s.account_status) + '</td>' +
-      '<td>' + profileStatusBadge(s.profile_status) + pending + lock + '</td>' +
+      '<td>' + profileStatusBadge(s.profile_status) + lock + '</td>' +
+      '<td>' + raisedCol + '</td>' +
       '<td><div style="display:flex;gap:5px;flex-wrap:wrap;">' +
       '<button class="btn ol stu-act-btn" type="button" data-stu-action="view" data-stu-key="' + escHtml(key) + '">View</button>' +
       lockBtn +
@@ -6931,12 +6920,12 @@ function viewAdminStudent(key) {
     html += '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
     if (s.profile_edit_locked) {
       html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' +
-        regAttrM + '" data-stu-label="' + nameAttrM + '">🔓 Unlock Profile Edit</button>';
-      html += '<span style="font-size:0.75rem;opacity:.75;">Student can request My Profile changes after unlock.</span>';
+        regAttrM + '" data-stu-label="' + nameAttrM + '">🔓 Open free edit</button>';
+      html += '<span style="font-size:0.75rem;opacity:.75;">View-only — student can still raise edit requests (no unlock required).</span>';
     } else {
       html += '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' +
-        regAttrM + '" data-stu-label="' + nameAttrM + '">🔒 Lock Profile Edit</button>';
-      html += '<span style="font-size:0.75rem;opacity:.75;">Student can currently submit profile edit requests.</span>';
+        regAttrM + '" data-stu-label="' + nameAttrM + '">🔒 Set view-only</button>';
+      html += '<span style="font-size:0.75rem;opacity:.75;">Student can raise edit requests anytime — see Raised edit request column.</span>';
     }
     html += '</div>';
   }
@@ -7165,8 +7154,8 @@ async function setStudentProfileEditLock(regNo, locked) {
 
   showStuToast(
     locked
-      ? '🔒 Profile edit locked for ' + regNo
-      : '🔓 Profile edit unlocked for ' + regNo + ' — student can request updates again.'
+      ? '🔒 Profile set view-only for ' + regNo + ' (student can still raise edit requests).'
+      : '🔓 Free edit open for ' + regNo + ' (optional; requests work either way).'
   );
 
   // Optimistic local update so button flips even before re-fetch finishes
@@ -7805,6 +7794,42 @@ setInterval(function () {
 
         if (action === "view") {
           if (typeof window.viewAdminStudent === "function") window.viewAdminStudent(key);
+          return;
+        }
+        if (action === "goto-approvals") {
+          // Jump to Approvals desk with this reg pre-filled in search
+          try {
+            var role = (window.currentUser && window.currentUser.role) || '';
+            var sec =
+              role === 'principal' ? 'priProfileApprovals' :
+              role === 'hod' ? 'facApprovals' :
+              'adApprovals';
+            var q = reg || '';
+            if (typeof writeApprovalUrlFilters === 'function') {
+              writeApprovalUrlFilters({ section: sec, ap_q: q, ap_type: 'student' });
+            } else {
+              try {
+                var u = new URL(window.location.href);
+                u.searchParams.set('section', sec);
+                u.searchParams.set('ap_q', q);
+                u.searchParams.set('ap_type', 'student');
+                history.replaceState(null, '', u.toString());
+              } catch (e0) { /* ignore */ }
+            }
+            if (typeof window.showSec === 'function') {
+              var nav =
+                document.getElementById(role === 'principal' ? 'priProfileApprovalsNav' : '') ||
+                document.querySelector('[onclick*="' + sec + '"]') ||
+                document.querySelector('[data-fac="approvals"]');
+              window.showSec(sec, nav || null);
+            }
+            if (typeof window.renderProfileRequestApprovals === 'function') {
+              setTimeout(function () { window.renderProfileRequestApprovals(); }, 80);
+            }
+          } catch (e1) {
+            console.warn('[stu-action] goto-approvals', e1);
+            alert('Open Approvals from the sidebar to review raised edit requests.');
+          }
           return;
         }
         if (action === "unlock") {
@@ -8713,31 +8738,69 @@ setInterval(function () {
   }
 
   function ensureAttYearSelect() {
-    var dateFg = document.getElementById('attDate');
-    if (!dateFg) return null;
     var existing = document.getElementById('attYear');
-    if (existing) return existing;
-    var row = dateFg.closest('.form-row');
+    if (existing) {
+      ensureAttFormFieldOrder();
+      return existing;
+    }
+    var branchEl = document.getElementById('attBranch');
+    var dateEl = document.getElementById('attDate');
+    var anchor = branchEl || dateEl;
+    if (!anchor) return null;
+    var row = anchor.closest('.form-row');
     if (!row) return null;
     var fg = document.createElement('div');
     fg.className = 'fg';
+    fg.id = 'attYearFg';
     fg.innerHTML =
       '<label>Year / Class</label>' +
       '<select id="attYear">' +
-      '<option value="">All years</option>' +
+      '<option value="">Select year</option>' +
       '<option value="I">I Year</option>' +
       '<option value="II">II Year</option>' +
       '<option value="III">III Year</option>' +
       '</select>';
-    // Insert after date field's parent .fg
-    var dateParent = dateFg.closest('.fg');
-    if (dateParent && dateParent.parentNode === row) {
-      if (dateParent.nextSibling) row.insertBefore(fg, dateParent.nextSibling);
+    // Prefer next to Branch (Year first, then Subject)
+    var branchFg = branchEl && branchEl.closest('.fg');
+    if (branchFg && branchFg.parentNode === row) {
+      if (branchFg.nextSibling) row.insertBefore(fg, branchFg.nextSibling);
       else row.appendChild(fg);
     } else {
-      row.appendChild(fg);
+      var dateParent = dateEl && dateEl.closest('.fg');
+      if (dateParent && dateParent.parentNode === row) {
+        if (dateParent.nextSibling) row.insertBefore(fg, dateParent.nextSibling);
+        else row.appendChild(fg);
+      } else {
+        row.appendChild(fg);
+      }
     }
+    ensureAttFormFieldOrder();
     return document.getElementById('attYear');
+  }
+
+  /** Layout: Branch | Year  ·  Date | Subject (type) — Year before Subject. */
+  function ensureAttFormFieldOrder() {
+    var branchEl = document.getElementById('attBranch');
+    var yearEl = document.getElementById('attYear');
+    var dateEl = document.getElementById('attDate');
+    var subjEl = document.getElementById('attSubject');
+    if (!branchEl || !yearEl || !dateEl || !subjEl) return;
+    var branchFg = branchEl.closest('.fg');
+    var yearFg = yearEl.closest('.fg') || document.getElementById('attYearFg');
+    var dateFg = dateEl.closest('.fg');
+    var subjFg = subjEl.closest('.fg');
+    if (!branchFg || !yearFg || !dateFg || !subjFg) return;
+    var row1 = branchFg.parentNode;
+    var row2 = dateFg.parentNode;
+    if (!row1 || !row2) return;
+    // Row 1: Branch, Year
+    if (yearFg.parentNode !== row1 || branchFg.nextElementSibling !== yearFg) {
+      row1.insertBefore(yearFg, branchFg.nextSibling);
+    }
+    // Row 2: Date, Subject
+    if (subjFg.parentNode !== row2 || dateFg.nextElementSibling !== subjFg) {
+      row2.insertBefore(subjFg, dateFg.nextSibling);
+    }
   }
 
   function ensureAttHistoryHost() {
@@ -8860,42 +8923,38 @@ setInterval(function () {
   }
 
   function ensureAttSubjectInput() {
-    var sel = document.getElementById('attSubject');
-    if (!sel) return null;
-    // Prefer select with C-20 subjects (still allow free type via datalist-backed input if needed)
-    if (sel.tagName === 'SELECT' && sel.getAttribute('data-c20') === '1') {
-      attEnsureSemHint(sel);
-      attBindSubjectReloaders();
-      return sel;
+    var el = document.getElementById('attSubject');
+    if (!el) return null;
+    // Free-type subject only (C-25 not loaded; staff type code/title themselves)
+    if (el.tagName === 'INPUT' && el.getAttribute('data-free') === '1') {
+      ensureAttFormFieldOrder();
+      return el;
     }
-    var fg = sel.parentNode;
-    var val = sel.value || '';
-    // Replace with searchable select-like: select + "Other" text
+    var fg = el.closest ? el.closest('.fg') : el.parentNode;
+    var prev =
+      el.tagName === 'SELECT'
+        ? el.value === '__other__'
+          ? (document.getElementById('attSubjectOther') && document.getElementById('attSubjectOther').value) || ''
+          : el.value || ''
+        : el.value || '';
     var wrap = document.createElement('div');
     wrap.id = 'attSubjectWrap';
     wrap.innerHTML =
-      '<select id="attSubject" data-c20="1" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;">' +
-      '<option value="">Loading C-20 subjects…</option></select>' +
-      '<div id="attSemHint" style="margin-top:6px;font-size:0.75rem;opacity:.8;line-height:1.35;"></div>' +
-      '<input id="attSubjectOther" type="text" placeholder="Or type subject name if not listed" ' +
-      'style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:1px solid var(--border);font-size:0.82rem;display:none;" />';
+      '<input id="attSubject" data-free="1" type="text" placeholder="Type subject (e.g. 20CE31P — Engineering Mechanics)" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;" />' +
+      '<div id="attSemHint" style="margin-top:6px;font-size:0.75rem;opacity:.8;line-height:1.35;">' +
+      'Type the subject name/code yourself for now (C-25 list not loaded; C-20 final year can also type). Select <strong>Year</strong> first for the student roster filter.' +
+      '</div>';
     if (fg) {
-      fg.innerHTML = '<label id="attSubjectLabel">Subject (C-20 · auto semester)</label>';
+      fg.innerHTML = '<label id="attSubjectLabel">Subject (type yourself)</label>';
       fg.appendChild(wrap);
-    } else if (sel.parentNode) {
-      sel.parentNode.replaceChild(wrap, sel);
+    } else if (el.parentNode) {
+      el.parentNode.replaceChild(wrap, el);
     }
+    var inp = document.getElementById('attSubject');
+    if (inp && prev && prev !== '__other__') inp.value = prev;
+    ensureAttFormFieldOrder();
     attBindSubjectReloaders();
-    setTimeout(function () {
-      window.loadAttCurriculumSubjects && window.loadAttCurriculumSubjects();
-    }, 50);
-    if (val) {
-      var other = document.getElementById('attSubjectOther');
-      if (other) {
-        other.style.display = '';
-        other.value = val;
-      }
-    }
     return document.getElementById('attSubject');
   }
 
@@ -8967,156 +9026,41 @@ setInterval(function () {
   }
 
   window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
-    var sel = document.getElementById('attSubject');
-    if (!sel) return;
-    var branch =
-      (document.getElementById('attBranch') && document.getElementById('attBranch').value) ||
-      (window.currentUser && window.currentUser.role === 'hod' ? attHodBranch(window.currentUser) : '') ||
-      '';
-    branch = attNormalizeBranch(branch);
-    var code = attBranchCode(branch);
+    // Subject is free-type for now — only update label/hint from year + date term.
+    ensureAttSubjectInput();
+    ensureAttFormFieldOrder();
     var year = (document.getElementById('attYear') && document.getElementById('attYear').value) || '';
     var dateVal =
       (document.getElementById('attDate') && document.getElementById('attDate').value) || '';
     var term = attCalendarTermInfo(dateVal || new Date());
     var studyY = attStudyYearNum(year);
     var scheme = attSchemeForStudyYear(studyY, dateVal);
-    var sems = attSemestersForYear(year, dateVal);
     var runningSem = studyY ? attSemesterFromYearAndParity(studyY, term.parity) : null;
-    var prev = sel.value || '';
     var lab = document.getElementById('attSubjectLabel');
-    if (lab) {
-      if (scheme === 'C-25') {
-        lab.textContent = 'Subject (C-25 · type manually — key list not loaded)';
-      } else if (runningSem != null && scheme === 'C-20') {
-        lab.textContent =
-          'Subject (C-20 · Sem ' + runningSem + ' · ' + term.short + ' term)';
-      } else if (!studyY) {
-        lab.textContent = 'Subject (select Year / Class first)';
-      } else {
-        lab.textContent = 'Subject';
-      }
-    }
+    if (lab) lab.textContent = 'Subject (type yourself)';
     var hint = document.getElementById('attSemHint');
     if (hint) {
-      if (scheme === 'C-25') {
-        hint.innerHTML =
-          'Year ' +
-          studyY +
-          ' is <strong>C-25</strong> (I &amp; II Year). Official C-25 subject codes are <strong>not in the system yet</strong> — ' +
-          'type the subject name below. Use <strong>Subject Key List</strong> in the HOD menu for C-20 inventory. ' +
-          'June odd / January even still applies for term.';
-      } else {
-        hint.innerHTML =
-          'Auto: <strong>AY ' +
-          attEsc(term.academic_year) +
-          '</strong> · ' +
-          attEsc(term.label) +
-          (studyY
-            ? ' · Year ' +
-              studyY +
-              ' → <strong>' +
-              attEsc(scheme || '?') +
-              '</strong> · <strong>Sem ' +
-              runningSem +
-              '</strong> only'
-            : ' · Select <strong>Year / Class</strong> (I &amp; II = C-25 type-only; III final = C-20 key list)') +
-          '. <span style="opacity:.85;">June odd / January even.</span>';
-      }
-    }
-    if (!code) {
-      sel.innerHTML =
-        '<option value="">Select branch first</option>' +
-        '<option value="__other__">Other / type below…</option>';
-      attBindOtherToggle(sel);
-      return;
-    }
-    if (!studyY || !scheme || !sems.length) {
-      sel.innerHTML =
-        '<option value="">Select Year / Class (I / II / III)</option>' +
-        '<option value="__other__">Other / type below…</option>';
-      attBindOtherToggle(sel);
-      return;
-    }
-
-    // C-25: no invented subjects — free type only
-    if (scheme === 'C-25') {
-      sel.innerHTML =
-        '<option value="__other__" selected>Type C-25 subject name below…</option>';
-      var otherC25 = document.getElementById('attSubjectOther');
-      if (otherC25) {
-        otherC25.style.display = '';
-        otherC25.placeholder = 'e.g. Course code — Course title (C-25)';
-        if (prev && prev !== '__other__') otherC25.value = prev;
-      }
-      attBindOtherToggle(sel);
-      return;
-    }
-
-    sel.innerHTML = '<option value="">Loading C-20 key list…</option>';
-    try {
-      var r = await fetch(
-        '/api/curriculum?scheme=C-20&branch=' +
-          encodeURIComponent(code) +
-          '&include_y1=1&_ts=' +
-          Date.now(),
-        { credentials: 'same-origin', cache: 'no-store' },
-      );
-      var data = await r.json().catch(function () { return null; });
-      var subjects = (data && data.subjects) || [];
-      subjects = subjects.filter(function (s) {
-        return sems.indexOf(Number(s.semester)) >= 0;
-      });
-      subjects.sort(function (a, b) {
-        return Number(a.semester) - Number(b.semester) || String(a.code).localeCompare(String(b.code));
-      });
-      var pickLabel =
-        'Select C-20 subject (Sem ' + (runningSem != null ? runningSem : sems.join('/')) + ')';
-      var html = '<option value="">' + attEsc(pickLabel) + '</option>';
-      var lastSem = null;
-      subjects.forEach(function (s) {
-        if (lastSem !== Number(s.semester)) {
-          lastSem = Number(s.semester);
-          html +=
-            '<option disabled value="">—— C-20 · Semester ' + lastSem + ' ——</option>';
-        }
-        var label = s.code + ' — ' + s.name;
-        html +=
-          '<option value="' +
-          attEsc(label) +
-          '"' +
-          (prev === label ? ' selected' : '') +
-          '>' +
-          attEsc(label) +
-          '</option>';
-      });
-      html += '<option value="__other__">Other / type below…</option>';
-      sel.innerHTML = html;
-      if (prev && prev !== '__other__' && !subjects.some(function (s) {
-        return s.code + ' — ' + s.name === prev;
-      })) {
-        sel.value = '__other__';
-        var other0 = document.getElementById('attSubjectOther');
-        if (other0) {
-          other0.style.display = '';
-          other0.value = prev;
-        }
-      }
-      attBindOtherToggle(sel);
-    } catch (e) {
-      sel.innerHTML =
-        '<option value="">Could not load C-20 subjects</option>' +
-        '<option value="__other__">Type subject below…</option>';
-      attBindOtherToggle(sel);
+      hint.innerHTML =
+        (studyY
+          ? 'Year ' +
+            studyY +
+            (scheme ? ' · <strong>' + attEsc(scheme) + '</strong>' : '') +
+            (runningSem != null ? ' · running Sem ' + runningSem : '') +
+            ' · '
+          : 'Select <strong>Year / Class</strong> first · ') +
+        'Type subject code &amp; name (e.g. <code>20CE31P — Engineering Mechanics</code>). ' +
+        'Official C-25 list not loaded yet. June odd / January even.';
     }
   };
 
   function attResolveSubjectValue() {
-    var sel = document.getElementById('attSubject');
-    var other = document.getElementById('attSubjectOther');
-    if (!sel) return '';
-    if (sel.value === '__other__') return other ? String(other.value || '').trim() : '';
-    return String(sel.value || '').trim();
+    var el = document.getElementById('attSubject');
+    if (!el) return '';
+    if (el.tagName === 'SELECT' && el.value === '__other__') {
+      var other = document.getElementById('attSubjectOther');
+      return other ? String(other.value || '').trim() : '';
+    }
+    return String(el.value || '').trim();
   }
 
   /** 9 AM–6 PM hourly period chips in 12-hour format (continuous multi-select). */

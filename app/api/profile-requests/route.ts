@@ -187,7 +187,8 @@ export async function POST(req: Request) {
 
   let profile: Record<string, unknown> = {}
 
-  // Block submissions when admin locked further edits after a prior approval.
+  // Students may always raise an edit request (even when profile is view-only / "locked").
+  // Approvers review raised requests; lock only blocks free-form permanent edit, not requests.
   if (b.targetType === "student") {
     const regNo = String(b.targetId)
     // Ensure a students row exists so a later approval can merge into it
@@ -203,21 +204,8 @@ export async function POST(req: Request) {
       [regNo],
     )
     profile = await loadStudentProfile(regNo)
-    if (profile.profile_edit_locked === true || profile.profile_edit_locked === "true") {
-      return badRequest("Profile editing is locked by Admin. Contact the office to request changes.")
-    }
-    // re-check lock from DB extra (may not be in flattened map after deletes)
-    const { rows } = await query("SELECT extra FROM students WHERE reg_no = $1", [regNo])
-    const extra = asRecord(rows[0]?.extra)
-    if (extra.profile_edit_locked === true || extra.profile_edit_locked === "true") {
-      return badRequest("Profile editing is locked by Admin. Contact the office to request changes.")
-    }
   } else {
     const { rows } = await query("SELECT name, extra FROM staff WHERE id = $1", [Number(b.targetId)])
-    const extra = asRecord(rows[0]?.extra)
-    if (extra.profile_edit_locked === true || extra.profile_edit_locked === "true") {
-      return badRequest("Profile editing is locked by Admin. Contact the office to request changes.")
-    }
     profile = staffProfileMap(rows[0] || {})
   }
 

@@ -1178,17 +1178,14 @@ export default function StudentApp() {
   }
 
   function startProfileEdit() {
-    if (profileLocked) {
-      setProfileErr("Profile editing is locked by Admin. Contact the office.")
-      return
-    }
+    // Students may always raise an edit request (even when view-only / "locked")
     if (portalMode === "parent") {
       setProfileErr("Parent view is read-only. Switch to Student to edit the profile.")
       flash("Parent view is read-only")
       return
     }
     if (profilePending) {
-      setProfileErr("You already have a profile update pending approval.")
+      setProfileErr("You already have an edit request pending approval.")
       return
     }
     setProfileErr("")
@@ -1224,10 +1221,6 @@ export default function StudentApp() {
   async function submitProfileUpdate() {
     if (!user?.reg_no) {
       setProfileErr("Register number missing on account.")
-      return
-    }
-    if (profileLocked) {
-      setProfileErr("Profile editing is locked by Admin.")
       return
     }
     setProfileBusy(true)
@@ -2427,12 +2420,12 @@ export default function StudentApp() {
                 type="button"
                 onClick={() => {
                   setTab("profile")
-                  if (!profilePending && !profileLocked) startProfileEdit()
+                  if (!profilePending) startProfileEdit()
                 }}
               >
                 <span className="ico">✏️</span>
-                <span className="t">Update profile</span>
-                <span className="d">{profilePending ? "Pending approval" : "Send for approval"}</span>
+                <span className="t">Raise edit request</span>
+                <span className="d">{profilePending ? "Pending approval" : "Edit & send for approval"}</span>
               </button>
               <button type="button" onClick={() => setTab("forms")}>
                 <span className="ico">📝</span>
@@ -2505,10 +2498,14 @@ export default function StudentApp() {
             {profileErr ? <div className="stu-msg stu-msg-err">{profileErr}</div> : null}
             {profileMsg ? <div className="stu-msg stu-msg-ok">{profileMsg}</div> : null}
             {profilePending ? (
-              <div className="stu-msg stu-msg-info">Profile is view-only while an update is pending approval.</div>
+              <div className="stu-msg stu-msg-info">
+                Edit request raised — waiting for Admin / HOD / ACM. Profile stays view-only until reviewed.
+              </div>
             ) : null}
-            {profileLocked ? (
-              <div className="stu-msg stu-msg-info">Editing locked by Admin. Contact the office for changes.</div>
+            {profileLocked && !profilePending ? (
+              <div className="stu-msg stu-msg-info">
+                Profile is view-only. Use <strong>Raise edit request</strong> below anytime — no unlock needed.
+              </div>
             ) : null}
 
             <div className="stu-photo-edit">
@@ -2578,11 +2575,11 @@ export default function StudentApp() {
                   </button>
                   <button
                     type="button"
-                    className="stu-btn stu-btn-ghost"
-                    disabled={profilePending || profileLocked}
+                    className="stu-btn stu-btn-primary"
+                    disabled={profilePending}
                     onClick={startProfileEdit}
                   >
-                    ✏️ Edit &amp; request update
+                    {profilePending ? "⏳ Edit request pending" : "📝 Raise edit request"}
                   </button>
                   <button
                     type="button"
@@ -2672,7 +2669,7 @@ export default function StudentApp() {
                       disabled={profileBusy}
                       onClick={submitProfileUpdate}
                     >
-                      {profileBusy ? "Submitting…" : "Submit for approval"}
+                      {profileBusy ? "Submitting…" : "Submit edit request"}
                     </button>
                     <button type="button" className="stu-btn stu-btn-ghost" onClick={cancelProfileEdit}>
                       Cancel
