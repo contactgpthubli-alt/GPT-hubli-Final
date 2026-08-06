@@ -8946,6 +8946,530 @@ setInterval(function () {
     return host;
   }
 
+  /**
+   * Live DTE attendance dashboard: subject-wise + semester-wise %.
+   * ≥75% eligible · <75% HOD decides · ≤65% critical (still HOD).
+   */
+  function ensureAttDashboard() {
+    var step1 = document.getElementById('attStep1');
+    if (!step1) return null;
+    var dash = document.getElementById('attDashHost');
+    if (dash) return dash;
+    dash = document.createElement('div');
+    dash.id = 'attDashHost';
+    dash.style.marginTop = '16px';
+    dash.innerHTML =
+      '<div class="card" style="padding:0;overflow:hidden;border:1px solid var(--border);border-radius:12px;">' +
+      '<div class="card-hd" style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">' +
+      '<div><h3 style="margin:0;font-size:0.95rem;">📊 Attendance dashboard (DTE)</h3>' +
+      '<p style="margin:4px 0 0;font-size:0.75rem;opacity:.78;">' +
+      'Subject-wise &amp; semester-wise. <strong>≥75% Eligible</strong> · ' +
+      '<strong>&lt;75% HOD decides</strong> · <strong>≤65% Critical</strong> (HOD still decides).</p></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:end;">' +
+      '<div><label style="font-size:0.68rem;font-weight:700;">Mode</label><br>' +
+      '<select id="attDashMode" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.82rem;">' +
+      '<option value="dashboard">Current term</option>' +
+      '<option value="weekly">This week</option>' +
+      '<option value="monthly">This month</option></select></div>' +
+      '<div><label style="font-size:0.68rem;font-weight:700;">View</label><br>' +
+      '<select id="attDashView" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.82rem;">' +
+      '<option value="overall">Overall %</option>' +
+      '<option value="subject">Subject-wise</option>' +
+      '<option value="semester">Semester-wise</option></select></div>' +
+      '<div><label style="font-size:0.68rem;font-weight:700;">From</label><br>' +
+      '<input type="date" id="attDashFrom" style="padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.68rem;font-weight:700;">To</label><br>' +
+      '<input type="date" id="attDashTo" style="padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<button type="button" class="btn ol" id="attDashReload" style="padding:8px 12px;">↻ Load</button>' +
+      '<button type="button" class="btn go" id="attDashCsv" style="padding:8px 12px;">⬇ CSV</button>' +
+      '</div></div>' +
+      '<div id="attDashKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--border);"></div>' +
+      '<div id="attDashMeta" style="padding:8px 16px;font-size:0.78rem;opacity:.8;"></div>' +
+      '<div id="attDashTable" style="padding:0 12px 16px;overflow-x:auto;max-height:480px;"></div>' +
+      '</div>';
+    // Insert dashboard above history register
+    var hist = document.getElementById('attHistoryHost');
+    if (hist && hist.parentNode === step1) step1.insertBefore(dash, hist);
+    else step1.appendChild(dash);
+
+    var reload = function () {
+      window.loadAttDashboard && window.loadAttDashboard();
+    };
+    var modeEl = document.getElementById('attDashMode');
+    var viewEl = document.getElementById('attDashView');
+    var btn = document.getElementById('attDashReload');
+    var csv = document.getElementById('attDashCsv');
+    if (modeEl && !modeEl.__bound) {
+      modeEl.__bound = true;
+      modeEl.addEventListener('change', reload);
+    }
+    if (viewEl && !viewEl.__bound) {
+      viewEl.__bound = true;
+      viewEl.addEventListener('change', reload);
+    }
+    if (btn && !btn.__bound) {
+      btn.__bound = true;
+      btn.addEventListener('click', reload);
+    }
+    if (csv && !csv.__bound) {
+      csv.__bound = true;
+      csv.addEventListener('click', function () {
+        window.exportAttDashboardCsv && window.exportAttDashboardCsv();
+      });
+    }
+    setTimeout(reload, 200);
+    return dash;
+  }
+
+  function attDashBandBadge(band, pct) {
+    var p = pct != null ? pct + '%' : '—';
+    if (band === 'eligible') {
+      return '<span class="badge active" title="Auto eligible">✓ ' + p + ' Eligible</span>';
+    }
+    if (band === 'critical') {
+      return (
+        '<span class="badge" style="background:#fee2e2;color:#991b1b;" title="≤65% critical — HOD decides">⚠ ' +
+        p +
+        ' Critical</span>'
+      );
+    }
+    return (
+      '<span class="badge pending" title="Below 75% — HOD decides">⚡ ' + p + ' HOD</span>'
+    );
+  }
+
+  function attDashHodActions(row, scope) {
+    // scope: overall | subject | semester
+    var reg = row.reg || '';
+    var canDecide = row.band !== 'eligible';
+    if (!canDecide) {
+      return '<span style="font-size:0.72rem;opacity:.6;">Auto eligible</span>';
+    }
+    var cur = row.hod_decision || 'pending';
+    var subj = scope === 'subject' ? row.subject || '' : '';
+    var sem = scope === 'semester' && row.semester != null ? row.semester : '';
+    return (
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">' +
+      '<select class="att-hod-dec" data-reg="' +
+      attEsc(reg) +
+      '" data-subject="' +
+      attEsc(subj) +
+      '" data-sem="' +
+      attEsc(String(sem)) +
+      '" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:0.72rem;max-width:120px;">' +
+      '<option value="pending"' +
+      (cur === 'pending' ? ' selected' : '') +
+      '>Pending</option>' +
+      '<option value="eligible"' +
+      (cur === 'eligible' ? ' selected' : '') +
+      '>Eligible</option>' +
+      '<option value="not_eligible"' +
+      (cur === 'not_eligible' ? ' selected' : '') +
+      '>Not eligible</option>' +
+      '</select>' +
+      '<button type="button" class="btn pr att-hod-save" data-reg="' +
+      attEsc(reg) +
+      '" data-subject="' +
+      attEsc(subj) +
+      '" data-sem="' +
+      attEsc(String(sem)) +
+      '" style="padding:3px 8px;font-size:0.7rem;">Save</button>' +
+      '</div>'
+    );
+  }
+
+  window.loadAttDashboard = async function loadAttDashboard() {
+    var kpis = document.getElementById('attDashKpis');
+    var meta = document.getElementById('attDashMeta');
+    var table = document.getElementById('attDashTable');
+    if (!table) return;
+
+    var branch =
+      (document.getElementById('attBranch') && document.getElementById('attBranch').value) ||
+      (window.currentUser && window.currentUser.role === 'hod' ? attHodBranch(window.currentUser) : '') ||
+      '';
+    var year = (document.getElementById('attYear') && document.getElementById('attYear').value) || '';
+    var mode = (document.getElementById('attDashMode') && document.getElementById('attDashMode').value) || 'dashboard';
+    var view = (document.getElementById('attDashView') && document.getElementById('attDashView').value) || 'overall';
+    var from = (document.getElementById('attDashFrom') && document.getElementById('attDashFrom').value) || '';
+    var to = (document.getElementById('attDashTo') && document.getElementById('attDashTo').value) || '';
+
+    table.innerHTML = '<p style="opacity:.7;padding:12px;">Loading attendance report…</p>';
+    if (kpis) kpis.innerHTML = '';
+
+    try {
+      var qs =
+        'mode=' +
+        encodeURIComponent(mode) +
+        (branch ? '&branch=' + encodeURIComponent(branch) : '') +
+        (year ? '&year=' + encodeURIComponent(year) : '') +
+        (from ? '&from=' + encodeURIComponent(from) : '') +
+        (to ? '&to=' + encodeURIComponent(to) : '') +
+        '&_ts=' +
+        Date.now();
+      var apiClient = window.api;
+      if (!apiClient || !apiClient.get) throw new Error('API not ready');
+      var data = await apiClient.get('/api/attendance/report?' + qs);
+      if (!data || data.ok === false) {
+        table.innerHTML =
+          '<p style="color:#991b1b;padding:12px;">' +
+          attEsc((data && data.error) || 'Could not load report') +
+          '</p>';
+        return;
+      }
+      window._attDashData = data;
+      var f = data.filters || {};
+      if (document.getElementById('attDashFrom') && f.from && !from) {
+        document.getElementById('attDashFrom').value = f.from;
+      }
+      if (document.getElementById('attDashTo') && f.to && !to) {
+        document.getElementById('attDashTo').value = f.to;
+      }
+
+      var k = data.kpis || {};
+      if (kpis) {
+        kpis.innerHTML =
+          kpiCard('Sessions', k.sessions != null ? k.sessions : '—', '#1a4fa0') +
+          kpiCard('Students', k.students != null ? k.students : '—', '#0f172a') +
+          kpiCard('Avg %', k.avg_percent != null ? k.avg_percent + '%' : '—', '#0369a1') +
+          kpiCard('Eligible ≥75%', k.eligible != null ? k.eligible : '—', '#065f46') +
+          kpiCard('HOD decide', k.hod_decision != null ? k.hod_decision : '—', '#b45309') +
+          kpiCard('Critical ≤65%', k.critical != null ? k.critical : '—', '#991b1b');
+      }
+      if (meta) {
+        meta.innerHTML =
+          'Branch: <strong>' +
+          attEsc(f.branch || 'all') +
+          '</strong> · AY <strong>' +
+          attEsc(f.academic_year || '—') +
+          '</strong> · ' +
+          attEsc(f.from || '') +
+          ' → ' +
+          attEsc(f.to || '') +
+          (data.rules && data.rules.note
+            ? '<div style="margin-top:4px;font-size:0.72rem;">' + attEsc(data.rules.note) + '</div>'
+            : '');
+      }
+
+      var students = data.students || [];
+      if (!students.length) {
+        table.innerHTML =
+          '<p style="opacity:.7;padding:12px;">No attendance units in this range. Mark sessions first, then reload.</p>';
+        return;
+      }
+
+      var html = '';
+      if (view === 'subject') {
+        html =
+          '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr style="background:#f8fafc;text-align:left;">' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Reg</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Name</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Subject</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Sem</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Held</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">P</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">A</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">%</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">HOD decision</th>' +
+          '</tr></thead><tbody>';
+        students.forEach(function (s) {
+          (s.by_subject || []).forEach(function (sub) {
+            html +=
+              '<tr style="border-bottom:1px solid var(--border);' +
+              (sub.band === 'critical' ? 'background:#fef2f2;' : sub.band === 'hod_decision' ? 'background:#fffbeb;' : '') +
+              '">' +
+              '<td style="padding:7px;font-family:monospace;font-size:0.72rem;">' +
+              attEsc(s.reg) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attEsc(s.name) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attEsc(sub.subject) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              (sub.semester != null ? sub.semester : '—') +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              sub.held +
+              '</td>' +
+              '<td style="padding:7px;color:#065f46;font-weight:700;">' +
+              sub.present +
+              '</td>' +
+              '<td style="padding:7px;color:#991b1b;">' +
+              sub.absent +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attDashBandBadge(sub.band, sub.percent) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attDashHodActions(sub, 'subject') +
+              '</td></tr>';
+          });
+        });
+        html += '</tbody></table>';
+      } else if (view === 'semester') {
+        html =
+          '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr style="background:#f8fafc;text-align:left;">' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Reg</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Name</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Semester</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Held</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">P</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">A</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">%</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">HOD decision</th>' +
+          '</tr></thead><tbody>';
+        students.forEach(function (s) {
+          (s.by_semester || []).forEach(function (sm) {
+            html +=
+              '<tr style="border-bottom:1px solid var(--border);' +
+              (sm.band === 'critical' ? 'background:#fef2f2;' : sm.band === 'hod_decision' ? 'background:#fffbeb;' : '') +
+              '">' +
+              '<td style="padding:7px;font-family:monospace;font-size:0.72rem;">' +
+              attEsc(s.reg) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attEsc(s.name) +
+              '</td>' +
+              '<td style="padding:7px;font-weight:700;">Sem ' +
+              (sm.semester != null ? sm.semester : '—') +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              sm.held +
+              '</td>' +
+              '<td style="padding:7px;color:#065f46;font-weight:700;">' +
+              sm.present +
+              '</td>' +
+              '<td style="padding:7px;color:#991b1b;">' +
+              sm.absent +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attDashBandBadge(sm.band, sm.percent) +
+              '</td>' +
+              '<td style="padding:7px;">' +
+              attDashHodActions(sm, 'semester') +
+              '</td></tr>';
+          });
+        });
+        html += '</tbody></table>';
+      } else {
+        html =
+          '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr style="background:#f8fafc;text-align:left;">' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">#</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Reg</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Name</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Year</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Held</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">P</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">A</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Overall %</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">Subjects</th>' +
+          '<th style="padding:8px;border-bottom:1px solid var(--border);">HOD decision</th>' +
+          '</tr></thead><tbody>';
+        students.forEach(function (s, i) {
+          var subHint = (s.by_subject || [])
+            .slice(0, 3)
+            .map(function (x) {
+              return attEsc(x.subject) + ' ' + (x.percent != null ? x.percent + '%' : '—');
+            })
+            .join(' · ');
+          if ((s.by_subject || []).length > 3) subHint += '…';
+          html +=
+            '<tr style="border-bottom:1px solid var(--border);' +
+            (s.band === 'critical' ? 'background:#fef2f2;' : s.band === 'hod_decision' ? 'background:#fffbeb;' : '') +
+            '">' +
+            '<td style="padding:7px;opacity:.65;">' +
+            (i + 1) +
+            '</td>' +
+            '<td style="padding:7px;font-family:monospace;font-size:0.72rem;">' +
+            attEsc(s.reg) +
+            '</td>' +
+            '<td style="padding:7px;font-weight:600;">' +
+            attEsc(s.name) +
+            '</td>' +
+            '<td style="padding:7px;">' +
+            attEsc(s.year_label || '—') +
+            '</td>' +
+            '<td style="padding:7px;">' +
+            s.held +
+            '</td>' +
+            '<td style="padding:7px;color:#065f46;font-weight:700;">' +
+            s.present +
+            '</td>' +
+            '<td style="padding:7px;color:#991b1b;">' +
+            s.absent +
+            '</td>' +
+            '<td style="padding:7px;">' +
+            attDashBandBadge(s.band, s.percent) +
+            '</td>' +
+            '<td style="padding:7px;font-size:0.72rem;opacity:.85;max-width:220px;">' +
+            (subHint || '—') +
+            '</td>' +
+            '<td style="padding:7px;">' +
+            attDashHodActions(s, 'overall') +
+            '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      table.innerHTML = html;
+
+      // Bind HOD decision saves
+      table.querySelectorAll('.att-hod-save').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var reg = btn.getAttribute('data-reg') || '';
+          var subject = btn.getAttribute('data-subject') || '';
+          var sem = btn.getAttribute('data-sem') || '';
+          var sel = table.querySelector(
+            '.att-hod-dec[data-reg="' +
+              CSS.escape(reg) +
+              '"][data-subject="' +
+              CSS.escape(subject) +
+              '"][data-sem="' +
+              CSS.escape(sem) +
+              '"]',
+          );
+          if (!sel) {
+            // fallback without CSS.escape
+            sel = btn.previousElementSibling;
+          }
+          var decision = sel && sel.value ? sel.value : 'pending';
+          window.saveAttHodDecision &&
+            window.saveAttHodDecision({
+              reg_no: reg,
+              subject: subject,
+              semester: sem ? Number(sem) : null,
+              decision: decision,
+              branch: branch,
+              academic_year: (data.filters && data.filters.academic_year) || '',
+            });
+        });
+      });
+    } catch (e) {
+      table.innerHTML =
+        '<p style="color:#991b1b;padding:12px;">' + attEsc(e.message || String(e)) + '</p>';
+    }
+
+    function kpiCard(label, value, color) {
+      return (
+        '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.68rem;opacity:.7;font-weight:700;">' +
+        attEsc(label) +
+        '</div>' +
+        '<div style="font-size:1.25rem;font-weight:800;color:' +
+        color +
+        ';">' +
+        attEsc(String(value)) +
+        '</div></div>'
+      );
+    }
+  };
+
+  window.saveAttHodDecision = async function saveAttHodDecision(payload) {
+    try {
+      var apiClient = window.api;
+      if (!apiClient || !apiClient.post) throw new Error('API not ready');
+      var res = await apiClient.post('/api/attendance/report', payload || {});
+      if (!res || res.ok === false) {
+        alert((res && res.error) || 'Could not save HOD decision');
+        return;
+      }
+      alert(
+        'Saved: ' +
+          (payload.reg_no || '') +
+          ' → ' +
+          (payload.decision || '') +
+          (payload.subject ? ' · ' + payload.subject : '') +
+          (payload.semester != null ? ' · Sem ' + payload.semester : ''),
+      );
+      window.loadAttDashboard && window.loadAttDashboard();
+    } catch (e) {
+      alert(e.message || String(e));
+    }
+  };
+
+  window.exportAttDashboardCsv = function exportAttDashboardCsv() {
+    var data = window._attDashData;
+    if (!data || !data.students || !data.students.length) {
+      alert('Load the dashboard first.');
+      return;
+    }
+    var view = (document.getElementById('attDashView') && document.getElementById('attDashView').value) || 'overall';
+    var rows = [];
+    if (view === 'subject') {
+      rows.push(['Reg', 'Name', 'Subject', 'Semester', 'Held', 'Present', 'Absent', 'Percent', 'Band', 'HOD decision']);
+      data.students.forEach(function (s) {
+        (s.by_subject || []).forEach(function (sub) {
+          rows.push([
+            s.reg,
+            s.name,
+            sub.subject,
+            sub.semester != null ? sub.semester : '',
+            sub.held,
+            sub.present,
+            sub.absent,
+            sub.percent != null ? sub.percent : '',
+            sub.band,
+            sub.hod_decision || '',
+          ]);
+        });
+      });
+    } else if (view === 'semester') {
+      rows.push(['Reg', 'Name', 'Semester', 'Held', 'Present', 'Absent', 'Percent', 'Band', 'HOD decision']);
+      data.students.forEach(function (s) {
+        (s.by_semester || []).forEach(function (sm) {
+          rows.push([
+            s.reg,
+            s.name,
+            sm.semester != null ? sm.semester : '',
+            sm.held,
+            sm.present,
+            sm.absent,
+            sm.percent != null ? sm.percent : '',
+            sm.band,
+            sm.hod_decision || '',
+          ]);
+        });
+      });
+    } else {
+      rows.push(['Reg', 'Name', 'Year', 'Held', 'Present', 'Absent', 'Percent', 'Band', 'HOD decision']);
+      data.students.forEach(function (s) {
+        rows.push([
+          s.reg,
+          s.name,
+          s.year_label || '',
+          s.held,
+          s.present,
+          s.absent,
+          s.percent != null ? s.percent : '',
+          s.band,
+          s.hod_decision || '',
+        ]);
+      });
+    }
+    var csv = rows
+      .map(function (r) {
+        return r
+          .map(function (c) {
+            var t = String(c == null ? '' : c);
+            if (/[",\n]/.test(t)) return '"' + t.replace(/"/g, '""') + '"';
+            return t;
+          })
+          .join(',');
+      })
+      .join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'attendance-' + view + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 400);
+  };
+
   /** Map full branch name → C-20 code for curriculum API. */
   function attBranchCode(branchName) {
     var n = attNormalizeBranch(branchName || '').toLowerCase();
@@ -9465,6 +9989,7 @@ setInterval(function () {
     ensureAttBatchSelectId();
     ensureAttPeriodSlots();
     attBindSubjectReloaders();
+    ensureAttDashboard();
 
     var dateEl = document.getElementById('attDate');
     if (dateEl && !dateEl.value) dateEl.value = attTodayISO();
