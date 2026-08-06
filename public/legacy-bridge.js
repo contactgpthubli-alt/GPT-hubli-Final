@@ -879,6 +879,14 @@ function __initGptBridge() {
       } else {
         addFacNav('facStudentDataNavHod', 'facStudentData', 'studentdata', '📊', 'Student Data', 'students');
       }
+      // Print / Export — same ACM / Exam tool (branch pre-locked for HOD)
+      addFacNav('facHodPrintNav', 'facHodPrint', 'printexport', '🖨️', 'Print / Export', 'studentdata');
+
+      // Remove broken Student Key List leftovers
+      ;['facStudentKeyNav', 'facStudentKeyHod', 'facSubjectKeyNav', 'facSubjectKeyHod'].forEach(function (id) {
+        var dead = document.getElementById(id);
+        if (dead && dead.parentNode) dead.parentNode.removeChild(dead);
+      });
 
       if (!document.getElementById('facBranchStudents')) {
         var fs = document.createElement('div');
@@ -891,6 +899,22 @@ function __initGptBridge() {
       // facStudentData panel already created by ensureStudentDataMenu — ensure exists
       if (typeof ensureStudentDataMenu === 'function') {
         try { ensureStudentDataMenu(); } catch (e) { /* may not be defined yet */ }
+      }
+      if (!document.getElementById('facHodPrint')) {
+        var hp = document.createElement('div');
+        hp.id = 'facHodPrint';
+        hp.style.display = 'none';
+        hp.setAttribute('data-acm-root', '1');
+        hp.setAttribute('data-hod-print', '1');
+        // Reuse same print/export markup as Exam & ACM
+        var printInner = examPrintPanelHtml('facHodPrintInner');
+        // examPrintPanelHtml wraps in display:none; show the inner card always inside this section
+        printInner = printInner.replace('style="display:none;"', 'style="display:block;"');
+        hp.innerHTML =
+          '<div class="info-box" style="margin-bottom:12px;">🖨️ <strong>Print / Export (your branch)</strong> — Same tool as Exam Cell &amp; ACM. ' +
+          'Select <strong>Year</strong>, load students, tick columns, then <strong>Print</strong> or <strong>Export CSV</strong>. Branch is fixed to your department.</div>' +
+          printInner;
+        facContent.appendChild(hp);
       }
     }
   }
@@ -1748,6 +1772,13 @@ function __initGptBridge() {
       if ((secId === 'adStudentData' || secId === 'facStudentData' || secId === 'priStudentData') &&
           typeof window.renderStudentDataBrowser === 'function') {
         window.renderStudentDataBrowser(secId);
+      }
+      // HOD Print / Export (same ACM/Exam tool)
+      if (secId === 'facHodPrint') {
+        try {
+          if (typeof window.acmPrintInitFields === 'function') window.acmPrintInitFields();
+          if (typeof window.prepareHodPrintPanel === 'function') window.prepareHodPrintPanel();
+        } catch (eHodPr) { /* ignore */ }
       }
       // Always re-fetch + re-paint student My Profile so approved data shows immediately
       if (secId === 'stuProfile' && currentUser && currentUser.role === 'student' &&
@@ -3970,19 +4001,68 @@ function __initGptBridge() {
   }
 
   function acmPrintActiveRoot() {
-    // Prefer the print panel that is currently visible (tab open) — ACM or Exam
+    // Prefer the print panel that is currently visible (tab open) — ACM, Exam, or HOD
     var panels = Array.prototype.slice.call(document.querySelectorAll('[data-acm-print-fields="1"]'));
     var host = panels.find(function (el) {
-      var tab = el.closest('#facAcmPrint, #adAcmPrint, #adExamPrint, #facExamPrint');
+      var tab = el.closest('#facAcmPrint, #adAcmPrint, #adExamPrint, #facExamPrint, #facHodPrint, #facHodPrintInner');
       if (!tab) return false;
-      return tab.offsetParent !== null || (tab.style && tab.style.display !== 'none' && tab.offsetHeight > 0);
+      // Climb to section that showSec toggles (facHodPrint)
+      var sec = el.closest('#facHodPrint, #facAcmPrint, #adAcmPrint, #adExamPrint, #facExamPrint') || tab;
+      return sec.offsetParent !== null || (sec.style && sec.style.display !== 'none' && sec.offsetHeight > 0);
     }) || panels[0] || null;
     if (!host) return null;
     return host.closest('[data-acm-root="1"]') ||
       host.closest('[data-exam-root="1"]') ||
-      host.closest('#facACM, #adACM, #adExam, #facExamModule') ||
+      host.closest('#facACM, #adACM, #adExam, #facExamModule, #facHodPrint') ||
       host.parentElement;
   }
+
+  /** HOD: lock Branch to own department on Print / Export panel. */
+  window.prepareHodPrintPanel = function prepareHodPrintPanel() {
+    var root = document.getElementById('facHodPrint');
+    if (!root) return;
+    var branchName = '';
+    try {
+      if (typeof attHodBranch === 'function' && window.currentUser) {
+        branchName = attHodBranch(window.currentUser) || '';
+      }
+    } catch (e0) { /* ignore */ }
+    if (!branchName && window.currentUser && window.currentUser.branch) {
+      branchName = String(window.currentUser.branch);
+    }
+    // Map short codes → full official names used by print filters
+    var codeMap = {
+      CE: 'Civil Engineering',
+      CSE: 'Computer Science and Engineering',
+      ECE: 'Electronics and Communication Engineering',
+      ME: 'Mechanical Engineering',
+    };
+    var up = String(branchName || '').toUpperCase();
+    if (codeMap[up]) branchName = codeMap[up];
+    else if (up.indexOf('CIVIL') >= 0) branchName = codeMap.CE;
+    else if (up.indexOf('COMPUTER') >= 0 || up.indexOf('CSE') >= 0) branchName = codeMap.CSE;
+    else if (up.indexOf('ELECTRON') >= 0 || up.indexOf('ECE') >= 0) branchName = codeMap.ECE;
+    else if (up.indexOf('MECH') >= 0) branchName = codeMap.ME;
+
+    root.querySelectorAll('[data-acm-print-branch="1"]').forEach(function (sel) {
+      if (branchName) {
+        // Ensure option exists
+        var found = false;
+        Array.prototype.forEach.call(sel.options, function (o) {
+          if (o.value === branchName) found = true;
+        });
+        if (!found) {
+          var opt = document.createElement('option');
+          opt.value = branchName;
+          opt.textContent = branchName;
+          sel.appendChild(opt);
+        }
+        sel.value = branchName;
+        sel.disabled = true;
+        sel.title = 'HOD branch is fixed to your department';
+      }
+    });
+  };
 
   function acmPrintBuildFieldMap(s) {
     var map = {};
@@ -4186,7 +4266,7 @@ function __initGptBridge() {
       root = anyBranch ? (anyBranch.closest('[data-acm-root="1"]') || anyBranch.closest('#facACM, #adACM') || document) : null;
     }
     if (!root) {
-      alert('Print panel not found. Open ACM Module → Print / Export.');
+      alert('Print panel not found. Open Print / Export (ACM, Exam Cell, or HOD menu).');
       return;
     }
 
@@ -4282,10 +4362,10 @@ function __initGptBridge() {
       }
     }
 
-    // Paint every ACM / Exam print surface
-    document.querySelectorAll('#facACM, #adACM, #adExam, #facExamModule, [data-acm-root="1"], [data-exam-root="1"]').forEach(paintRoot);
+    // Paint every ACM / Exam / HOD print surface
+    document.querySelectorAll('#facACM, #adACM, #adExam, #facExamModule, #facHodPrint, [data-acm-root="1"], [data-exam-root="1"]').forEach(paintRoot);
     // Also paint by panel id if nested oddly
-    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint'].forEach(function (id) {
+    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint', 'facHodPrint', 'facHodPrintInner'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) paintRoot(el);
     });
@@ -4296,7 +4376,7 @@ function __initGptBridge() {
   /** Show full field checklist as soon as Print tab is opened. */
   window.acmPrintInitFields = function () {
     window._acmPrintFieldUnion = acmPrintAllProfileLabels();
-    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint'].forEach(function (id) {
+    ;['facAcmPrint', 'adAcmPrint', 'adExamPrint', 'facExamPrint', 'facHodPrint', 'facHodPrintInner'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       if (el.querySelector('[data-acm-print-fields="1"]')) {
