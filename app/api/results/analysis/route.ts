@@ -121,6 +121,28 @@ export async function GET(req: Request) {
 
   const hodBranch = user.role === "hod" ? hodBranchOf(user) : null
 
+  // Infer scheme from subject codes: 25* = C-25, 20* = C-20
+  function schemeSqlOnResult(alias: string, params: unknown[]): string {
+    if (scheme === "C-25") {
+      return ` AND EXISTS (
+        SELECT 1 FROM result_subjects _rs
+         WHERE _rs.result_id = ${alias}.id
+           AND UPPER(COALESCE(_rs.code,'')) LIKE '25%'
+      )`
+    }
+    if (scheme === "C-20") {
+      return ` AND (
+        EXISTS (
+          SELECT 1 FROM result_subjects _rs
+           WHERE _rs.result_id = ${alias}.id
+             AND UPPER(COALESCE(_rs.code,'')) LIKE '20%'
+        )
+        OR NOT EXISTS (SELECT 1 FROM result_subjects _rs2 WHERE _rs2.result_id = ${alias}.id)
+      )`
+    }
+    return ""
+  }
+
   // ---- Published results (student × sem × session) ----
   const resParams: unknown[] = []
   const resWhere: string[] = []
@@ -132,12 +154,19 @@ export async function GET(req: Request) {
     resParams.push(sem)
     resWhere.push(`r.sem = $${resParams.length}`)
   }
+  let resWhereSql = resWhere.length ? "WHERE " + resWhere.join(" AND ") : ""
+  const schemeRes = schemeSqlOnResult("r", resParams)
+  if (schemeRes) {
+    resWhereSql = resWhereSql
+      ? resWhereSql + schemeRes
+      : "WHERE " + schemeRes.replace(/^\s*AND\s+/, "")
+  }
   const resSql = `
     SELECT r.reg_no, r.name, r.branch, r.sem, r.session, r.sgpa::float AS sgpa, r.result,
            s.current_study_year, s.year AS study_year_label, s.admission_academic_year
       FROM results r
       LEFT JOIN students s ON UPPER(s.reg_no) = UPPER(r.reg_no)
-     ${resWhere.length ? "WHERE " + resWhere.join(" AND ") : ""}
+     ${resWhereSql}
      ORDER BY r.session, r.sem, r.reg_no`
   const { rows: published } = await query(resSql, resParams)
 
@@ -188,6 +217,11 @@ export async function GET(req: Request) {
     if (sem != null) {
       psParams.push(sem)
       psWhere.push(`r.sem = $${psParams.length}`)
+    }
+    if (scheme === "C-25") {
+      psWhere.push(`UPPER(COALESCE(rs.code,'')) LIKE '25%'`)
+    } else if (scheme === "C-20") {
+      psWhere.push(`UPPER(COALESCE(rs.code,'')) LIKE '20%'`)
     }
     const { rows } = await query(
       `SELECT r.reg_no, r.branch, r.sem, r.session, rs.code, rs.name, rs.grade, r.result AS overall
@@ -409,6 +443,14 @@ export async function GET(req: Request) {
       scheme: scheme || null,
       source,
       hod_locked_branch: !!hodBranch,
+      applied: {
+        session: session || "All",
+        sem: sem != null ? String(sem) : "All",
+        scheme: scheme || "All",
+        source,
+        published_matched: pubFiltered.length,
+        attempts_matched: attFiltered.length,
+      },
     },
     sessions: sessionRows.map((r) => String(r.s)).filter(Boolean),
     summary: {

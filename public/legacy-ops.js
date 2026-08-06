@@ -134,15 +134,24 @@
 
   function panelHtmlCategory(pid) {
     return (
-      '<div class="info-box">🏷️ <strong>Student Category</strong> — Standalone tools. Enter register number to auto-fetch. ' +
-      'Mark ITI / PUC / Repeater / Not eligible / Year back / Change of branch. ' +
-      'Year back &amp; Not eligible freeze academic progression.</div>' +
-      '<div class="card" style="padding:16px;max-width:720px;">' +
+      '<div class="info-box">🏷️ <strong>Student Category</strong> — Auto-fetch one student for flags, or use <strong>Bulk year transfer</strong> ' +
+      'to move many students to Year I / II / III. Live database update. HOD = own branch only.</div>' +
+      // ---- Single student ----
+      '<div class="card" style="padding:16px;max-width:820px;margin-bottom:16px;">' +
+      '<h3 style="margin:0 0 12px;font-size:1rem;">Single student</h3>' +
       '<div class="form-row"><div class="fg"><label>Register number</label>' +
       '<input type="text" id="' + pid + '_reg" placeholder="171CS25001" style="text-transform:uppercase;" ' +
       'onkeydown="if(event.key===\'Enter\'){window.opsCatFetch&&window.opsCatFetch(\'' + pid + '\');}" /></div>' +
       '<div class="fg" style="align-self:end;"><button type="button" class="btn pr" onclick="window.opsCatFetch&&window.opsCatFetch(\'' + pid + '\')">Auto-fetch</button></div></div>' +
       '<div id="' + pid + '_info" style="margin:12px 0;font-size:0.88rem;"></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:10px 0 14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#f8fafc;">' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Study year (live)</label><br>' +
+      '<select id="' + pid + '_year" style="padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);min-width:100px;">' +
+      '<option value="1">I (1st Year)</option>' +
+      '<option value="2">II (2nd Year)</option>' +
+      '<option value="3">III (3rd Year)</option></select></div>' +
+      '<button type="button" class="btn pr" onclick="window.opsYearSingle&&window.opsYearSingle(\'' + pid + '\')">⬆ Update year</button>' +
+      '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;" id="' + pid + '_flags">' +
       ['iti:ITI', 'puc:PUC', 'repeater:Repeater', 'not_eligible:Not eligible', 'year_back:Year back', 'change_of_branch:Change of branch']
         .map(function (pair) {
@@ -160,7 +169,38 @@
       '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">' +
       '<button type="button" class="btn go" onclick="window.opsCatSave&&window.opsCatSave(\'' + pid + '\')">💾 Save category</button>' +
       '</div>' +
-      '<div id="' + pid + '_msg" style="margin-top:10px;font-size:0.85rem;"></div></div>'
+      '<div id="' + pid + '_msg" style="margin-top:10px;font-size:0.85rem;"></div></div>' +
+      // ---- Bulk year transfer ----
+      '<div class="card" style="padding:16px;">' +
+      '<div class="card-hd" style="padding:0 0 12px;border:none;">' +
+      '<h3 style="margin:0;">Bulk year transfer</h3></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px;">' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Filter current year</label><br>' +
+      '<select id="' + pid + '_bulk_from" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
+      '<option value="">All years</option>' +
+      '<option value="1">I</option><option value="2">II</option><option value="3">III</option></select></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Search</label><br>' +
+      '<input type="text" id="' + pid + '_bulk_q" placeholder="Reg / name" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);min-width:160px;" /></div>' +
+      '<button type="button" class="btn ol" onclick="window.opsYearRoster&&window.opsYearRoster(\'' + pid + '\')">↻ Load roster</button>' +
+      '<div style="flex:1;"></div>' +
+      '<div><label style="font-size:0.72rem;font-weight:700;">Move selected to</label><br>' +
+      '<select id="' + pid + '_bulk_to" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);">' +
+      '<option value="1">I (1st Year)</option>' +
+      '<option value="2">II (2nd Year)</option>' +
+      '<option value="3">III (3rd Year)</option></select></div>' +
+      '<button type="button" class="btn go" onclick="window.opsYearBulk&&window.opsYearBulk(\'' + pid + '\')">⬆ Apply bulk year change</button>' +
+      '</div>' +
+      '<div id="' + pid + '_bulk_meta" style="font-size:0.8rem;opacity:.85;margin-bottom:8px;"></div>' +
+      '<div style="overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:10px;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+      '<thead style="position:sticky;top:0;background:#f1f5f9;"><tr>' +
+      '<th style="padding:8px;text-align:left;"><input type="checkbox" id="' + pid + '_bulk_all" ' +
+      'onchange="window.opsYearToggleAll&&window.opsYearToggleAll(\'' + pid + '\',this.checked)" /></th>' +
+      '<th style="padding:8px;text-align:left;">Reg</th><th style="padding:8px;text-align:left;">Name</th>' +
+      '<th style="padding:8px;">Year</th><th style="padding:8px;">Batch</th></tr></thead>' +
+      '<tbody id="' + pid + '_bulk_body"><tr><td colspan="5" style="padding:16px;opacity:.7;">Click Load roster.</td></tr></tbody>' +
+      '</table></div>' +
+      '<div id="' + pid + '_bulk_msg" style="margin-top:10px;font-size:0.85rem;"></div></div>'
     );
   }
 
@@ -210,10 +250,15 @@
       }
       window.opsLiveLoad(secId);
     } else if (secId.indexOf('OpsCategory') >= 0) {
-      if (el.getAttribute('data-ops') !== 'cat') {
-        el.setAttribute('data-ops', 'cat');
+      // Force rebuild when markup version changes (year transfer UI)
+      if (el.getAttribute('data-ops') !== 'cat-v2') {
+        el.setAttribute('data-ops', 'cat-v2');
         el.innerHTML = panelHtmlCategory(secId);
       }
+      // Auto-load roster for bulk table
+      setTimeout(function () {
+        window.opsYearRoster && window.opsYearRoster(secId);
+      }, 80);
     } else if (secId.indexOf('OpsTransfer') >= 0) {
       if (el.getAttribute('data-ops') !== 'xfer') {
         el.setAttribute('data-ops', 'xfer');
@@ -361,6 +406,8 @@
     try {
       var data = await api('/api/ops/category?reg_no=' + encodeURIComponent(reg));
       var s = data.student || {};
+      var yNum = s.current_study_year != null ? Number(s.current_study_year) : null;
+      var yRoman = yNum === 1 ? 'I' : yNum === 2 ? 'II' : yNum === 3 ? 'III' : String(s.year || '—');
       if (info) {
         info.innerHTML =
           '<strong>' +
@@ -369,8 +416,10 @@
           esc(s.reg_no) +
           ' · ' +
           esc(s.dept || '') +
-          ' · Year ' +
-          esc(String(s.current_study_year || s.year || '—')) +
+          ' · Year <strong>' +
+          esc(yRoman) +
+          '</strong>' +
+          (s.year ? ' (' + esc(String(s.year)) + ')' : '') +
           ' · Status <strong>' +
           esc(s.academic_status || '') +
           '</strong>' +
@@ -378,6 +427,8 @@
           (s.previous_reg_no ? ' · Prev reg ' + esc(s.previous_reg_no) : '') +
           (s.alt_reg_no ? ' · Alt reg ' + esc(s.alt_reg_no) : '');
       }
+      var yearSel = document.getElementById(pid + '_year');
+      if (yearSel && yNum >= 1 && yNum <= 3) yearSel.value = String(yNum);
       var flags = s.ops_flags || {};
       ;['iti', 'puc', 'repeater', 'not_eligible', 'year_back', 'change_of_branch'].forEach(function (k) {
         var cb = document.getElementById(pid + '_' + k);
@@ -387,6 +438,150 @@
       if (notes) notes.value = flags.notes || '';
       if (msg) msg.textContent = 'Loaded.';
       window._opsCatReg = reg;
+    } catch (e) {
+      if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.opsYearSingle = async function (pid) {
+    var reg =
+      window._opsCatReg ||
+      ((document.getElementById(pid + '_reg') || {}).value || '').trim().toUpperCase();
+    var yearEl = document.getElementById(pid + '_year');
+    var msg = document.getElementById(pid + '_msg');
+    var note = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
+    if (!reg) {
+      alert('Fetch a student first');
+      return;
+    }
+    var toYear = yearEl ? yearEl.value : '';
+    if (!toYear) {
+      alert('Select year I / II / III');
+      return;
+    }
+    if (!confirm('Move ' + reg + ' to Year ' + (toYear === '1' ? 'I' : toYear === '2' ? 'II' : 'III') + '?')) return;
+    if (msg) msg.textContent = 'Updating year…';
+    try {
+      var data = await api('/api/ops/year-transfer', {
+        method: 'POST',
+        body: { reg_no: reg, to_year: Number(toYear), note: note || null },
+      });
+      if (msg) {
+        msg.innerHTML =
+          '<span style="color:#166534;">Year updated to ' +
+          esc(data.to_roman || toYear) +
+          '.</span>';
+      }
+      window.opsCatFetch(pid);
+      // refresh bulk roster if loaded
+      if (document.getElementById(pid + '_bulk_body')) {
+        window.opsYearRoster && window.opsYearRoster(pid);
+      }
+    } catch (e) {
+      if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.opsYearRoster = async function (pid) {
+    var body = document.getElementById(pid + '_bulk_body');
+    var meta = document.getElementById(pid + '_bulk_meta');
+    var fromEl = document.getElementById(pid + '_bulk_from');
+    var qEl = document.getElementById(pid + '_bulk_q');
+    var year = fromEl ? fromEl.value : '';
+    var q = qEl ? qEl.value.trim() : '';
+    if (body) body.innerHTML = '<tr><td colspan="5" style="padding:16px;opacity:.7;">Loading…</td></tr>';
+    try {
+      var qs =
+        'roster=1' +
+        (year ? '&year=' + encodeURIComponent(year) : '') +
+        (q ? '&q=' + encodeURIComponent(q) : '');
+      var data = await api('/api/ops/year-transfer?' + qs);
+      var list = data.students || [];
+      window._opsYearRoster = list;
+      if (meta) meta.textContent = list.length + ' student(s) · select rows then Apply bulk year change';
+      if (!body) return;
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="5" style="padding:16px;opacity:.7;">No students match.</td></tr>';
+        return;
+      }
+      body.innerHTML = list
+        .map(function (s, i) {
+          return (
+            '<tr style="border-top:1px solid var(--border);">' +
+            '<td style="padding:6px 8px;"><input type="checkbox" data-year-reg="' +
+            esc(s.reg_no) +
+            '" class="' +
+            pid +
+            '_bulk_cb" /></td>' +
+            '<td style="padding:6px 8px;font-family:monospace;font-size:0.75rem;">' +
+            esc(s.reg_no) +
+            '</td>' +
+            '<td style="padding:6px 8px;">' +
+            esc(s.name) +
+            '</td>' +
+            '<td style="padding:6px 8px;text-align:center;font-weight:700;">' +
+            esc(s.year_roman || '—') +
+            '</td>' +
+            '<td style="padding:6px 8px;text-align:center;font-size:0.75rem;">' +
+            esc(s.admission_academic_year || '—') +
+            '</td></tr>'
+          );
+        })
+        .join('');
+      var all = document.getElementById(pid + '_bulk_all');
+      if (all) all.checked = false;
+    } catch (e) {
+      if (body) {
+        body.innerHTML =
+          '<tr><td colspan="5" style="padding:16px;color:#991b1b;">' + esc(e.message) + '</td></tr>';
+      }
+    }
+  };
+
+  window.opsYearToggleAll = function (pid, on) {
+    document.querySelectorAll('.' + pid + '_bulk_cb').forEach(function (cb) {
+      cb.checked = !!on;
+    });
+  };
+
+  window.opsYearBulk = async function (pid) {
+    var toEl = document.getElementById(pid + '_bulk_to');
+    var msg = document.getElementById(pid + '_bulk_msg');
+    var note = ((document.getElementById(pid + '_notes') || {}).value || '').trim();
+    var toYear = toEl ? toEl.value : '';
+    var regs = [];
+    document.querySelectorAll('.' + pid + '_bulk_cb:checked').forEach(function (cb) {
+      var r = cb.getAttribute('data-year-reg');
+      if (r) regs.push(r);
+    });
+    if (!regs.length) {
+      alert('Select at least one student');
+      return;
+    }
+    if (!toYear) {
+      alert('Select target year');
+      return;
+    }
+    var roman = toYear === '1' ? 'I' : toYear === '2' ? 'II' : 'III';
+    if (!confirm('Move ' + regs.length + ' student(s) to Year ' + roman + '?\n\nThis updates the live database.')) {
+      return;
+    }
+    if (msg) msg.textContent = 'Updating ' + regs.length + ' students…';
+    try {
+      var data = await api('/api/ops/year-transfer', {
+        method: 'POST',
+        body: { reg_nos: regs, to_year: Number(toYear), note: note || 'Bulk year transfer' },
+      });
+      if (msg) {
+        msg.innerHTML =
+          '<span style="color:#166534;">Updated <strong>' +
+          esc(String(data.updated || 0)) +
+          '</strong> to Year ' +
+          esc(data.to_roman || roman) +
+          (data.failed ? ' · Failed: ' + data.failed : '') +
+          '.</span>';
+      }
+      window.opsYearRoster(pid);
     } catch (e) {
       if (msg) msg.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
     }

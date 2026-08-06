@@ -158,44 +158,140 @@
     );
   }
 
+  function attrEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  }
+
+  /** Ensure analysis markup exists (facResults rebuild can leave empty #frAnalysis). */
+  function ensureAnalysisMarkup(pid) {
+    var host = document.getElementById(pid);
+    if (!host) return false;
+    if (!document.getElementById(pid + '_session')) {
+      host.innerHTML = panelHtml(pid);
+    }
+    return true;
+  }
+
   window.resAnalysisLoad = async function (pid) {
-    var box = document.getElementById(pid);
-    if (!box) return;
+    if (!ensureAnalysisMarkup(pid)) return;
     var sessionEl = document.getElementById(pid + '_session');
     var semEl = document.getElementById(pid + '_sem');
     var branchEl = document.getElementById(pid + '_branch');
     var schemeEl = document.getElementById(pid + '_scheme');
     var sourceEl = document.getElementById(pid + '_source');
+
+    // Capture filter values BEFORE any DOM rewrite
+    var wantSession = sessionEl ? sessionEl.value : '';
+    var wantSem = semEl ? semEl.value : '';
+    var wantBranch = branchEl ? branchEl.value : '';
+    var wantScheme = schemeEl ? schemeEl.value : '';
+    var wantSource = sourceEl ? sourceEl.value : 'both';
+
     var qs = new URLSearchParams();
-    if (sessionEl && sessionEl.value) qs.set('session', sessionEl.value);
-    if (semEl && semEl.value) qs.set('sem', semEl.value);
-    if (branchEl && branchEl.value) qs.set('branch', branchEl.value);
-    if (schemeEl && schemeEl.value) qs.set('scheme', schemeEl.value);
-    if (sourceEl && sourceEl.value) qs.set('source', sourceEl.value);
+    if (wantSession) qs.set('session', wantSession);
+    if (wantSem) qs.set('sem', wantSem);
+    if (wantBranch) qs.set('branch', wantBranch);
+    if (wantScheme) qs.set('scheme', wantScheme);
+    if (wantSource) qs.set('source', wantSource);
 
     var meta = document.getElementById(pid + '_meta');
     var kpis = document.getElementById(pid + '_kpis');
-    if (meta) meta.textContent = 'Loading live analysis…';
+    if (meta) {
+      meta.innerHTML =
+        'Loading… filters: session=<strong>' +
+        esc(wantSession || 'All') +
+        '</strong> sem=<strong>' +
+        esc(wantSem || 'All') +
+        '</strong> scheme=<strong>' +
+        esc(wantScheme || 'All') +
+        '</strong> source=<strong>' +
+        esc(wantSource) +
+        '</strong>';
+    }
     if (kpis) kpis.innerHTML = '';
 
     try {
       var data = await api('/api/results/analysis?' + qs.toString());
-      // populate sessions
+      // Re-read elements after possible panel repair
+      sessionEl = document.getElementById(pid + '_session');
+      semEl = document.getElementById(pid + '_sem');
+      branchEl = document.getElementById(pid + '_branch');
+      schemeEl = document.getElementById(pid + '_scheme');
+      sourceEl = document.getElementById(pid + '_source');
+
+      // Populate sessions without losing selection
       if (sessionEl && Array.isArray(data.sessions)) {
-        var cur = sessionEl.value;
         var opts = '<option value="">All sessions</option>';
+        var hasCur = !wantSession;
         data.sessions.forEach(function (s) {
-          opts += '<option value="' + esc(s) + '"' + (s === cur ? ' selected' : '') + '>' + esc(s) + '</option>';
+          if (s === wantSession) hasCur = true;
+          opts +=
+            '<option value="' +
+            attrEsc(s) +
+            '"' +
+            (s === wantSession ? ' selected' : '') +
+            '>' +
+            esc(s) +
+            '</option>';
         });
+        // Keep a custom session value if API list is incomplete
+        if (wantSession && !hasCur) {
+          opts +=
+            '<option value="' +
+            attrEsc(wantSession) +
+            '" selected>' +
+            esc(wantSession) +
+            '</option>';
+        }
         sessionEl.innerHTML = opts;
-        if (cur) sessionEl.value = cur;
+        try {
+          sessionEl.value = wantSession || '';
+        } catch (e1) { /* ignore */ }
+      }
+      if (semEl) {
+        try {
+          semEl.value = wantSem || '';
+        } catch (e2) { /* ignore */ }
+      }
+      if (branchEl) {
+        try {
+          branchEl.value = wantBranch || '';
+        } catch (e3) { /* ignore */ }
+      }
+      if (schemeEl) {
+        try {
+          schemeEl.value = wantScheme || '';
+        } catch (e4) { /* ignore */ }
+      }
+      if (sourceEl) {
+        try {
+          sourceEl.value = wantSource || 'both';
+        } catch (e5) { /* ignore */ }
       }
 
       var s = data.summary || {};
+      var f = (data.filters && data.filters.applied) || {};
       if (meta) {
         meta.innerHTML =
-          'Live at <strong>' + esc(new Date(data.live_at).toLocaleString()) + '</strong> · ' +
-          'Published rows: ' + (s.published_rows_scanned || 0) + ' · Verified attempts: ' + (s.verified_attempts_scanned || 0) +
+          'Live at <strong>' +
+          esc(new Date(data.live_at).toLocaleString()) +
+          '</strong> · ' +
+          'Applied: session=<strong>' +
+          esc(f.session || wantSession || 'All') +
+          '</strong> · sem=<strong>' +
+          esc(f.sem || wantSem || 'All') +
+          '</strong> · scheme=<strong>' +
+          esc(f.scheme || wantScheme || 'All') +
+          '</strong> · source=<strong>' +
+          esc(f.source || wantSource) +
+          '</strong> · ' +
+          'Published matched: ' +
+          esc(String(f.published_matched != null ? f.published_matched : s.published_rows_scanned || 0)) +
+          ' · Verified matched: ' +
+          esc(String(f.attempts_matched != null ? f.attempts_matched : s.verified_attempts_scanned || 0)) +
           (data.filters && data.filters.hod_locked_branch ? ' · <em>Branch locked (HOD)</em>' : '');
       }
       if (kpis) {
@@ -247,9 +343,12 @@
 
   function ensureFrAnalysisTab() {
     var root = document.getElementById('facResults');
-    if (!root || document.getElementById('frAnalysis')) return;
+    if (!root) return;
     var tabs = root.querySelector('.tabs');
-    if (tabs) {
+    var hasBtn = tabs && Array.prototype.some.call(tabs.querySelectorAll('.tab'), function (t) {
+      return /Result Analysis/i.test(t.textContent || '');
+    });
+    if (tabs && !hasBtn) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tab';
@@ -260,11 +359,17 @@
       };
       tabs.appendChild(btn);
     }
-    var panel = document.createElement('div');
-    panel.id = 'frAnalysis';
-    panel.style.display = 'none';
-    panel.innerHTML = panelHtml('frAnalysis');
-    root.appendChild(panel);
+    var panel = document.getElementById('frAnalysis');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'frAnalysis';
+      panel.style.display = 'none';
+      root.appendChild(panel);
+    }
+    // Always restore markup if empty or missing filters (after facResults rebuild)
+    if (!document.getElementById('frAnalysis_session')) {
+      panel.innerHTML = panelHtml('frAnalysis');
+    }
   }
 
   function ensureExamAnalysisTab() {
