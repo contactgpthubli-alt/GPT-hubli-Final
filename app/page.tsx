@@ -32,7 +32,7 @@ export default function Page() {
           Must load after legacy-app.js (same strategy preserves document order). */}
       <Script src="/legacy-bridge.js?v=20260805t" strategy="afterInteractive" />
       {/* Exam results self-entry, HOD pathways, live fees + multi K2 (manual paid tick) */}
-      <Script src="/legacy-exam.js?v=20260805t" strategy="afterInteractive" />
+      <Script src="/legacy-exam.js?v=20260806c25" strategy="afterInteractive" />
       {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}
       <Script src="/gpth-print.js?v=20260805t" strategy="lazyOnload" />
       <Script src="/legacy-tc.js?v=20260805t" strategy="lazyOnload" />

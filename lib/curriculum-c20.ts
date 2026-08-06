@@ -1,10 +1,11 @@
 /**
  * C-20 diploma curriculum subjects by branch (DTE Karnataka).
  * Only branch-relevant subjects are returned for a student.
- * C-25 (admission 2025-26+): subjects NOT loaded yet — empty until official key list is confirmed.
+ * C-25 (admission 2025-26+): Sem 2 subjects loaded from May 2026 result ledgers (see curriculum-c25.ts).
  */
 
 import { inferAcademicYearFromDate } from "./academic-year"
+import { C25_BY_BRANCH } from "./curriculum-c25"
 
 export type CurriculumSubject = {
   code: string
@@ -266,9 +267,14 @@ export function getCurriculumSubjects(opts: {
   includeYear1ForLateral?: boolean
 }): CurriculumSubject[] {
   const scheme = String(opts.scheme || "").toUpperCase()
-  // C-25 subject key list not confirmed yet — return empty (free-type / wait for official list).
-  if (scheme !== "C-20") return []
-  let list = C20_BY_BRANCH[opts.branch] || []
+  let list: CurriculumSubject[] = []
+  if (scheme === "C-20") {
+    list = C20_BY_BRANCH[opts.branch] || []
+  } else if (scheme === "C-25") {
+    list = C25_BY_BRANCH[opts.branch] || []
+  } else {
+    return []
+  }
   if (opts.entryType === "lateral" && !opts.includeYear1ForLateral) {
     list = list.filter((x) => !x.year1_only)
   }

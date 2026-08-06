@@ -83,14 +83,19 @@
   function ensureStuResultsPanel() {
     var panel = document.getElementById('stuResults');
     if (!panel) return;
-    if (panel.getAttribute('data-exam-live') === '1') return;
+    // Rebuild if first paint OR older markup without official results card
+    if (panel.getAttribute('data-exam-live') === '1' && document.getElementById('examOfficialHost')) return;
     panel.setAttribute('data-exam-live', '1');
     panel.innerHTML =
-      '<div class="info-box">📊 <strong>My Exam Results</strong> — Enter pass/fail &amp; grade from your marksheet. ' +
-      'Subjects follow your scheme: admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
-      '<strong>2025-26+ = C-25</strong> (I &amp; II Year — subject list not loaded yet; use free entry when available). ' +
-      'Final year (III) is still C-20. ITI/PUC lateral skip Year-1. HOD / Principal / Exam verify. Verified rows lock.</div>' +
+      '<div class="info-box">📊 <strong>My Exam Results</strong> — Official ledger results appear below when published. ' +
+      'You can also enter pass/fail &amp; grade from your marksheet for verification. ' +
+      'Scheme: admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
+      '<strong>2025-26+ = C-25</strong> (Sem 2 subjects loaded from May 2026 ledger). ' +
+      'Final year (III) is still C-20 until 2027-28. ITI/PUC lateral skip Year-1. HOD / Principal / Exam verify. Verified rows lock.</div>' +
       '<div id="examStuMeta" style="padding:8px 4px;font-size:0.82rem;opacity:.85;"></div>' +
+      '<div class="card" style="margin-bottom:14px;" id="examOfficialCard">' +
+      '<div class="card-hd"><h3>Official published results</h3></div>' +
+      '<div id="examOfficialHost" style="padding:12px 16px;"><p style="opacity:.7;">Loading…</p></div></div>' +
       '<div class="card" style="margin-bottom:14px;">' +
       '<div class="card-hd"><h3>Enter / update results</h3>' +
       '<div class="card-acts">' +
@@ -116,6 +121,59 @@
 
   window._examStuState = { curriculum: [], attempts: [], student: null, effective: [] };
 
+  window.examStuPaintOfficial = function (rows) {
+    var host = document.getElementById('examOfficialHost');
+    if (!host) return;
+    rows = rows || [];
+    if (!rows.length) {
+      host.innerHTML =
+        '<p style="opacity:.7;">No official semester results published yet. ' +
+        'When Exam Section publishes the ledger, grades appear here automatically.</p>';
+      return;
+    }
+    var html = '';
+    rows.forEach(function (r) {
+      var subs = Array.isArray(r.subjects) ? r.subjects : [];
+      html +=
+        '<div style="margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">' +
+        '<div style="padding:10px 12px;background:#eef4ff;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;">' +
+        '<strong>Sem ' + esc(String(r.sem)) + '</strong>' +
+        '<span>· ' + esc(r.session || '') + '</span>' +
+        (r.sgpa != null ? '<span>· SGPA <strong>' + esc(String(r.sgpa)) + '</strong></span>' : '') +
+        '<span class="badge ' +
+        (String(r.result || '').toLowerCase() === 'pass' ? 'active' : 'pending') +
+        '">' +
+        esc(r.result || '—') +
+        '</span></div>';
+      if (!subs.length) {
+        html += '<p style="padding:10px 12px;opacity:.7;">No subject breakdown.</p>';
+      } else {
+        html +=
+          '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr>' +
+          '<th style="text-align:left;padding:6px 10px;">Code</th>' +
+          '<th style="text-align:left;padding:6px 10px;">Subject</th>' +
+          '<th style="padding:6px 8px;">Credits</th>' +
+          '<th style="padding:6px 8px;">Grade</th></tr></thead><tbody>';
+        subs.forEach(function (s) {
+          html +=
+            '<tr style="border-top:1px solid var(--border);">' +
+            '<td style="padding:6px 10px;font-family:monospace;font-size:0.75rem;">' +
+            esc(s.code || '') +
+            '</td><td style="padding:6px 10px;">' +
+            esc(s.name || '') +
+            '</td><td style="padding:6px 8px;text-align:center;">' +
+            esc(String(s.credits != null ? s.credits : '—')) +
+            '</td><td style="padding:6px 8px;text-align:center;font-weight:700;">' +
+            esc(s.grade || '—') +
+            '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      html += '</div>';
+    });
+    host.innerHTML = html;
+  };
+
   window.examStuReload = async function () {
     ensureStuResultsPanel();
     var meta = document.getElementById('examStuMeta');
@@ -123,8 +181,12 @@
     var list = document.getElementById('examStuList');
     try {
       SESSIONS = buildExamSessions(); // roll exam-session list into future AYs automatically
+      // Official published ledger (results table) + self-entry attempts in parallel
+      var publishedP = api('/api/results').catch(function () { return { results: [] }; });
       var data = await api('/api/exam/attempts');
       window._examStuState = data;
+      var pub = await publishedP;
+      window.examStuPaintOfficial(Array.isArray(pub.results) ? pub.results : []);
       var st = data.student || {};
       var term = calendarTermInfo();
       var parity = data.term_parity || term.parity;
@@ -192,6 +254,23 @@
         : semesterFromStudyYear(st.current_study_year, parity);
     var sem = Number((document.getElementById('examStuSem') || {}).value || 1);
     var cur = (state.curriculum || []).filter(function (s) { return Number(s.semester) === sem; });
+    // If curriculum empty for this sem but attempts exist, still show those subjects
+    if (!cur.length) {
+      var byCode = {};
+      (state.attempts || []).forEach(function (a) {
+        if (Number(a.semester) !== sem) return;
+        if (!byCode[a.subject_code]) {
+          byCode[a.subject_code] = {
+            code: a.subject_code,
+            name: a.subject_name || a.subject_code,
+            semester: sem,
+          };
+        }
+      });
+      cur = Object.keys(byCode)
+        .sort()
+        .map(function (k) { return byCode[k]; });
+    }
     var hint = document.getElementById('examStuSemHint');
     if (hint) {
       var bits = [];
