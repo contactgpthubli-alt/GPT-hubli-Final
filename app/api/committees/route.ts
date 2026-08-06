@@ -1,9 +1,11 @@
 import { query } from "@/lib/db"
-import { requireRole, unauthorized, badRequest } from "@/lib/auth"
+import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/auth"
 import { COMMITTEE_WRITERS } from "@/lib/roles"
 
-// Committees appear on the public landing page.
+// Private CMS only — committee member mobiles must not be public.
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return unauthorized()
   const { rows } = await query(
     `SELECT c.id, c.name, c.icon, c.color,
             COALESCE(json_agg(json_build_object('id', m.id, 'name', m.name, 'role', m.role, 'dept', m.dept,

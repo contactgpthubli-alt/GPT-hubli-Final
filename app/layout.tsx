@@ -45,6 +45,10 @@ html.cms-login-mode #dbAdmin:not(.show),
 html.cms-login-mode #dbStudent:not(.show),
 html.cms-login-mode #dbFaculty:not(.show),
 html.cms-login-mode #dbPrincipal:not(.show) { display:none!important; }
+#dbAdmin[data-auth-locked="1"],#dbStudent[data-auth-locked="1"],
+#dbFaculty[data-auth-locked="1"],#dbPrincipal[data-auth-locked="1"] {
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+}
 /* Soft shell while scripts load */
 #cmsLoginGate .cms-msg-loading { color:#64748b; font-weight:600; font-size:0.85rem; text-align:center; padding:8px 0 4px; }
 `,

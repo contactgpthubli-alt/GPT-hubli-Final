@@ -1,9 +1,11 @@
 import { query } from "@/lib/db"
-import { requireRole, unauthorized, badRequest } from "@/lib/auth"
+import { getCurrentUser, requireRole, unauthorized, badRequest } from "@/lib/auth"
 import { GALLERY_WRITERS } from "@/lib/roles"
 
-// Gallery is publicly viewable (it appears on the landing page).
+// Private CMS only — require an authenticated session.
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return unauthorized()
   const { rows } = await query("SELECT * FROM gallery_items ORDER BY created_at DESC")
   return Response.json({ items: rows })
 }

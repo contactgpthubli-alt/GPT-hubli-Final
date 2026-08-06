@@ -2326,6 +2326,15 @@ function __initGptBridge() {
   window.updateViewingAsBadge = updateViewingAsBadge;
 
   function openDashboardFor(user) {
+    if (!user || !user.id || !user.role) {
+      console.warn('[security] openDashboardFor refused — no verified user');
+      setCurrentUser(null);
+      if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
+      if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+      return;
+    }
+    // Must set currentUser BEFORE any shell open so showSec/login guards pass
+    setCurrentUser(user);
     var role = user.role;
     if (user.reg_no) { window.STU_REG_NO = user.reg_no; } // keep student modules pointed at the real logged-in student
     clearAcmAdminScope();
@@ -2337,6 +2346,7 @@ function __initGptBridge() {
       try { ensureAccountApprovalPanels(); } catch (e) { /* ignore */ }
     }
     bypass = true;
+    window.__allowDashboardOpen = true;
     try {
       if (role === 'acm') {
         // ACM uses Root Admin shell UI, then menus are limited to Approvals / Students / ACM
@@ -2367,7 +2377,13 @@ function __initGptBridge() {
           }, 50);
         }
       } else {
-        origDemoLogin(role); // faculty-family roles configure the faculty sidebar
+        // Faculty-family: original demoLogin only configures sidebar UI (no network) —
+        // safe here because currentUser is already set from server session.
+        if (typeof origDemoLogin === 'function') {
+          origDemoLogin(role);
+        } else {
+          origLogin('faculty');
+        }
         if (role === 'hod') {
           setTimeout(function () {
             ensureAccountApprovalPanels();
@@ -2380,12 +2396,25 @@ function __initGptBridge() {
             });
             var hodNav = document.getElementById('facUserApprovalsNav');
             if (hodNav) hodNav.style.display = '';
-            // HOD must not see Teaching Staff Profile (My Profile form)
             hideHodTeachingStaffProfile();
           }, 80);
         }
       }
-    } finally { bypass = false; }
+    } finally {
+      bypass = false;
+      window.__allowDashboardOpen = false;
+    }
+    // Restore deep-link section only after authenticated open
+    try {
+      var sec = new URL(window.location.href).searchParams.get('section');
+      if (sec && typeof window.showSec === 'function') {
+        setTimeout(function () {
+          if (!window.currentUser) return;
+          var link = document.querySelector('.sl[onclick*="' + sec + '"], .sl[onclick*="\'' + sec + '\'"]');
+          window.showSec(sec, link || null);
+        }, 120);
+      }
+    } catch (eSec) { /* ignore */ }
     if (user.force_password_change) {
       alert('🔐 For security, please change your default password now (Profile → Change Password).');
     }
@@ -2801,12 +2830,43 @@ function __initGptBridge() {
 
   window.logout = function () {
     clearAcmAdminScope();
-    api.post('/api/auth/logout');
+    try { clearExamAdminScope(); } catch (e) { /* ignore */ }
+    api.post('/api/auth/logout').catch(function () { /* ignore */ });
     setCurrentUser(null);
-    origLogout();
+    window.__allowDashboardOpen = false;
+    if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
+    try { origLogout(); } catch (e2) { /* ignore */ }
     // Return to private CMS login (not the old public homepage)
     if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+    try {
+      var url = new URL(window.location.href);
+      ;['section', 'ap_branch', 'ap_year', 'ap_adm_year', 'ap_q', 'ap_type'].forEach(function (k) {
+        url.searchParams.delete(k);
+      });
+      window.history.replaceState({}, '', url.pathname + (url.search || ''));
+    } catch (e3) { /* ignore */ }
   };
+
+  /** Session heartbeat — if cookie expires or is cleared, force lock immediately. */
+  setInterval(async function () {
+    try {
+      function isShown(id) {
+        var el = document.getElementById(id);
+        return !!(el && el.classList && el.classList.contains('show'));
+      }
+      var dashOpen = isShown('dbAdmin') || isShown('dbFaculty') || isShown('dbPrincipal') || isShown('dbStudent');
+      if (!dashOpen && !window.currentUser) return;
+      var me = await apiReqQuiet('/api/auth/me');
+      if (!me || !me.user) {
+        if (window.currentUser || dashOpen) {
+          console.warn('[security] Session lost — locking portal');
+          setCurrentUser(null);
+          if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
+          if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+        }
+      }
+    } catch (e) { /* ignore network blips */ }
+  }, 45000);
 
   /** Student (and any role) self-service password change via /api/auth/change-password */
   window.studentChangePassword = async function () {
@@ -5013,13 +5073,16 @@ function __initGptBridge() {
     hideDemoBarIfDisabled();
     try { installCmsLoginGate(); } catch (e2) { /* ignore */ }
     /* Do NOT call hydratePublic() — old public homepage content is unused and freezes boot */
+    // Always lock shells until /api/auth/me proves a session
+    if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
+    setCurrentUser(null);
     var me = null;
     try {
       me = await apiReqQuiet('/api/auth/me');
     } catch (eMe) {
       me = null;
     }
-    if (me && me.user) {
+    if (me && me.user && me.user.id) {
       window.hideCmsLoginGate && window.hideCmsLoginGate();
       openDashboardFor(me.user);
       // afterAuth is heavy — keep UI responsive
@@ -5029,7 +5092,19 @@ function __initGptBridge() {
         console.error('[bridge] afterAuth', eAuth);
       }
     } else {
+      setCurrentUser(null);
+      if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
       window.showCmsLoginGate && window.showCmsLoginGate();
+      // Strip deep-link section params when unauthenticated (cannot "open" account via URL alone)
+      try {
+        var url = new URL(window.location.href);
+        if (url.searchParams.has('section') || url.searchParams.has('ap_branch')) {
+          ;['section', 'ap_branch', 'ap_year', 'ap_adm_year', 'ap_q', 'ap_type'].forEach(function (k) {
+            url.searchParams.delete(k);
+          });
+          window.history.replaceState({}, '', url.pathname + (url.search || ''));
+        }
+      } catch (eUrl) { /* ignore */ }
     }
   }, 0);
 }

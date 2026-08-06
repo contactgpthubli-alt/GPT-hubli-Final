@@ -25,23 +25,81 @@ document.querySelectorAll('.overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
 
+// ===== AUTH GATE (client) — dashboards never open without a server session user =====
+function isAuthenticatedPortal() {
+  return !!(window.currentUser && window.currentUser.id && window.currentUser.role);
+}
+function lockAllDashboards() {
+  ;['dbAdmin', 'dbStudent', 'dbFaculty', 'dbPrincipal'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('show');
+    el.setAttribute('data-auth-locked', '1');
+    el.setAttribute('aria-hidden', 'true');
+  });
+}
+function unlockDashboardShell(role) {
+  var map = { admin: 'dbAdmin', student: 'dbStudent', faculty: 'dbFaculty', principal: 'dbPrincipal' };
+  var id = map[role];
+  if (!id) return;
+  ;['dbAdmin', 'dbStudent', 'dbFaculty', 'dbPrincipal'].forEach(function (did) {
+    var el = document.getElementById(did);
+    if (!el) return;
+    if (did === id) {
+      el.removeAttribute('data-auth-locked');
+      el.removeAttribute('aria-hidden');
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+      el.setAttribute('data-auth-locked', '1');
+      el.setAttribute('aria-hidden', 'true');
+    }
+  });
+}
+window.isAuthenticatedPortal = isAuthenticatedPortal;
+window.lockAllDashboards = lockAllDashboards;
+window.unlockDashboardShell = unlockDashboardShell;
+
 // ===== LOGIN =====
+// NEVER open a dashboard from this function alone — bridge must set currentUser first.
+// Kept for openDashboardFor(bypass) after a verified server session only.
 function login(role) {
+  if (!window.__allowDashboardOpen && !isAuthenticatedPortal()) {
+    console.warn('[security] Blocked unauthenticated login("' + role + '")');
+    lockAllDashboards();
+    if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+    return;
+  }
   document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
   document.getElementById('landingPage').style.display = 'none';
-  const map = { admin:'dbAdmin', student:'dbStudent', faculty:'dbFaculty', principal:'dbPrincipal' };
-  document.getElementById(map[role]).classList.add('show');
+  unlockDashboardShell(role);
 }
 
 function logout() {
-  ['dbAdmin','dbStudent','dbFaculty','dbPrincipal'].forEach(id => document.getElementById(id).classList.remove('show'));
+  lockAllDashboards();
+  window.currentUser = null;
+  try {
+    var url = new URL(window.location.href);
+    ;['section', 'ap_branch', 'ap_year', 'ap_adm_year', 'ap_q', 'ap_type'].forEach(function (k) {
+      url.searchParams.delete(k);
+    });
+    window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
+  } catch (e) { /* ignore */ }
   document.getElementById('landingPage').style.display = 'block';
-  if (npOpen) toggleNP();
-  window.scrollTo(0,0);
+  if (typeof npOpen !== 'undefined' && npOpen) toggleNP();
+  window.scrollTo(0, 0);
+  if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
 }
 
 // ===== SHOW SECTIONS =====
 function showSec(secId, linkEl) {
+  // Deep-link / menu clicks without a real session must not reveal staff shells
+  if (!isAuthenticatedPortal()) {
+    console.warn('[security] Blocked showSec without session:', secId);
+    lockAllDashboards();
+    if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+    return;
+  }
   const el = document.getElementById(secId);
   if (!el) return;
   // Check if inside db-content first
@@ -1680,6 +1738,8 @@ function saveHODResult() {
 
 // Initialize result table on admin login
 document.addEventListener('DOMContentLoaded', () => {
+  // Always start locked until bridge restores a real session
+  try { lockAllDashboards(); } catch (e) { /* ignore */ }
   renderResultMasterTable(resultDB);
   initPermMatrix();
 });
@@ -2197,13 +2257,13 @@ function initPermMatrix() {
 }
 // ===== AUTO-LOGIN (Demo Credentials Page Integration) =====
 window.addEventListener('load', function() {
-  const hash = window.location.hash;
-  if (hash && hash.startsWith('#demo_')) {
-    const role = hash.replace('#demo_', '');
-    if (['admin','student','faculty','principal'].includes(role)) {
-      setTimeout(() => login(role), 200);
+  // SECURITY: never auto-open dashboards from URL hash (#demo_*). Demo login is API-gated only.
+  try {
+    if (window.location.hash && window.location.hash.indexOf('#demo_') === 0) {
+      history.replaceState({}, '', window.location.pathname + window.location.search);
     }
-  }
+  } catch (e) { /* ignore */ }
+  try { lockAllDashboards(); } catch (e2) { /* ignore */ }
 });
 
 // ===== DEMO LOGIN — all individual roles =====

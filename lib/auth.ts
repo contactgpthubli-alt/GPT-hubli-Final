@@ -72,9 +72,14 @@ export async function createSession(userId: number): Promise<void> {
     expiresAt,
   ])
   const cookieStore = await cookies()
+  // Always mark Secure on Vercel / production HTTPS so session is never sent over plain HTTP
+  const secure =
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL === "1" ||
+    process.env.COOKIE_SECURE === "true"
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/",
     expires: expiresAt,

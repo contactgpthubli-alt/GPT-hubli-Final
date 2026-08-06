@@ -1162,6 +1162,15 @@ body.cms-login-mode #dbFaculty:not(.show),
 body.cms-login-mode #dbPrincipal:not(.show) {
   display: none !important;
 }
+/* Auth lock: even if someone toggles .show via DevTools without a session */
+#dbAdmin[data-auth-locked="1"],
+#dbStudent[data-auth-locked="1"],
+#dbFaculty[data-auth-locked="1"],
+#dbPrincipal[data-auth-locked="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 /* Create-account modals must sit above the CMS login gate */
 html.cms-login-mode .overlay,
 body.cms-login-mode .overlay {

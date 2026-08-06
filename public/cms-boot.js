@@ -16,8 +16,23 @@
     /* ignore */
   }
 
+  function lockShells() {
+    try {
+      ;["dbAdmin", "dbStudent", "dbFaculty", "dbPrincipal"].forEach(function (id) {
+        var el = document.getElementById(id)
+        if (!el) return
+        el.classList.remove("show")
+        el.setAttribute("data-auth-locked", "1")
+        el.setAttribute("aria-hidden", "true")
+      })
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function injectGate() {
     try {
+      lockShells()
       if (document.getElementById("cmsLoginGate")) return;
       var landing = document.getElementById("landingPage");
       if (!landing) return;
@@ -66,4 +81,8 @@
   } else {
     injectGate();
   }
+  // Re-lock until real session opens a shell (prevents URL-only shell access)
+  setTimeout(lockShells, 0);
+  setTimeout(lockShells, 50);
+  setTimeout(lockShells, 200);
 })();
