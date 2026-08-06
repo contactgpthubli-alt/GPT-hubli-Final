@@ -121,24 +121,34 @@ export const C20_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
     s(6, "20CS61R", "Science and Research Pathway – Research Project", { pathway: "research" }),
     s(6, "20CS61E", "Entrepreneurship pathway – MVP / Incubation", { pathway: "entrepreneurship" }),
   ],
+  // ECE Sem 1–4 from BTE Provisional Marks Cards (reg 171EC24012, Hubballi)
   ECE: [
+    // --- Semester I (Nov/Dec) ---
     s(1, "20EC11T", "Digital Electronics", { year1_only: true }),
-    ...SHARED_Y1_BASE.map((x) => s(1, x.code, x.name, { year1_only: true })),
-    s(1, "20EC01P", "Fundamentals of Electrical & Electronics Engineering", { year1_only: true }),
+    s(1, "20SC02P", "Statistics and Analytics", { year1_only: true }),
     s(1, "20ME02P", "Computer Aided Engineering Graphics", { year1_only: true }),
-    s(2, "20EC21P", "Electronics Components and Devices (ECD)", { year1_only: true }),
+    s(1, "20EC01P", "Fundamentals of Electrical & Electronics Engg", { year1_only: true }),
+    s(1, "20AU01T", "Environmental Sustainability", { year1_only: true, is_audit: true }),
+    // --- Semester II (Apr/May) ---
     s(2, "20PM01T", "Project Management Skills", { year1_only: true }),
-    s(2, "20KA21T", "Sahitya Sinchana / Balake Kannada", { is_audit: true, year1_only: true }),
+    s(2, "20SC01T", "Engineering Mathematics", { year1_only: true }),
+    s(2, "20EG01P", "Communication Skills", { year1_only: true }),
+    s(2, "20CS01P", "IT Skills", { year1_only: true }),
+    s(2, "20EC21P", "Electronic Component & Devices", { year1_only: true }),
+    s(2, "20KA21T", "Sahithya Sinchana-1 / Balake Kannada-1", { is_audit: true, year1_only: true }),
+    // --- Semester III ---
     s(3, "20EC31P", "Analog Electronics"),
     s(3, "20EC32P", "Logic Design using Verilog"),
     s(3, "20EC33P", "Communication Systems"),
-    s(3, "20EC34P", "Electronic Measurements and Testing Techniques"),
-    s(3, "20KA31T", "Sahitya Sinchana-II / Balake Kannada-II", { is_audit: true }),
+    s(3, "20EC34P", "Electronic Measurements & Testing Techniques"),
+    s(3, "20KA31T", "Sahithya Sinchana-2 / Balake Kannada-2", { is_audit: true }),
+    // --- Semester IV ---
     s(4, "20EC41P", "PCB Design & Fabrication"),
     s(4, "20EC42P", "Wireless Communication"),
     s(4, "20EC43P", "Embedded C Programming"),
     s(4, "20EC44P", "Industrial Automation"),
     s(4, "20EC45T", "Indian Constitution", { is_audit: true }),
+    // --- Semester V–VI pathways ---
     s(5, "20EC51I", "Drone Technologies", { pathway: "specialization" }),
     s(5, "20EC52I", "Industrial Internet of Things (IIoT)", { pathway: "specialization" }),
     s(5, "20EC53I", "Automation & Robotics", { pathway: "specialization" }),
