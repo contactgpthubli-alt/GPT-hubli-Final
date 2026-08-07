@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs"
 import { query } from "./db"
 
 const SESSION_COOKIE = "gpth_session"
-const SESSION_DAYS = 7
+/** Idle timeout: session dies after this many minutes without user activity. */
+export const SESSION_IDLE_MINUTES = 20
+const SESSION_IDLE_MS = SESSION_IDLE_MINUTES * 60 * 1000
 
 export interface SessionUser {
   id: number
@@ -18,6 +20,25 @@ export interface SessionUser {
   status: string
   force_password_change: boolean
   is_demo: boolean
+}
+
+function sessionCookieOptions(expiresAt: Date) {
+  // Always mark Secure on Vercel / production HTTPS so session is never sent over plain HTTP
+  const secure =
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL === "1" ||
+    process.env.COOKIE_SECURE === "true"
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiresAt,
+  }
+}
+
+function idleExpiryDate(fromMs = Date.now()): Date {
+  return new Date(fromMs + SESSION_IDLE_MS)
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -65,25 +86,44 @@ export async function createSession(userId: number): Promise<void> {
   }
 
   const token = randomBytes(32).toString("hex")
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000)
+  // Sliding idle window: expires 20 minutes after login / last activity touch
+  const expiresAt = idleExpiryDate()
   await query("INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, $3)", [
     token,
     uid,
     expiresAt,
   ])
   const cookieStore = await cookies()
-  // Always mark Secure on Vercel / production HTTPS so session is never sent over plain HTTP
-  const secure =
-    process.env.NODE_ENV === "production" ||
-    process.env.VERCEL === "1" ||
-    process.env.COOKIE_SECURE === "true"
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    expires: expiresAt,
-  })
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt))
+}
+
+/**
+ * Extend the current session idle deadline (call only on real user activity).
+ * Background heartbeats must NOT call this — otherwise idle logout never fires.
+ */
+export async function touchSession(): Promise<boolean> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get(SESSION_COOKIE)?.value
+  if (!token) return false
+
+  const expiresAt = idleExpiryDate()
+  const { rowCount } = await query(
+    `UPDATE sessions SET expires_at = $2
+      WHERE token = $1 AND expires_at > now()`,
+    [token, expiresAt],
+  )
+  if (!rowCount) {
+    // Expired or unknown — clear cookie so client can re-login cleanly
+    try {
+      cookieStore.delete(SESSION_COOKIE)
+    } catch {
+      /* ignore */
+    }
+    return false
+  }
+
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt))
+  return true
 }
 
 export async function destroySession(): Promise<void> {

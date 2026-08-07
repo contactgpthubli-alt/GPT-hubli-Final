@@ -2343,6 +2343,11 @@ function __initGptBridge() {
     }
     // Must set currentUser BEFORE any shell open so showSec/login guards pass
     setCurrentUser(user);
+    // Start 20-minute idle auto-logout (login + session restore)
+    try {
+      if (typeof window.__gpthStartIdleWatch === 'function') window.__gpthStartIdleWatch();
+      else if (typeof startIdleWatch === 'function') startIdleWatch();
+    } catch (eIdle) { /* ignore */ }
     var role = user.role;
     if (user.reg_no) { window.STU_REG_NO = user.reg_no; } // keep student modules pointed at the real logged-in student
     clearAcmAdminScope();
@@ -2875,6 +2880,7 @@ function __initGptBridge() {
   };
 
   window.logout = function () {
+    stopIdleWatch();
     clearAcmAdminScope();
     try { clearExamAdminScope(); } catch (e) { /* ignore */ }
     api.post('/api/auth/logout').catch(function () { /* ignore */ });
@@ -2893,26 +2899,157 @@ function __initGptBridge() {
     } catch (e3) { /* ignore */ }
   };
 
-  /** Session heartbeat — if cookie expires or is cleared, force lock immediately. */
+  /* ---------- Idle auto-logout (20 minutes without user activity) ---------- */
+  var IDLE_MS = 20 * 60 * 1000;
+  var IDLE_TOUCH_THROTTLE_MS = 60 * 1000; // server sliding refresh at most once/min
+  var idleLastActivity = Date.now();
+  var idleLastTouchAt = 0;
+  var idleTimer = null;
+  var idleWatching = false;
+  var idleListenersBound = false;
+  var idleLoggingOut = false;
+
+  function isDashboardOpen() {
+    function isShown(id) {
+      var el = document.getElementById(id);
+      return !!(el && el.classList && el.classList.contains('show'));
+    }
+    return isShown('dbAdmin') || isShown('dbFaculty') || isShown('dbPrincipal') || isShown('dbStudent');
+  }
+
+  function forceIdleLogout(reason) {
+    if (idleLoggingOut) return;
+    if (!window.currentUser && !isDashboardOpen()) return;
+    idleLoggingOut = true;
+    console.warn('[security]', reason || 'Idle timeout — logging out');
+    try {
+      if (!window.__gpthIdleNoticeShown) {
+        window.__gpthIdleNoticeShown = true;
+        try {
+          alert('Your session expired after 20 minutes of inactivity. Please sign in again.');
+        } catch (a) { /* ignore */ }
+        setTimeout(function () { window.__gpthIdleNoticeShown = false; }, 2000);
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      if (typeof window.logout === 'function') window.logout();
+      else {
+        stopIdleWatch();
+        setCurrentUser(null);
+        if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
+        if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+      }
+    } finally {
+      idleLoggingOut = false;
+    }
+  }
+
+  function noteUserActivity() {
+    if (!idleWatching) return;
+    if (!window.currentUser && !isDashboardOpen()) return;
+    idleLastActivity = Date.now();
+    // Sliding server session — throttled so we don't hit API on every mouse move
+    if (Date.now() - idleLastTouchAt >= IDLE_TOUCH_THROTTLE_MS) {
+      idleLastTouchAt = Date.now();
+      fetch('/api/auth/touch', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+        .then(function (r) {
+          if (r.status === 401) forceIdleLogout('Session expired on touch');
+        })
+        .catch(function () { /* network blip */ });
+    }
+  }
+
+  function checkIdle() {
+    if (!idleWatching) return;
+    if (!window.currentUser && !isDashboardOpen()) return;
+    if (Date.now() - idleLastActivity >= IDLE_MS) {
+      forceIdleLogout('Idle for 20 minutes');
+    }
+  }
+
+  function startIdleWatch() {
+    idleLastActivity = Date.now();
+    idleLastTouchAt = 0;
+    idleLoggingOut = false;
+    idleWatching = true;
+    if (!idleListenersBound) {
+      idleListenersBound = true;
+      ;['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'wheel'].forEach(function (ev) {
+        document.addEventListener(ev, noteUserActivity, { capture: true, passive: true });
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') checkIdle();
+      });
+    }
+    if (idleTimer) clearInterval(idleTimer);
+    idleTimer = setInterval(checkIdle, 15000);
+    noteUserActivity();
+  }
+
+  function stopIdleWatch() {
+    idleWatching = false;
+    if (idleTimer) {
+      clearInterval(idleTimer);
+      idleTimer = null;
+    }
+  }
+
+  window.__gpthStartIdleWatch = startIdleWatch;
+  window.__gpthStopIdleWatch = stopIdleWatch;
+  window.__gpthNoteActivity = noteUserActivity;
+
+  /** Session heartbeat — if cookie expires or is cleared, force lock immediately.
+   *  Does NOT extend the session (idle timeout still applies). */
   setInterval(async function () {
     try {
-      function isShown(id) {
-        var el = document.getElementById(id);
-        return !!(el && el.classList && el.classList.contains('show'));
-      }
-      var dashOpen = isShown('dbAdmin') || isShown('dbFaculty') || isShown('dbPrincipal') || isShown('dbStudent');
+      var dashOpen = isDashboardOpen();
       if (!dashOpen && !window.currentUser) return;
+      // Client-side idle check between heartbeats
+      if (Date.now() - idleLastActivity >= IDLE_MS) {
+        forceIdleLogout('Idle for 20 minutes');
+        return;
+      }
       var me = await apiReqQuiet('/api/auth/me');
       if (!me || !me.user) {
         if (window.currentUser || dashOpen) {
-          console.warn('[security] Session lost — locking portal');
-          setCurrentUser(null);
-          if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
-          if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
+          forceIdleLogout('Session lost');
         }
+      } else if (!idleWatching) {
+        startIdleWatch();
       }
     } catch (e) { /* ignore network blips */ }
   }, 45000);
+
+  /** Disable browser "Save password?" on all login / password inputs in this portal. */
+  function hardenPasswordFields(root) {
+    try {
+      var scope = root || document;
+      scope.querySelectorAll('input[type="password"], input[type="text"][id*="Login"], input[id*="Pw"], input[id*="Password"]').forEach(function (inp) {
+        try {
+          inp.setAttribute('autocomplete', inp.type === 'password' ? 'new-password' : 'off');
+          inp.setAttribute('data-lpignore', 'true');
+          inp.setAttribute('data-1p-ignore', 'true');
+          inp.setAttribute('data-form-type', 'other');
+          if (!inp.getAttribute('name') || /password|user|email|login/i.test(inp.getAttribute('name') || '')) {
+            if (inp.type === 'password') inp.setAttribute('name', 'gpth_pw_' + (inp.id || 'x'));
+            else inp.setAttribute('name', 'gpth_id_' + (inp.id || 'x'));
+          }
+        } catch (e1) { /* ignore */ }
+      });
+      scope.querySelectorAll('form').forEach(function (f) {
+        try { f.setAttribute('autocomplete', 'off'); } catch (e2) { /* ignore */ }
+      });
+    } catch (e) { /* ignore */ }
+  }
+  hardenPasswordFields(document);
+  setTimeout(function () { hardenPasswordFields(document); }, 500);
+  setTimeout(function () { hardenPasswordFields(document); }, 2000);
 
   /** Student (and any role) self-service password change via /api/auth/change-password */
   window.studentChangePassword = async function () {
@@ -4907,12 +5044,14 @@ function __initGptBridge() {
       '<button type="button" class="cms-role" data-cms-role="principal">👔 Principal</button>' +
       '<button type="button" class="cms-role" data-cms-role="admin">⚙️ Admin / ACM</button>' +
       '</div>' +
+      '<form id="cmsLoginForm" autocomplete="off" onsubmit="return false;">' +
       '<div class="cms-fg"><label>Username / Register No. / Email</label>' +
-      '<input type="text" id="cmsLoginId" autocomplete="username" placeholder="e.g. 171CS15003 or email" /></div>' +
+      '<input type="text" id="cmsLoginId" name="gpth_login_id" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="e.g. 171CS15003 or email" /></div>' +
       '<div class="cms-fg"><label>Password</label>' +
-      '<input type="password" id="cmsLoginPw" autocomplete="current-password" placeholder="Enter password" /></div>' +
+      '<input type="password" id="cmsLoginPw" name="gpth_login_pw" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="Enter password" /></div>' +
       '<div class="cms-msg" id="cmsLoginMsg"></div>' +
       '<button type="button" class="cms-submit" id="cmsLoginBtn">Sign in →</button>' +
+      '</form>' +
       '<div class="cms-foot">' +
       'Private portal — authorised users only.<br>' +
       '<a href="/student" style="display:inline-block;margin:6px 0 2px;font-weight:700;">📱 Open Student Mobile App</a><br>' +
@@ -4989,9 +5128,11 @@ function __initGptBridge() {
           return;
         }
         if (pwEl) pwEl.value = '';
+        if (idEl) idEl.value = '';
         window.hideCmsLoginGate();
         openDashboardFor(res.user);
         await afterAuth(res.user);
+        if (typeof startIdleWatch === 'function') startIdleWatch();
       } catch (e) {
         setMsg('Network error. Please try again.', true);
         console.error('[cms-login]', e);

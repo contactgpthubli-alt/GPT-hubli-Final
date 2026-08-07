@@ -30,7 +30,7 @@ export default function Page() {
       <Script src="/legacy-app.js?v=20260806mgmt" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order). */}
-      <Script src="/legacy-bridge.js?v=20260806resfix" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260807idle20" strategy="afterInteractive" />
       {/* Exam results self-entry, HOD pathways, live fees + multi K2 (manual paid tick) */}
       <Script src="/legacy-exam.js?v=20260806c25" strategy="afterInteractive" />
       {/* Live academic dashboard, student category, branch transfer (Exam/ACM/HOD/Principal/Admin) */}

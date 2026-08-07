@@ -439,9 +439,16 @@ function clearPortalMode() {
   }
 }
 
+/** Idle auto-logout: 20 minutes without real user activity. */
+const IDLE_MS = 20 * 60 * 1000
+const IDLE_TOUCH_THROTTLE_MS = 60 * 1000
+
 export default function StudentApp() {
   const [booting, setBooting] = useState(true)
   const [user, setUser] = useState<User | null>(null)
+  const idleLastActivityRef = useRef(Date.now())
+  const idleLastTouchRef = useRef(0)
+  const idleLogoutLockRef = useRef(false)
   const [tab, setTab] = useState<Tab>("home")
   const [moreView, setMoreView] = useState<MoreView>("menu")
   /** After login: choose Student vs Parent view (same credentials). */
@@ -863,6 +870,113 @@ export default function StudentApp() {
     if (user && !requiresSetup) loadDashboard()
   }, [user, requiresSetup, loadDashboard])
 
+  // 20-minute idle auto-logout (student mobile + web)
+  useEffect(() => {
+    if (!user) return
+
+    idleLastActivityRef.current = Date.now()
+    idleLastTouchRef.current = 0
+    idleLogoutLockRef.current = false
+
+    let cancelled = false
+
+    async function forceIdleLogout() {
+      if (cancelled || idleLogoutLockRef.current) return
+      idleLogoutLockRef.current = true
+      try {
+        await api("/api/auth/logout", { method: "POST", body: "{}" })
+      } catch {
+        /* ignore */
+      }
+      clearPortalMode()
+      setUser(null)
+      setPortalMode(null)
+      setNeedPortalChoice(false)
+      setStudent(null)
+      setResults([])
+      setForms([])
+      setCerts([])
+      setAcmCerts([])
+      setGrievances([])
+      setAppNotifs([])
+      setProfileEditing(false)
+      setActiveForm(null)
+      setTab("home")
+      setMoreView("menu")
+      setLoginErr("Session expired after 20 minutes of inactivity. Please sign in again.")
+    }
+
+    function noteActivity() {
+      if (cancelled) return
+      idleLastActivityRef.current = Date.now()
+      if (Date.now() - idleLastTouchRef.current < IDLE_TOUCH_THROTTLE_MS) return
+      idleLastTouchRef.current = Date.now()
+      fetch("/api/auth/touch", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: "{}",
+      })
+        .then((r) => {
+          if (r.status === 401) void forceIdleLogout()
+        })
+        .catch(() => {
+          /* network blip */
+        })
+    }
+
+    function checkIdle() {
+      if (cancelled) return
+      if (Date.now() - idleLastActivityRef.current >= IDLE_MS) {
+        void forceIdleLogout()
+      }
+    }
+
+    const events: Array<keyof DocumentEventMap> = [
+      "mousedown",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+      "wheel",
+    ]
+    events.forEach((ev) => document.addEventListener(ev, noteActivity, { capture: true, passive: true }))
+    const onVis = () => {
+      if (document.visibilityState === "visible") checkIdle()
+    }
+    document.addEventListener("visibilitychange", onVis)
+    const timer = window.setInterval(checkIdle, 15000)
+    // Align server sliding expiry with this session
+    noteActivity()
+
+    // Quiet heartbeat — does not extend idle; only detects dead sessions
+    const hb = window.setInterval(() => {
+      if (cancelled) return
+      if (Date.now() - idleLastActivityRef.current >= IDLE_MS) {
+        void forceIdleLogout()
+        return
+      }
+      void fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" })
+        .then(async (r) => {
+          const data = await r.json().catch(() => null)
+          if (!data?.user) void forceIdleLogout()
+        })
+        .catch(() => {
+          /* ignore */
+        })
+    }, 45000)
+
+    return () => {
+      cancelled = true
+      events.forEach((ev) => document.removeEventListener(ev, noteActivity, true))
+      document.removeEventListener("visibilitychange", onVis)
+      window.clearInterval(timer)
+      window.clearInterval(hb)
+    }
+  }, [user])
+
   function dismissWhatsNew() {
     setSeenAppVersion(STUDENT_APP_VERSION)
     setShowWhatsNew(false)
@@ -897,6 +1011,7 @@ export default function StudentApp() {
       return
     }
     setLoginPw("")
+    setLoginId("")
     setUser({
       ...u,
       requires_setup: !!(u.force_password_change || res.data.requires_setup || u.requires_setup),
@@ -1716,7 +1831,13 @@ export default function StudentApp() {
           </div>
 
           {authMode === "login" ? (
-            <>
+            <form
+              autoComplete="off"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void doLogin()
+              }}
+            >
               <h2>Student sign in</h2>
               <p className="sub">
                 Use your <strong>Register Number</strong> and password. Imported students use the temporary password
@@ -1726,24 +1847,32 @@ export default function StudentApp() {
               <div className="stu-field">
                 <label>Register No. / Email</label>
                 <input
-                  autoComplete="username"
+                  name="gpth_stu_id"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
                   placeholder="e.g. 171CS15003"
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && doLogin()}
                 />
               </div>
               <div className="stu-field">
                 <label>Password</label>
                 <input
                   type="password"
-                  autoComplete="current-password"
+                  name="gpth_stu_pw"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
                   value={loginPw}
                   onChange={(e) => setLoginPw(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && doLogin()}
                 />
               </div>
-              <button type="button" className="stu-btn stu-btn-primary" disabled={loginBusy} onClick={doLogin}>
+              <button type="submit" className="stu-btn stu-btn-primary" disabled={loginBusy}>
                 {loginBusy ? "Signing in…" : "Sign in"}
               </button>
               <p className="stu-auth-switch">
@@ -1752,7 +1881,7 @@ export default function StudentApp() {
                   Create account
                 </button>
               </p>
-            </>
+            </form>
           ) : (
             <>
               <h2>Create student account</h2>
