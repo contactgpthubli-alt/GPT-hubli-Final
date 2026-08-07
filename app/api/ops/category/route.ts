@@ -53,15 +53,20 @@ export async function GET(req: Request) {
   const { rows } = await query(
     `SELECT s.reg_no, s.name, s.dept, s.year, s.father, s.entry_type, s.current_study_year,
             s.academic_status, s.progress_locked, s.ops_flags, s.previous_reg_no, s.alt_reg_no,
-            s.admission_academic_year
+            s.admission_academic_year, s.extra, s.academic_updated_at
        FROM students s WHERE UPPER(s.reg_no)=$1 LIMIT 1`,
     [reg],
   )
   if (!rows[0]) return badRequest("Student not found")
+  const flags = parseOpsFlags(rows[0].ops_flags)
+  const extra =
+    rows[0].extra && typeof rows[0].extra === "object" ? (rows[0].extra as Record<string, unknown>) : {}
   return Response.json({
     student: {
       ...rows[0],
-      ops_flags: parseOpsFlags(rows[0].ops_flags),
+      ops_flags: flags,
+      last_change: (flags as { last_change?: unknown }).last_change || extra.category_last || null,
+      year_transfer_last: extra.year_transfer_last || null,
     },
   })
 }
@@ -111,10 +116,18 @@ export async function POST(req: Request) {
        FROM students WHERE UPPER(reg_no)=$1`,
     [reg],
   )
+  const flagsOut = rows[0] ? parseOpsFlags(rows[0].ops_flags) : null
   return Response.json({
     ok: true,
+    by: user.display_name,
+    by_role: user.role,
+    at: new Date().toISOString(),
     student: rows[0]
-      ? { ...rows[0], ops_flags: parseOpsFlags(rows[0].ops_flags) }
+      ? {
+          ...rows[0],
+          ops_flags: flagsOut,
+          last_change: (flagsOut as { last_change?: unknown } | null)?.last_change || null,
+        }
       : null,
   })
 }

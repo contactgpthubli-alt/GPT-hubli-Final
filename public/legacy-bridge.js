@@ -633,6 +633,17 @@ function __initGptBridge() {
       if (!res.ok || !data.academic) return;
       window._academicSettings = data.academic;
       ;['adAcademicYear', 'priAcademicYear'].forEach(function (pid) {
+        var panel = document.getElementById(pid);
+        if (panel && !panel.getAttribute('data-sm-tip')) {
+          panel.setAttribute('data-sm-tip', '1');
+          var tip = document.createElement('div');
+          tip.className = 'info-box';
+          tip.style.cssText = 'background:#eff6ff;border-color:#93c5fd;margin-bottom:12px;';
+          tip.innerHTML =
+            '💡 Academic Year is also under the main <strong>Student Management</strong> hub → <strong>Academic year</strong> tab. Old menu kept for a while.';
+          if (panel.firstChild) panel.insertBefore(tip, panel.firstChild);
+          else panel.appendChild(tip);
+        }
         var ay = document.getElementById(pid + '_ay');
         var mo = document.getElementById(pid + '_month');
         var st = document.getElementById(pid + '_status');
@@ -8556,7 +8567,7 @@ setInterval(function () {
   }
 
   function studentDataPanelHtml(prefix) {
-    var p = prefix === 'fac' ? 'facSd' : 'adSd';
+    var p = prefix === 'fac' ? 'facSd' : prefix === 'pri' ? 'priSd' : 'adSd';
     var official = (window.OFFICIAL_BRANCHES && window.OFFICIAL_BRANCHES.length)
       ? window.OFFICIAL_BRANCHES
       : [
@@ -8569,6 +8580,7 @@ setInterval(function () {
       return '<option value="' + sdEsc(b) + '">' + sdEsc(b) + '</option>';
     }).join('');
     return '' +
+      '<div class="info-box" style="background:#eff6ff;border-color:#93c5fd;">💡 Student roster is also under main <strong>Student Management</strong> → <strong>Roster</strong>. This menu stays for a while.</div>' +
       '<div class="info-box">📊 <strong>Student Data</strong> — All students with <strong>Branch</strong> and <strong>Year</strong> filters. Click a row to view full My Profile details. Used by Admin and ACM for certificate desk.</div>' +
       '<div class="card">' +
       '<div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +

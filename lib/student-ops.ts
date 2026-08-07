@@ -16,7 +16,8 @@ import { hodBranchOf, branchesMatch } from "@/lib/account-approvals"
 
 export const OPS_DASHBOARD_ROLES = ["admin", "principal", "exam", "acm", "hod"] as const
 export const OPS_CATEGORY_ROLES = ["admin", "principal", "exam", "acm", "hod"] as const
-export const OPS_TRANSFER_WRITE_ROLES = ["admin", "principal", "exam", "hod"] as const
+/** ACM has the same write rights as HOD for student academic ops (documentation desk). */
+export const OPS_TRANSFER_WRITE_ROLES = ["admin", "principal", "exam", "hod", "acm"] as const
 export const OPS_TRANSFER_READ_ROLES = ["admin", "principal", "exam", "acm", "hod"] as const
 
 export type OpsFlagKey =
@@ -102,7 +103,13 @@ export async function ensureStudentOpsSchema(): Promise<void> {
 export function parseOpsFlags(raw: unknown): OpsFlags {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {}
   const o = raw as Record<string, unknown>
-  const out: OpsFlags = {}
+  const out: OpsFlags & {
+    last_change?: unknown
+    removed_from_list?: boolean
+    removed_by?: string
+    removed_at?: string
+    removed_note?: string | null
+  } = {}
   for (const k of [
     "iti",
     "puc",
@@ -115,7 +122,13 @@ export function parseOpsFlags(raw: unknown): OpsFlags {
     if (o[k] === false) out[k] = false
   }
   if (typeof o.notes === "string") out.notes = o.notes
-  return out
+  // Preserve audit metadata for Student Management UI
+  if (o.last_change && typeof o.last_change === "object") out.last_change = o.last_change
+  if (o.removed_from_list === true) out.removed_from_list = true
+  if (typeof o.removed_by === "string") out.removed_by = o.removed_by
+  if (typeof o.removed_at === "string") out.removed_at = o.removed_at
+  if (o.removed_note != null) out.removed_note = String(o.removed_note)
+  return out as OpsFlags
 }
 
 export function entryTypeLabel(row: {
@@ -426,10 +439,63 @@ export async function applyOpsFlags(
   // Clean notes
   if (flags.notes != null) next.notes = flags.notes
 
+  // Always record who changed category flags (shown in Student Management UI)
+  const actorLabel = String(actor.display_name || actor.role || "staff").trim()
+  const changedAt = new Date().toISOString()
+  ;(next as OpsFlags & { last_change?: unknown }).last_change = {
+    by: actorLabel,
+    role: actor.role,
+    at: changedAt,
+    reason: reason || null,
+    action: "category_flags",
+  }
+
   await query(`UPDATE students SET ops_flags = $2::jsonb, academic_updated_at = now() WHERE UPPER(reg_no)=$1`, [
     reg,
     JSON.stringify(next),
   ])
+
+  try {
+    await query(
+      `INSERT INTO student_academic_events
+         (reg_no, event_type, reason, actor_user_id, meta)
+       VALUES ($1,'ops_category',$2,$3,$4::jsonb)`,
+      [
+        reg,
+        reason || "Category / flags updated",
+        actor.id,
+        JSON.stringify({
+          actor: actorLabel,
+          actor_role: actor.role,
+          flags: next,
+          at: changedAt,
+        }),
+      ],
+    )
+  } catch {
+    /* audit table optional on first boot */
+  }
+
+  try {
+    await query(
+      `UPDATE students SET extra =
+         COALESCE(extra, '{}'::jsonb) || $2::jsonb
+       WHERE UPPER(reg_no) = $1`,
+      [
+        reg,
+        JSON.stringify({
+          category_last: {
+            by: actorLabel,
+            role: actor.role,
+            at: changedAt,
+            reason: reason || null,
+          },
+        }),
+      ],
+    )
+  } catch {
+    /* optional */
+  }
 
   if (next.year_back) {
     await setStudentAcademicAction(reg, "year_back", {

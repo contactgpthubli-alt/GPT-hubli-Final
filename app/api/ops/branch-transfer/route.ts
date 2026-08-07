@@ -45,7 +45,8 @@ export async function GET(req: Request) {
   return Response.json({
     transfers: rows,
     can_write: canWriteBranchTransfer(user.role),
-    read_only: user.role === "acm",
+    // ACM has full write like HOD for academic documentation
+    read_only: false,
   })
 }
 
@@ -59,12 +60,8 @@ export async function POST(req: Request) {
   if (!b?.action) return badRequest("action required")
   const action = String(b.action).toLowerCase()
 
-  // ACM: view only
-  if (user.role === "acm" && action !== "list") {
-    return unauthorized("ACM can only view branch transfer details")
-  }
   if (!canWriteBranchTransfer(user.role) && action !== "list") {
-    return unauthorized()
+    return unauthorized("Not allowed to change branch transfers")
   }
 
   if (action === "create") {
@@ -121,7 +118,13 @@ export async function POST(req: Request) {
         user.display_name || user.role,
       ],
     )
-    return Response.json({ ok: true, transfer: rows[0] })
+    return Response.json({
+      ok: true,
+      transfer: rows[0],
+      by: user.display_name,
+      by_role: user.role,
+      at: new Date().toISOString(),
+    })
   }
 
   if (action === "release") {
@@ -150,7 +153,13 @@ export async function POST(req: Request) {
        RETURNING *`,
       [id, user.id, user.display_name || user.role],
     )
-    return Response.json({ ok: true, transfer: up[0] })
+    return Response.json({
+      ok: true,
+      transfer: up[0],
+      by: user.display_name,
+      by_role: user.role,
+      at: new Date().toISOString(),
+    })
   }
 
   if (action === "accept") {
@@ -167,7 +176,13 @@ export async function POST(req: Request) {
       return badRequest(e instanceof Error ? e.message : "Accept failed")
     }
     const { rows } = await query(`SELECT * FROM branch_transfers WHERE id=$1`, [id])
-    return Response.json({ ok: true, transfer: rows[0] })
+    return Response.json({
+      ok: true,
+      transfer: rows[0],
+      by: user.display_name,
+      by_role: user.role,
+      at: new Date().toISOString(),
+    })
   }
 
   if (action === "cancel") {
@@ -186,7 +201,13 @@ export async function POST(req: Request) {
       [id, user.id, user.display_name || user.role, b.reason != null ? String(b.reason) : null],
     )
     if (!up[0]) return badRequest("Cannot cancel this transfer")
-    return Response.json({ ok: true, transfer: up[0] })
+    return Response.json({
+      ok: true,
+      transfer: up[0],
+      by: user.display_name,
+      by_role: user.role,
+      at: new Date().toISOString(),
+    })
   }
 
   return badRequest("Unknown action")

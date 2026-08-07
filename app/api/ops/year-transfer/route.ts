@@ -20,7 +20,8 @@ function canUse(role: string) {
 }
 
 function canWrite(role: string) {
-  return ["admin", "principal", "exam", "hod"].includes(role)
+  // ACM = same academic write rights as HOD (documentation desk)
+  return ["admin", "principal", "exam", "hod", "acm"].includes(role)
 }
 
 function parseYear(v: unknown): 1 | 2 | 3 | null {
@@ -380,7 +381,9 @@ export async function POST(req: Request) {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
   if (!canWrite(user.role)) {
-    return unauthorized("Only HOD / Exam / Principal / Admin can change study year or remove students")
+    return unauthorized(
+      "Only HOD / ACM / Exam / Principal / Admin can change study year or remove students",
+    )
   }
   await ensureStudentOpsSchema()
 
@@ -433,6 +436,9 @@ export async function POST(req: Request) {
       updated: ok,
       failed: results.length - ok,
       results,
+      by: user.display_name,
+      by_role: user.role,
+      at: new Date().toISOString(),
     })
   }
 
@@ -469,5 +475,8 @@ export async function POST(req: Request) {
     failed: fail,
     errors: sampleErrors,
     results,
+    by: user.display_name,
+    by_role: user.role,
+    at: new Date().toISOString(),
   })
 }
