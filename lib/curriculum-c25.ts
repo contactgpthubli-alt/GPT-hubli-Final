@@ -64,11 +64,11 @@ export const C25_BY_BRANCH: Record<BranchCode, CurriculumSubject[]> = {
     s(2, "25EC22T", "Indian Constitution", { year1_only: true, is_audit: true }),
   ],
   ME: [
-    // --- Semester I ---
+    // --- Semester I (Nov/Dec 2025 ledger) ---
     s(1, "25SC11I", "Engineering Mathematics-I", { year1_only: true }),
     s(1, "25EG01I", "Essential English Communication", { year1_only: true }),
     s(1, "25ME01I", "Computer Aided Engineering Drawing", { year1_only: true }),
-    s(1, "25ME11I", "Mechanical Engineering Practices-I", { year1_only: true }),
+    s(1, "25ME11I", "Concepts of Mechanical Engineering -I", { year1_only: true }),
     s(1, "25ME12T", "Environmental Sustainability", { year1_only: true }),
     // --- Semester II (May 2026 ledger) ---
     s(2, "25SC21I", "Engineering Mathematics-II", { year1_only: true }),

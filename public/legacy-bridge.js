@@ -5629,16 +5629,49 @@ function applyLiveStudentProfile(stu, reg) {
   if (!extra || typeof extra !== 'object') extra = {};
 
   // Locked only after Admin explicitly locks (Approve & Lock / Lock Edit).
-  // First-time / incomplete students get an editable profile without waiting for staff.
+  // NOTE: bulk DTE/Excel import also sets profile_edit_locked=true as a seed —
+  // that must NOT block first-time fill (see profile_first_filled below).
   window._stuProfileEditLocked = extra.profile_edit_locked === true || extra.profile_edit_locked === 'true';
+  var PROFILE_META_KEYS = {
+    profile_edit_locked: 1,
+    profile_first_filled: 1,
+    'Profile Photo': 1,
+    profile_photo: 1,
+    photo: 1,
+    imported_from_excel: 1,
+    imported_from_dte_pdf: 1,
+    imported_at: 1,
+    imported_missing_ece: 1,
+    source_pdf: 1,
+    syllabus_scheme: 1,
+    'Temporary Reg No': 1,
+    'Application ID': 1,
+  };
   var filledExtra = Object.keys(extra).filter(function (k) {
-    if (k === 'profile_edit_locked' || k === 'Profile Photo' || k === 'profile_photo') return false;
+    if (PROFILE_META_KEYS[k]) return false;
     var v = extra[k];
     return v != null && String(v).trim() !== '';
   }).length;
-  // First-time if unlocked and profile still thin (< 8 meaningful fields)
-  window._stuProfileFirstTime = !window._stuProfileEditLocked && filledExtra < 8;
-  window._stuProfileIncomplete = !window._stuProfileEditLocked && filledExtra < 12;
+  var importSeed = !!(
+    extra.imported_from_dte_pdf === true ||
+    extra.imported_from_dte_pdf === 'true' ||
+    extra.imported_from_excel === true ||
+    extra.imported_from_excel === 'true' ||
+    extra.imported_missing_ece ||
+    extra['Temporary Reg No'] === true ||
+    extra['Temporary Reg No'] === 'true'
+  );
+  var firstFilled =
+    extra.profile_first_filled === true || extra.profile_first_filled === 'true';
+  // Legacy staff lock without import seed = already reviewed (not first-time)
+  if (!firstFilled && window._stuProfileEditLocked && !importSeed && filledExtra >= 8) {
+    firstFilled = true;
+  }
+  // First-time until student self-saves once (or staff marks first-filled on approve).
+  // Import seed lock must never block Year-1 first fill.
+  window._stuProfileFirstTime = !firstFilled;
+  window._stuProfileIncomplete =
+    !firstFilled || (!window._stuProfileEditLocked && filledExtra < 12 && !importSeed);
 
   // Normalize labels for matching (trim + collapse spaces + case-insensitive map)
   var valuesByNorm = {};
@@ -6437,7 +6470,12 @@ async function updateStuProfileLockUI() {
   } catch (e) { pending = false; }
   window._stuProfileRequestPending = pending;
 
-  if (lockBanner) lockBanner.style.display = (locked && !pending && !window._stuProfileEditEnabled) ? '' : 'none';
+  var firstMode = !!(window._stuProfileFirstTime || window._stuProfileIncomplete);
+  // Import seed lock must not show "view-only" during first-time fill
+  if (lockBanner) {
+    lockBanner.style.display =
+      (locked && !pending && !window._stuProfileEditEnabled && !firstMode) ? '' : 'none';
+  }
   if (pendingBanner) pendingBanner.style.display = pending ? '' : 'none';
   if (banner && pending) banner.style.display = 'none';
 
@@ -6446,7 +6484,7 @@ async function updateStuProfileLockUI() {
       btn.disabled = true;
       btn.style.opacity = '0.55';
       btn.style.cursor = 'not-allowed';
-      btn.textContent = '⏳ Edit Request Pending';
+      btn.textContent = 'Edit Request Pending';
       btn.classList.remove('gr');
       window._stuProfileEditEnabled = false;
     } else if (!window._stuProfileEditEnabled) {
@@ -6454,8 +6492,8 @@ async function updateStuProfileLockUI() {
       btn.style.opacity = '';
       btn.style.cursor = '';
       btn.textContent = window._stuProfileFirstTime
-        ? '📝 Fill My Profile (First Time)'
-        : '📝 Raise Edit Request';
+        ? 'Fill My Profile (First Time)'
+        : 'Raise Edit Request';
       btn.classList.remove('gr');
     }
   }
@@ -6469,22 +6507,22 @@ async function updateStuProfileLockUI() {
       firstBanner.id = 'stuProfileFirstTimeBanner';
       firstBanner.className = 'info-box';
       firstBanner.style.cssText = 'display:none;margin-top:14px;margin-bottom:0;border-left:4px solid var(--green);';
-      firstBanner.innerHTML = '👋 <strong>Welcome!</strong> Please fill your complete My Profile for the first time, then submit for approval. After approval the profile is view-only — use <strong>Raise Edit Request</strong> anytime for changes.';
+      firstBanner.innerHTML = 'Welcome! Please fill your complete My Profile for the first time, then click Save My Profile.';
       hostFt.parentNode.insertBefore(firstBanner, hostFt.nextSibling);
     }
   }
   if (firstBanner) {
-    firstBanner.style.display = (!pending && window._stuProfileFirstTime) ? '' : 'none';
-    if (window._stuProfileFirstTime) {
+    firstBanner.style.display = (!pending && firstMode) ? '' : 'none';
+    if (firstMode) {
       firstBanner.innerHTML =
-        'Welcome! <strong>Your profile is editable</strong> for first-time fill. ' +
-        'Complete the fields and click <strong>Save My Profile</strong>. ' +
-        'Your HOD / Admin / Exam / ACM can also review update requests under Approvals.';
+        '<strong>First-time profile update is open.</strong> ' +
+        'Your fields are editable now — complete your details and click <strong>Save My Profile</strong>. ' +
+        'No staff unlock is needed for this first fill. After you save, further changes use Raise Edit Request.';
     }
   }
 
-  // First-time / incomplete: auto-open edit mode so Year-1 students are not stuck view-only
-  if (!pending && !window._stuProfileEditEnabled && (window._stuProfileFirstTime || window._stuProfileIncomplete) && !locked) {
+  // First-time / incomplete: auto-open edit mode (ignore import seed lock)
+  if (!pending && !window._stuProfileEditEnabled && firstMode) {
     try {
       enableStuProfileEdit({ firstTime: true, quiet: true });
     } catch (eAuto) { /* ignore */ }

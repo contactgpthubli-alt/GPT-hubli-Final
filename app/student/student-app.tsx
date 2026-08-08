@@ -623,6 +623,23 @@ export default function StudentApp() {
     const extra = student?.extra || {}
     return extra.profile_edit_locked === true || extra.profile_edit_locked === "true"
   }, [student])
+  /** First-time fill: open until student/staff marks profile_first_filled (import seed lock must not block). */
+  const profileFirstTime = useMemo(() => {
+    const extra = (student?.extra || {}) as Record<string, unknown>
+    if (extra.profile_first_filled === true || extra.profile_first_filled === "true") return false
+    const importSeed = !!(
+      extra.imported_from_dte_pdf === true ||
+      extra.imported_from_dte_pdf === "true" ||
+      extra.imported_from_excel === true ||
+      extra.imported_from_excel === "true" ||
+      extra.imported_missing_ece ||
+      extra["Temporary Reg No"] === true ||
+      extra["Temporary Reg No"] === "true"
+    )
+    // Legacy staff lock without import seed = already reviewed
+    if (profileLocked && !importSeed) return false
+    return true
+  }, [student, profileLocked])
   const openForms = useMemo(
     () => forms.filter((f) => String(f.status).toLowerCase() === "open"),
     [forms],
@@ -1362,12 +1379,13 @@ export default function StudentApp() {
       return
     }
 
-    const res = await api("/api/profile-requests", {
+    const res = await api<{ applied_immediately?: boolean; message?: string; error?: string }>("/api/profile-requests", {
       method: "POST",
       body: JSON.stringify({
         targetType: "student",
         targetId: user.reg_no,
         changes,
+        ...(profileFirstTime ? { first_time_save: true } : {}),
       }),
     })
     setProfileBusy(false)
@@ -1375,11 +1393,19 @@ export default function StudentApp() {
       setProfileErr(res.error || "Could not submit profile update")
       return
     }
-    setProfileMsg("Update submitted. Waiting for Admin/HOD/ACM approval.")
-    setProfileEditing(false)
-    setProfilePending(true)
-    setProfilePhotoDraft(null)
-    flash("Profile update submitted for approval")
+    if (res.data?.applied_immediately) {
+      setProfileMsg(res.data.message || "Profile saved. You can edit again until staff locks the profile.")
+      setProfileEditing(false)
+      setProfilePending(false)
+      setProfilePhotoDraft(null)
+      flash("Profile saved")
+    } else {
+      setProfileMsg("Update submitted. Waiting for Admin/HOD/ACM approval.")
+      setProfileEditing(false)
+      setProfilePending(true)
+      setProfilePhotoDraft(null)
+      flash("Profile update submitted for approval")
+    }
     await loadDashboard()
   }
 
@@ -2631,7 +2657,12 @@ export default function StudentApp() {
                 Edit request raised — waiting for Admin / HOD / ACM. Profile stays view-only until reviewed.
               </div>
             ) : null}
-            {profileLocked && !profilePending ? (
+            {profileFirstTime && !profilePending ? (
+              <div className="stu-msg stu-msg-ok">
+                <strong>First-time profile update is open.</strong> Fill your details and save — no staff unlock needed.
+              </div>
+            ) : null}
+            {profileLocked && !profilePending && !profileFirstTime ? (
               <div className="stu-msg stu-msg-info">
                 Profile is view-only. Use <strong>Raise edit request</strong> below anytime — no unlock needed.
               </div>
@@ -2708,7 +2739,11 @@ export default function StudentApp() {
                     disabled={profilePending}
                     onClick={startProfileEdit}
                   >
-                    {profilePending ? "⏳ Edit request pending" : "📝 Raise edit request"}
+                    {profilePending
+                      ? "Edit request pending"
+                      : profileFirstTime
+                        ? "Fill My Profile (First Time)"
+                        : "Raise edit request"}
                   </button>
                   <button
                     type="button"

@@ -240,6 +240,7 @@ export async function POST(req: Request) {
     // Do not lock after first save — allow more edits until staff locks
     const profileFields: Record<string, unknown> = { ...changes }
     delete profileFields.profile_edit_locked
+    delete profileFields.profile_first_filled
     const core: { name?: string; dept?: string; year?: string; father?: string } = {}
     for (const [label, value] of Object.entries(profileFields)) {
       const col = STUDENT_LABEL_TO_COLUMN[label]
@@ -247,7 +248,11 @@ export async function POST(req: Request) {
         core[col] = String(value)
       }
     }
-    const extraMerge = { ...profileFields, profile_edit_locked: false }
+    const extraMerge = {
+      ...profileFields,
+      profile_edit_locked: false,
+      profile_first_filled: true,
+    }
     await query(
       `INSERT INTO students (reg_no, name, dept, year, father, extra)
        VALUES ($1, COALESCE($2, $1), COALESCE($3, 'Not set'), COALESCE($4, ''), COALESCE($5, ''), $6::jsonb)
@@ -645,6 +650,7 @@ export async function PATCH(req: Request) {
       // Never persist control flags that may have been submitted as field labels
       const profileFields: Record<string, unknown> = { ...changes }
       delete profileFields.profile_edit_locked
+      delete profileFields.profile_first_filled
 
       if (reqRow.target_type === "student") {
         const core: { name?: string; dept?: string; year?: string; father?: string } = {}
@@ -657,9 +663,11 @@ export async function PATCH(req: Request) {
 
         // Always set lock flag explicitly so "Approve" can re-open editing
         // and "Approve & Lock Edit" closes it.
+        // Mark first-filled so import seed lock no longer re-opens free first-time mode.
         const extraMerge: Record<string, unknown> = {
           ...profileFields,
           profile_edit_locked: lockEdit,
+          profile_first_filled: true,
         }
 
         const regNo = String(reqRow.target_id)

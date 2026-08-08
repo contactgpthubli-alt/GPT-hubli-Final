@@ -410,11 +410,22 @@ async function setProfileEditLock(regNo: string, lockFlag: boolean) {
   // Still allow lock when student row exists even if account lookup is odd
   const displayName = urows[0]?.display_name || regNo
 
+  // When staff locks, also mark first-filled so import-seed first-time mode does not reopen.
   await query(
     `INSERT INTO students (reg_no, name, dept, extra)
-     VALUES ($1, $2, 'Not set', jsonb_build_object('profile_edit_locked', $3::boolean))
+     VALUES (
+       $1, $2, 'Not set',
+       jsonb_build_object(
+         'profile_edit_locked', $3::boolean,
+         'profile_first_filled', CASE WHEN $3::boolean THEN true ELSE false END
+       )
+     )
      ON CONFLICT (reg_no) DO UPDATE SET
-       extra = COALESCE(students.extra, '{}'::jsonb) || jsonb_build_object('profile_edit_locked', $3::boolean)`,
+       extra = COALESCE(students.extra, '{}'::jsonb) ||
+         CASE
+           WHEN $3::boolean THEN jsonb_build_object('profile_edit_locked', true, 'profile_first_filled', true)
+           ELSE jsonb_build_object('profile_edit_locked', false)
+         END`,
     [regNo, displayName, lockFlag],
   )
   return { reg_no: regNo, profile_edit_locked: lockFlag }

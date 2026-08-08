@@ -100,6 +100,22 @@ function showSec(secId, linkEl) {
     if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
     return;
   }
+  // Library module is not ready — show Coming Soon instead of empty/legacy e-book UI
+  if (secId === 'stuLibrary' || secId === 'adLibrary' || secId === 'facLibraryUpload' || secId === 'priLibrary') {
+    var libEl = document.getElementById(secId);
+    if (libEl) {
+      libEl.innerHTML =
+        '<div style="max-width:560px;margin:48px auto;padding:36px 28px;text-align:center;' +
+        'background:var(--card,#fff);border:1.5px solid var(--border,#e5e7eb);border-radius:16px;' +
+        'box-shadow:0 8px 28px rgba(15,23,42,.06);">' +
+        '<div style="font-size:2.4rem;margin-bottom:10px;">📚</div>' +
+        '<h2 style="margin:0 0 8px;font-family:\'Libre Baskerville\',serif;color:var(--navy,#0f2744);font-size:1.35rem;">Library</h2>' +
+        '<p style="margin:0 0 6px;font-size:1.05rem;font-weight:700;color:var(--green,#0d6b4c);">Coming Soon</p>' +
+        '<p style="margin:0;font-size:0.86rem;color:var(--text-muted,#64748b);line-height:1.5;">' +
+        'The Library / E-Book module is under development and will be available in a future update.' +
+        '</p></div>';
+    }
+  }
   const el = document.getElementById(secId);
   if (!el) return;
   // Check if inside db-content first
