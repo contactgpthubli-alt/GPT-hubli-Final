@@ -60,8 +60,9 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Run on all paths except static assets Next serves efficiently.
+     * Skip static assets so middleware does not run on every JS/CSS/image request
+     * (major win for login paint + repeat visits).
      */
-    "/((?!_next/static|_next/image|favicon.ico|images/|icon|apple-icon|placeholder|karnataka-emblem|docs/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|images/|docs/|icon|apple-icon|placeholder|karnataka-emblem|.*\\.(?:js|css|map|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2)$).*)",
   ],
 }

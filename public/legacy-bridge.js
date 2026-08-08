@@ -8,6 +8,70 @@
  *   - Persists mutations (grievances, gallery, committees, results)
  * The legacy UI code is left untouched; globals are wrapped here.
  * ============================================================= */
+/**
+ * Lazy-load heavy staff modules AFTER login so the login screen stays fast.
+ * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
+ * exam/ops/analysis/tc/acm/print are deferred until authenticated).
+ */
+var GPT_PERF_V = "20260808perf"
+var _gpthModsPromise = null
+function gpthLoadScript(src) {
+  return new Promise(function (resolve) {
+    try {
+      var base = String(src).split("?")[0]
+      if (
+        document.querySelector('script[data-gpth-mod="' + base + '"]') ||
+        document.querySelector('script[src^="' + base + '"]')
+      ) {
+        resolve(true)
+        return
+      }
+      var s = document.createElement("script")
+      s.src = src
+      s.async = false
+      s.dataset.gpthMod = base
+      s.onload = function () {
+        resolve(true)
+      }
+      s.onerror = function () {
+        console.warn("[perf] script failed", src)
+        resolve(false)
+      }
+      ;(document.body || document.documentElement).appendChild(s)
+    } catch (e) {
+      resolve(false)
+    }
+  })
+}
+/** Load stamp → exam → ops → analysis, then secondary modules in parallel. */
+function ensureStaffModules() {
+  if (_gpthModsPromise) return _gpthModsPromise
+  var v = GPT_PERF_V
+  _gpthModsPromise = gpthLoadScript("/gpth-stamp.js?v=" + v)
+    .then(function () {
+      return gpthLoadScript("/legacy-exam.js?v=" + v)
+    })
+    .then(function () {
+      return gpthLoadScript("/legacy-ops.js?v=" + v)
+    })
+    .then(function () {
+      return gpthLoadScript("/legacy-result-analysis.js?v=" + v)
+    })
+    .then(function () {
+      // Secondary — do not block UI
+      gpthLoadScript("/gpth-print.js?v=" + v)
+      gpthLoadScript("/legacy-tc.js?v=" + v)
+      gpthLoadScript("/legacy-acm-study.js?v=" + v)
+      return true
+    })
+    .catch(function (e) {
+      console.warn("[perf] ensureStaffModules", e)
+      return false
+    })
+  return _gpthModsPromise
+}
+window.ensureStaffModules = ensureStaffModules
+
 function __initGptBridge() {
   'use strict';
 
@@ -2487,6 +2551,16 @@ function __initGptBridge() {
     }
     // Must set currentUser BEFORE any shell open so showSec/login guards pass
     setCurrentUser(user);
+    // Kick off deferred modules ASAP (non-blocking); re-scope when ready
+    try {
+      ensureStaffModules().then(function () {
+        try {
+          if (user.role === 'exam' && typeof applyExamAdminScope === 'function') applyExamAdminScope(user);
+          if (user.role === 'acm' && typeof applyAcmAdminScope === 'function') applyAcmAdminScope(user);
+          if (typeof window.opsEnsureMenus === 'function') window.opsEnsureMenus();
+        } catch (eMod) { /* ignore */ }
+      });
+    } catch (eKick) { /* ignore */ }
     // Start 20-minute idle auto-logout (login + session restore)
     try {
       if (typeof window.__gpthStartIdleWatch === 'function') window.__gpthStartIdleWatch();
@@ -2821,6 +2895,12 @@ function __initGptBridge() {
     setCurrentUser(user);
     // Correct sticky role badge immediately (before any deferred UI)
     try { updateViewingAsBadge(user); } catch (e) { /* ignore */ }
+    // Wait for deferred modules so Exam/SM/stamps exist before first paints
+    try {
+      await ensureStaffModules();
+    } catch (eMods) {
+      console.warn('[perf] modules', eMods);
+    }
     await hydratePrivate();
     await paintStudentDashboard(user);
     // Strip static demo content from Principal / HOD shells first
@@ -7082,16 +7162,25 @@ async function reviewProfileRequest(id, action, lockEdit) {
 }
 window.reviewProfileRequest = reviewProfileRequest;
 
-// Poll while an admin/HOD/ACM session is active so new requests show up without a refresh.
-// Skip while admin is typing in filter fields to avoid losing focus.
+// Slow poll for profile approvals only when a relevant panel is visible.
 setInterval(function () {
   if (!window.currentUser) return;
+  if (document.hidden) return;
   var r = window.currentUser.role;
   if (r !== 'admin' && r !== 'hod' && r !== 'acm' && r !== 'exam' && r !== 'principal') return;
   var ae = document.activeElement;
   if (ae && ae.id && (ae.id.indexOf('ap') === 0 || ae.id.indexOf('accAp') === 0)) return;
-  renderProfileRequestApprovals();
-}, 8000);
+  var anyOpen = false;
+  ;['adApprovals', 'facApprovals', 'priProfileApprovals', 'adUserApprovals', 'facUserApprovals', 'priUserApprovals'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (el.style.display === 'none') return;
+    if (el.offsetParent === null && el.style.display !== 'block') return;
+    anyOpen = true;
+  });
+  if (!anyOpen) return;
+  if (typeof renderProfileRequestApprovals === 'function') renderProfileRequestApprovals();
+}, 45000);
 
 /* ================================================================
    ADMIN — Student Database (all student accounts: complete + incomplete)
@@ -7931,13 +8020,13 @@ function updateNotifBadges(count) {
 }
 window.updateNotifBadges = updateNotifBadges;
 
-// Refresh notifications after login / periodically while a session is active
+// Refresh notifications while a session is active (skip background tabs)
 setInterval(function () {
+  if (document.hidden) return;
   if (window.currentUser && typeof window.renderLiveNotifications === 'function') {
-    // Only refresh badge quietly when panel closed; full list when open
     window.renderLiveNotifications();
   }
-}, 20000);
+}, 45000);
 /* ================================================================
    GLOBAL ACCOUNT ACTIONS — always available (outside __initGptBridge)
    Uses data-acc-action buttons + document delegation so delete /
@@ -13577,11 +13666,21 @@ setInterval(function () {
     }
   }
   rehookShowSecForForms();
-  setTimeout(rehookShowSecForForms, 500);
-  setTimeout(rehookShowSecForForms, 2000);
-  setInterval(activateLiveFormsIfVisible, 2000);
+  setTimeout(rehookShowSecForForms, 800);
+  // Only poll when Form Manager might be open — was every 2s and froze the UI
+  setInterval(function () {
+    if (document.hidden) return;
+    if (!window.currentUser) return;
+    var forms =
+      document.getElementById('adForms') ||
+      document.getElementById('facForms') ||
+      document.getElementById('stuForms');
+    if (!forms) return;
+    if (forms.style.display === 'none' || forms.offsetParent === null) return;
+    activateLiveFormsIfVisible();
+  }, 20000);
 
-  console.log('[bridge] live forms handlers installed (v=forms-fix)');
+  console.log('[bridge] live forms handlers installed (v=forms-perf)');
 })();
 
 /* ============================================================

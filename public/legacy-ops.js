@@ -1414,10 +1414,11 @@
   } else {
     setTimeout(boot, 400);
   }
-  // Re-inject after login paints dashboards
+  // Occasional re-inject (menus already created on login; avoid 4s main-thread churn)
   setInterval(function () {
+    if (document.hidden) return;
     if (roleOk()) ensureOpsMenus();
-  }, 4000);
+  }, 30000);
 
   console.log('[legacy-ops] Student Management hub (roster · year · category · transfer · reports · AY)');
 })();

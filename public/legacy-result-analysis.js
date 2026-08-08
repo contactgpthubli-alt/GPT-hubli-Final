@@ -553,9 +553,12 @@
   } else {
     setTimeout(boot, 400);
   }
-  // late boot after bridge login
+  // late boot after bridge login (slow poll — only when shells exist)
   setInterval(function () {
+    if (document.hidden) return;
+    if (!roleOk()) return;
+    if (!document.getElementById('facResults') && !document.getElementById('adExam') && !document.getElementById('facExamModule')) return;
     if (roleOk() && !document.getElementById('frAnalysis') && document.getElementById('facResults')) boot();
     if (roleOk() && !document.getElementById('exAnalysis') && document.querySelector('[onclick*="exResults"]')) boot();
-  }, 3000);
+  }, 12000);
 })();

@@ -1805,14 +1805,15 @@
     patchShowSec();
   }
 
-  // Re-boot after login
+  // Re-boot once when user object changes (login) — was every 1.5s
   var _cu = null;
   setInterval(function () {
+    if (document.hidden) return;
     if (window.currentUser && window.currentUser !== _cu) {
       _cu = window.currentUser;
       boot();
     }
-  }, 1500);
+  }, 5000);
 
   console.log('[legacy-exam] loaded — results self-entry, multi-challan fees, manual Exam paid tick (no K2 API)');
 })();
