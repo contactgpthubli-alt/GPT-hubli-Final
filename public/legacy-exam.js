@@ -658,10 +658,27 @@
         var p = data.payment;
         if (!p) stEl.innerHTML = '<span class="badge pending">Not submitted</span>';
         else {
+          var stampHtml = '';
+          if (p.paid_marked_by_name && window.gpthStamp) {
+            stampHtml = window.gpthStamp.html(
+              {
+                action: p.status === 'paid' || p.status === 'partial' ? 'paid' : 'updated',
+                by_name: p.paid_marked_by_name,
+                by_role: p.paid_marked_by_role || '',
+                at: p.paid_marked_at,
+              },
+              'paid',
+            );
+          } else if (p.paid_marked_by_name) {
+            stampHtml =
+              '<div style="margin-top:6px;font-size:0.8rem;">Marked by <strong>' +
+              esc(p.paid_marked_by_name) +
+              '</strong></div>';
+          }
           stEl.innerHTML =
             'Status: <strong>' + esc(p.status) + '</strong>' +
             (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
-            (p.paid_marked_by_name ? ' · Marked by ' + esc(p.paid_marked_by_name) : '') +
+            stampHtml +
             (p.challans && p.challans.length
               ? '<div style="margin-top:6px;font-size:0.75rem;">' +
                 p.challans.map(function (c) {
@@ -1531,6 +1548,24 @@
           esc(a.grade || '—') + '</td>' +
           '<td style="padding:12px 8px;vertical-align:top;">' + examStatusBadge(a.status) +
           (a.reject_note ? '<div style="font-size:0.75rem;color:#991b1b;margin-top:4px;">' + esc(a.reject_note) + '</div>' : '') +
+          (a.status === 'verified' && a.verified_by_name && window.gpthStamp
+            ? '<div style="margin-top:6px;">' +
+              window.gpthStamp.line(
+                {
+                  action: 'verified',
+                  by_name: a.verified_by_name,
+                  by_role: a.verifier_role,
+                  at: a.verified_at,
+                },
+                'verified',
+              ) +
+              '</div>'
+            : a.status === 'verified' && a.verified_by_name
+              ? '<div style="font-size:0.72rem;margin-top:4px;color:#166534;">Verified by ' +
+                esc(a.verified_by_name) +
+                (a.verifier_role ? ' (' + esc(a.verifier_role) + ')' : '') +
+                '</div>'
+              : '') +
           '</td></tr>';
       });
       html += '</tbody></table></div>';

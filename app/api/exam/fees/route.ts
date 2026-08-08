@@ -17,6 +17,7 @@ import {
   EXAM_FEE_MANAGERS,
 } from "@/lib/exam-results"
 import { stripEmoji } from "@/lib/no-emoji"
+import { stampFromSession } from "@/lib/signature-stamp"
 import { hodBranchOf } from "@/lib/account-approvals"
 import { branchCodeFromDept } from "@/lib/curriculum-c20"
 
@@ -118,6 +119,19 @@ export async function GET(req: Request) {
           submitted_at: pay.submitted_at,
           paid_marked_at: pay.paid_marked_at,
           paid_marked_by_name: pay.paid_marked_by_name,
+          paid_marked_by_role: pay.paid_marked_by_role ?? null,
+          stamp:
+            pay.paid_marked_by_name
+              ? stampFromSession(
+                  {
+                    id: pay.paid_marked_by != null ? Number(pay.paid_marked_by) : null,
+                    display_name: String(pay.paid_marked_by_name),
+                    role: pay.paid_marked_by_role != null ? String(pay.paid_marked_by_role) : null,
+                  },
+                  pay.status === "paid" || pay.status === "partial" ? "paid" : "updated",
+                  { at: pay.paid_marked_at ? String(pay.paid_marked_at) : null },
+                )
+              : null,
         }
       : null,
     note:
@@ -179,6 +193,18 @@ async function listFees(
       submitted_at: r.submitted_at,
       paid_marked_at: r.paid_marked_at,
       paid_marked_by_name: r.paid_marked_by_name,
+      paid_marked_by_role: r.paid_marked_by_role ?? null,
+      stamp: r.paid_marked_by_name
+        ? stampFromSession(
+            {
+              id: r.paid_marked_by != null ? Number(r.paid_marked_by) : null,
+              display_name: String(r.paid_marked_by_name),
+              role: r.paid_marked_by_role != null ? String(r.paid_marked_by_role) : null,
+            },
+            r.status === "paid" || r.status === "partial" ? "paid" : "updated",
+            { at: r.paid_marked_at ? String(r.paid_marked_at) : null },
+          )
+        : null,
       updated_at: r.updated_at,
     })),
     exam_cycle: cycle,
@@ -377,6 +403,8 @@ export async function PATCH(req: Request) {
     challansJson = parseChallans(b.challans)
   }
 
+  const payStamp = stampFromSession(user, status === "paid" || status === "partial" ? "paid" : "updated")
+
   await query(
     `UPDATE exam_fee_payments SET
        status = $1,
@@ -385,14 +413,16 @@ export async function PATCH(req: Request) {
        paid_marked_at = CASE WHEN $1 IN ('paid','partial','waived') THEN now() ELSE paid_marked_at END,
        paid_marked_by = CASE WHEN $1 IN ('paid','partial','waived') THEN $4 ELSE paid_marked_by END,
        paid_marked_by_name = CASE WHEN $1 IN ('paid','partial','waived') THEN $5 ELSE paid_marked_by_name END,
+       paid_marked_by_role = CASE WHEN $1 IN ('paid','partial','waived') THEN $6 ELSE paid_marked_by_role END,
        updated_at = now()
-     WHERE id = $6`,
+     WHERE id = $7`,
     [
       status,
       staffNote,
       JSON.stringify(challansJson),
       user.id,
       user.display_name || user.email,
+      user.role,
       payId,
     ],
   )
@@ -401,6 +431,7 @@ export async function PATCH(req: Request) {
     ok: true,
     id: payId,
     status,
+    stamp: payStamp,
     message: "Payment status updated manually (no K2 API).",
   })
 }

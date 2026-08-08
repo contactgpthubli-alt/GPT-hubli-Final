@@ -1426,6 +1426,39 @@ function __initGptBridge() {
     }
 
     function approvalRecordHtml(a) {
+      if (window.gpthStamp) {
+        if (a.status === 'approved' && (a.approved_by_name || a.approved_at)) {
+          return (
+            '<div style="margin-top:6px;">' +
+            window.gpthStamp.html(
+              {
+                action: 'approved',
+                by_name: a.approved_by_name,
+                by_role: a.approved_by_role,
+                at: a.approved_at,
+              },
+              'approved',
+            ) +
+            '</div>'
+          );
+        }
+        if (a.status === 'rejected' && (a.rejected_by_name || a.rejected_at)) {
+          return (
+            '<div style="margin-top:6px;">' +
+            window.gpthStamp.html(
+              {
+                action: 'rejected',
+                by_name: a.rejected_by_name || a.approved_by_name,
+                by_role: a.rejected_by_role || a.approved_by_role,
+                at: a.rejected_at || a.approved_at,
+              },
+              'rejected',
+            ) +
+            '</div>'
+          );
+        }
+        return '';
+      }
       if (a.status === 'approved' && (a.approved_by_name || a.approved_at)) {
         var who = a.approved_by_name
           ? esc(a.approved_by_name) + (a.approved_by_role ? ' <span style="opacity:.75;">(' + esc(a.approved_by_role) + ')</span>' : '')
@@ -1434,7 +1467,7 @@ function __initGptBridge() {
           ? new Date(a.approved_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           : '';
         return '<div style="font-size:0.68rem;margin-top:4px;line-height:1.35;color:#166534;">' +
-          '✓ Approved by <strong>' + who + '</strong>' +
+          'Approved by <strong>' + who + '</strong>' +
           (when ? '<br><span style="opacity:.8;">' + when + '</span>' : '') +
           '</div>';
       }
@@ -1446,7 +1479,7 @@ function __initGptBridge() {
           ? new Date(a.rejected_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           : '';
         return '<div style="font-size:0.68rem;margin-top:4px;line-height:1.35;color:#991b1b;">' +
-          '✕ Rejected by <strong>' + rwho + '</strong>' +
+          'Rejected by <strong>' + rwho + '</strong>' +
           (rwhen ? '<br><span style="opacity:.8;">' + rwhen + '</span>' : '') +
           '</div>';
       }

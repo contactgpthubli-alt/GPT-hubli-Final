@@ -439,15 +439,18 @@ export async function applyOpsFlags(
   // Clean notes
   if (flags.notes != null) next.notes = flags.notes
 
-  // Always record who changed category flags (shown in Student Management UI)
+  // Always record who changed category flags (signature stamp — shown in SM UI)
   const actorLabel = String(actor.display_name || actor.role || "staff").trim()
   const changedAt = new Date().toISOString()
   ;(next as OpsFlags & { last_change?: unknown }).last_change = {
     by: actorLabel,
+    by_name: actorLabel,
+    by_id: actor.id ?? null,
     role: actor.role,
+    by_role: actor.role,
     at: changedAt,
     reason: reason || null,
-    action: "category_flags",
+    action: "updated",
   }
 
   await query(`UPDATE students SET ops_flags = $2::jsonb, academic_updated_at = now() WHERE UPPER(reg_no)=$1`, [

@@ -102,6 +102,9 @@ export async function ensureExamResultsSchema(): Promise<void> {
   await query(
     `CREATE INDEX IF NOT EXISTS idx_exam_fee_status ON exam_fee_payments(status, updated_at DESC)`,
   )
+  await query(
+    `ALTER TABLE exam_fee_payments ADD COLUMN IF NOT EXISTS paid_marked_by_role TEXT`,
+  )
 
   /** Exam Cell fine windows: date ranges + fine amount (0 = without fine). */
   await query(`

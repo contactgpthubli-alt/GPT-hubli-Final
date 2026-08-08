@@ -48,10 +48,40 @@
 
   function actorSuffix(data) {
     if (!data) return '';
+    // Prefer global signature stamp (name + role + when)
+    if (window.gpthStamp && typeof window.gpthStamp.line === 'function') {
+      var line = window.gpthStamp.line(
+        {
+          action: data.action || 'updated',
+          by_name: data.by || data.by_name || (data.actor && data.actor.name) || '',
+          by_role: data.by_role || data.role || (data.actor && data.actor.role) || '',
+          at: data.at || data.when || data.updated_at || '',
+          note: data.reason || data.note || null,
+        },
+        data.action || 'updated',
+      );
+      if (line) return ' · ' + line;
+    }
     var by = data.by || data.by_name || (data.actor && data.actor.name) || '';
     var role = data.by_role || data.role || '';
     if (!by) return '';
     return ' · by <strong>' + esc(by) + '</strong>' + (role ? ' (' + esc(role) + ')' : '');
+  }
+
+  function stampBlock(data, action) {
+    if (window.gpthStamp && typeof window.gpthStamp.html === 'function') {
+      return window.gpthStamp.html(
+        {
+          action: action || (data && data.action) || 'updated',
+          by_name: (data && (data.by || data.by_name)) || '',
+          by_role: (data && (data.by_role || data.role)) || '',
+          at: (data && (data.at || data.when)) || '',
+          note: data && (data.reason || data.note),
+        },
+        action || 'updated',
+      );
+    }
+    return actorSuffix(data);
   }
 
   function movedTipHtml(fromLabel) {
@@ -860,44 +890,50 @@
           (s.alt_reg_no ? ' · Alt reg ' + esc(s.alt_reg_no) : '');
       }
       if (audit) {
-        var bits = [];
+        var stamps = [];
         var yt = s.year_transfer_last;
-        if (yt && yt.by) {
-          bits.push(
-            'Last year move: <strong>' +
-              esc(String(yt.to_roman || yt.to || '')) +
-              '</strong> by <strong>' +
-              esc(yt.by) +
-              '</strong>' +
-              (yt.role ? ' (' + esc(yt.role) + ')' : '') +
-              (yt.at ? ' @ ' + esc(String(yt.at).slice(0, 16).replace('T', ' ')) : ''),
+        if (yt && (yt.by || yt.by_name)) {
+          var yBlock = stampBlock(
+            {
+              action: 'transferred',
+              by: yt.by || yt.by_name,
+              by_role: yt.role || yt.by_role,
+              at: yt.at,
+              note: yt.to_roman || yt.to ? 'Moved to year ' + (yt.to_roman || yt.to) : null,
+            },
+            'transferred',
           );
+          if (yBlock) stamps.push(yBlock);
         }
         var lc = s.last_change || (s.ops_flags && s.ops_flags.last_change);
-        if (lc && lc.by) {
-          bits.push(
-            'Last category change by <strong>' +
-              esc(lc.by) +
-              '</strong>' +
-              (lc.role ? ' (' + esc(lc.role) + ')' : '') +
-              (lc.at ? ' @ ' + esc(String(lc.at).slice(0, 16).replace('T', ' ')) : ''),
+        if (lc && (lc.by || lc.by_name)) {
+          var cBlock = stampBlock(
+            {
+              action: lc.action || 'updated',
+              by: lc.by || lc.by_name,
+              by_role: lc.role || lc.by_role,
+              at: lc.at,
+              note: lc.reason || null,
+            },
+            lc.action || 'updated',
           );
+          if (cBlock) stamps.push(cBlock);
         }
         var rem = s.ops_flags && s.ops_flags.removed_by;
         if (rem) {
-          bits.push(
-            'Removed from list by <strong>' +
-              esc(rem) +
-              '</strong>' +
-              (s.ops_flags.removed_at
-                ? ' @ ' + esc(String(s.ops_flags.removed_at).slice(0, 16).replace('T', ' '))
-                : ''),
+          var rBlock = stampBlock(
+            {
+              action: 'removed',
+              by: rem,
+              by_role: s.ops_flags.removed_by_role || '',
+              at: s.ops_flags.removed_at || '',
+            },
+            'removed',
           );
+          if (rBlock) stamps.push(rBlock);
         }
-        audit.innerHTML = bits.length
-          ? '<div style="padding:8px 10px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;">' +
-            bits.join('<br>') +
-            '</div>'
+        audit.innerHTML = stamps.length
+          ? '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + stamps.join('') + '</div>'
           : '';
       }
       var yearSel = document.getElementById(pid + '_year');
@@ -1206,27 +1242,26 @@
         '<th>ID</th><th>Student</th><th>Old→New</th><th>From→To</th><th>Status</th><th>Who did what</th><th></th></tr></thead><tbody>';
       rows.forEach(function (t) {
         var auditParts = [];
-        if (t.created_by_name) {
-          auditParts.push(
-            'Created by ' + t.created_by_name + (t.created_at ? ' @ ' + String(t.created_at).slice(0, 16).replace('T', ' ') : ''),
-          );
+        function pushStamp(action, name, role, at) {
+          if (!name) return;
+          if (window.gpthStamp) {
+            auditParts.push(
+              window.gpthStamp.line(
+                { action: action, by_name: name, by_role: role || '', at: at || '' },
+                action,
+              ),
+            );
+          } else {
+            auditParts.push(
+              action + ' by ' + name + (at ? ' @ ' + String(at).slice(0, 16).replace('T', ' ') : ''),
+            );
+          }
         }
-        if (t.released_by_name) {
-          auditParts.push(
-            'Released by ' + t.released_by_name + (t.released_at ? ' @ ' + String(t.released_at).slice(0, 16).replace('T', ' ') : ''),
-          );
-        }
-        if (t.accepted_by_name) {
-          auditParts.push(
-            'Accepted by ' + t.accepted_by_name + (t.accepted_at ? ' @ ' + String(t.accepted_at).slice(0, 16).replace('T', ' ') : ''),
-          );
-        }
-        if (t.cancelled_by_name) {
-          auditParts.push(
-            'Cancelled by ' + t.cancelled_by_name + (t.cancelled_at ? ' @ ' + String(t.cancelled_at).slice(0, 16).replace('T', ' ') : ''),
-          );
-        }
-        var audit = auditParts.join(' · ');
+        pushStamp('created', t.created_by_name, t.created_by_role, t.created_at);
+        pushStamp('released', t.released_by_name, t.released_by_role, t.released_at);
+        pushStamp('accepted', t.accepted_by_name, t.accepted_by_role, t.accepted_at);
+        pushStamp('cancelled', t.cancelled_by_name, t.cancelled_by_role, t.cancelled_at);
+        var audit = auditParts.join('<br>');
         var acts = '';
         if (write && t.status === 'draft') {
           acts +=
