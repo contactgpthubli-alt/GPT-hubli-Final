@@ -2285,20 +2285,30 @@ function __initGptBridge() {
   /**
    * Hide every admin sidebar item except the Exam allow-list.
    * Safe to call repeatedly (ops/SM inject can re-add menus later).
+   *
+   * Intended Exam menu (as confirmed by staff):
+   *   Approvals · Students · Student Data · Exam Module ·
+   *   Branch Transfer · Student Management · Live Academic · Logout
+   * Not full Root Admin (no Forms, Cash, Library, Academic Year alone, ACM, etc.).
    */
   function paintExamAdminMenu(user) {
     var root = document.getElementById('dbAdmin');
     if (!root || !window._examScopedAdmin) return;
-    // Exam Cell: Approvals, Students, Student Data, Exam Module only.
-    // No Branch Transfer / Live Academic / Student Management top-level (ops inject).
-    // No ACM, no Academic Year, no full Root Admin menus.
-    var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adExam: 1 };
-    var forbiddenIds = {
-      adOpsLiveNav: 1,
+    var allowedSecs = {
+      adApprovals: 1,
+      adStudents: 1,
+      adStudentData: 1,
+      adExam: 1,
+      // Student Management hub + related ops (same as image 107)
+      adOpsCategory: 1,
+      adOpsTransfer: 1,
+      adOpsLive: 1,
+    };
+    var allowedIds = {
       adOpsCatNav: 1,
       adOpsXferNav: 1,
-      adAcademicYearNav: 1,
-      adAccountApprovalsNav: 1,
+      adOpsLiveNav: 1,
+      adExamNav: 1,
     };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
@@ -2306,14 +2316,19 @@ function __initGptBridge() {
       var keep = false;
       if (oc.indexOf('logout') !== -1) keep = true;
       if (sl.getAttribute('data-staff-profile') === '1') keep = true;
+      if (allowedIds[id]) keep = true;
       Object.keys(allowedSecs).forEach(function (sec) {
         if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
       });
-      // Explicit deny — ops hub injects these after login and would otherwise "stick"
-      if (forbiddenIds[id]) keep = false;
-      if (oc.indexOf('adOps') !== -1) keep = false;
+      // Never show full admin modules Exam does not need
       if (oc.indexOf('adACM') !== -1) keep = false;
       if (oc.indexOf('adAcademicYear') !== -1) keep = false;
+      if (oc.indexOf('adForms') !== -1) keep = false;
+      if (oc.indexOf('adCash') !== -1) keep = false;
+      if (oc.indexOf('adLibrary') !== -1) keep = false;
+      if (oc.indexOf('adRoles') !== -1) keep = false;
+      if (oc.indexOf('adStaff') !== -1) keep = false;
+      if (id === 'adAcademicYearNav' || id === 'adAccountApprovalsNav') keep = false;
       sl.style.display = keep ? '' : 'none';
     });
     root.querySelectorAll('.sb .sb-sec').forEach(function (sec) {
@@ -2335,8 +2350,9 @@ function __initGptBridge() {
   }
 
   /**
-   * Exam Cell = same Approvals + Students + Student Data as ACM,
-   * plus Exam Module (PDC, lookup, print/export). No ACM Module.
+   * Exam Cell desk: Approvals + Students + Student Data + Exam Module +
+   * Student Management hub + Branch Transfer + Live Academic.
+   * No ACM Module / full Root Admin.
    */
   function applyExamAdminScope(user) {
     ensureExamAdminDesk();
@@ -2346,6 +2362,10 @@ function __initGptBridge() {
     window._acmScopedAdmin = false;
     try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
     try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
+    // Ensure SM / Branch / Live Academic nav items exist before allow-list paint
+    try {
+      if (typeof window.opsEnsureMenus === 'function') window.opsEnsureMenus();
+    } catch (eOps) { /* ignore */ }
 
     paintExamAdminMenu(user || window.currentUser);
 
@@ -2373,7 +2393,7 @@ function __initGptBridge() {
     if (typeof window.renderStudentDataBrowser === 'function') {
       try { window.renderStudentDataBrowser('adStudentData'); } catch (e) { /* ignore */ }
     }
-    console.log('[bridge] Exam scoped admin shell active (Approvals + Students + Student Data + Exam)');
+    console.log('[bridge] Exam scoped admin shell (Approvals · Students · Student Data · Exam · SM · Branch · Live)');
   }
   window.applyExamAdminScope = applyExamAdminScope;
   window.clearExamAdminScope = clearExamAdminScope;
