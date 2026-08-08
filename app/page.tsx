@@ -28,7 +28,7 @@ export default function Page() {
       <Script src="/cms-boot.js?v=20260808perf" strategy="beforeInteractive" />
       {/* Core only on first paint — exam/ops/ACM/TC load AFTER login (see legacy-bridge ensureStaffModules) */}
       <Script src="/legacy-app.js?v=20260808perf" strategy="afterInteractive" />
-      <Script src="/legacy-bridge.js?v=20260808perf" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260808fy1" strategy="afterInteractive" />
     </>
   )
 }

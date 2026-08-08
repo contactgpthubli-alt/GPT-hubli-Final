@@ -210,13 +210,15 @@ export async function POST(req: Request) {
   }
 
   // Only one pending request at a time — profile stays view-only until Admin reviews it.
+  // (First-time immediate save can still proceed — it auto-applies below.)
+  const firstTimeSave = b.first_time_save === true || b.first_time_save === "true"
   const { rows: pendingRows } = await query(
     `SELECT id FROM profile_requests
       WHERE requester_id = $1 AND status = 'pending'
       LIMIT 1`,
     [user.id],
   )
-  if (pendingRows.length > 0) {
+  if (pendingRows.length > 0 && !firstTimeSave) {
     return badRequest("You already have a profile update request pending approval.")
   }
 
@@ -226,6 +228,72 @@ export async function POST(req: Request) {
 
   if (Object.keys(changes).length === 0) {
     return badRequest("No changes to submit — values match the current profile.")
+  }
+
+  // First-time / incomplete Year-1 fill: apply to students.extra immediately so
+  // students are not stuck view-only waiting for staff. Still log a request trail.
+  if (firstTimeSave && b.targetType === "student" && user.role === "student") {
+    const regNo = String(b.targetId)
+    if (user.reg_no && String(user.reg_no).toUpperCase() !== regNo.toUpperCase()) {
+      return badRequest("Register number must match your account")
+    }
+    // Do not lock after first save — allow more edits until staff locks
+    const profileFields: Record<string, unknown> = { ...changes }
+    delete profileFields.profile_edit_locked
+    const core: { name?: string; dept?: string; year?: string; father?: string } = {}
+    for (const [label, value] of Object.entries(profileFields)) {
+      const col = STUDENT_LABEL_TO_COLUMN[label]
+      if (col && value != null && String(value).trim() !== "") {
+        core[col] = String(value)
+      }
+    }
+    const extraMerge = { ...profileFields, profile_edit_locked: false }
+    await query(
+      `INSERT INTO students (reg_no, name, dept, year, father, extra)
+       VALUES ($1, COALESCE($2, $1), COALESCE($3, 'Not set'), COALESCE($4, ''), COALESCE($5, ''), $6::jsonb)
+       ON CONFLICT (reg_no) DO UPDATE SET
+         name = COALESCE(EXCLUDED.name, students.name),
+         dept = CASE
+           WHEN EXCLUDED.dept IS NOT NULL AND EXCLUDED.dept <> '' AND EXCLUDED.dept <> 'Not set'
+           THEN EXCLUDED.dept ELSE students.dept END,
+         year = COALESCE(NULLIF(EXCLUDED.year, ''), students.year),
+         father = COALESCE(NULLIF(EXCLUDED.father, ''), students.father),
+         extra = COALESCE(students.extra, '{}'::jsonb) || EXCLUDED.extra`,
+      [
+        regNo,
+        core.name || user.display_name || regNo,
+        core.dept || null,
+        core.year || null,
+        core.father || null,
+        JSON.stringify(extraMerge),
+      ],
+    )
+    // Sync users.branch when Branch provided
+    if (core.dept) {
+      await query(
+        `UPDATE users SET branch = $2, display_name = COALESCE(NULLIF($3, ''), display_name)
+          WHERE role = 'student' AND UPPER(reg_no) = UPPER($1)`,
+        [regNo, core.dept, core.name || null],
+      ).catch(() => null)
+    }
+    const { rows } = await query(
+      `INSERT INTO profile_requests (requester_id, target_type, target_id, changes, previous, status, remarks, reviewed_at)
+       VALUES ($1, 'student', $2, $3::jsonb, $4::jsonb, 'approved', $5, now())
+       RETURNING id, target_type, target_id, changes, previous, status, created_at`,
+      [
+        user.id,
+        regNo,
+        JSON.stringify(changes),
+        JSON.stringify(previous),
+        "First-time profile self-save (auto-applied)",
+      ],
+    )
+    return Response.json({
+      ok: true,
+      applied_immediately: true,
+      request: rows[0],
+      message: "Profile saved. You can edit again until staff locks the profile.",
+    })
   }
 
   const { rows } = await query(
@@ -240,7 +308,12 @@ export async function POST(req: Request) {
       JSON.stringify(previous),
     ],
   )
-  return Response.json({ ok: true, request: rows[0] })
+  return Response.json({
+    ok: true,
+    applied_immediately: false,
+    request: rows[0],
+    message: "Request submitted. HOD / Admin / Exam / ACM will review under Approvals.",
+  })
 }
 
 // Admin/HOD: all pending requests. Students/staff: own pending count via ?mine=1
@@ -307,18 +380,37 @@ export async function GET(req: Request) {
     where.push(`u.role = $${params.length}`)
   }
   // Branch: students.dept, users.branch, or changes->>'Branch'
+  // Use loose tokens so "Civil Engineering" matches "Civil", CSE matches Computer Science, etc.
   if (branch) {
     const nb = normalizeBranch(branch) || branch
-    params.push(nb)
-    params.push(`%${branch}%`)
-    where.push(`(
-      COALESCE(s.dept, '') ILIKE $${params.length - 1}
-      OR COALESCE(s.dept, '') ILIKE $${params.length}
-      OR COALESCE(u.branch, '') ILIKE $${params.length - 1}
-      OR COALESCE(u.branch, '') ILIKE $${params.length}
-      OR COALESCE(pr.changes->>'Branch', '') ILIKE $${params.length - 1}
-      OR COALESCE(pr.changes->>'Branch', '') ILIKE $${params.length}
-    )`)
+    const tokens = Array.from(
+      new Set(
+        [nb, branch, "civil", "computer", "electron", "mech", "cse", "ece", "ce", "me"]
+          .map((t) => String(t || "").trim())
+          .filter(Boolean),
+      ),
+    )
+    // Prefer tokens that appear in the HOD branch label
+    const bl = String(nb).toLowerCase()
+    const relevant = tokens.filter((t) => {
+      const tl = t.toLowerCase()
+      if (tl === bl || bl.includes(tl) || tl.includes(bl.split(" ")[0] || "")) return true
+      if (bl.includes("civil") && (tl === "civil" || tl === "ce")) return true
+      if (bl.includes("computer") && (tl === "computer" || tl === "cse" || tl === "cs")) return true
+      if (bl.includes("electron") && (tl === "electron" || tl === "ece" || tl === "ec")) return true
+      if (bl.includes("mech") && (tl === "mech" || tl === "me")) return true
+      return tl.length > 4 && bl.includes(tl)
+    })
+    const use = relevant.length ? relevant : [nb, branch]
+    const parts: string[] = []
+    for (const t of use) {
+      params.push(`%${t}%`)
+      const i = params.length
+      parts.push(`COALESCE(s.dept, '') ILIKE $${i}`)
+      parts.push(`COALESCE(u.branch, '') ILIKE $${i}`)
+      parts.push(`COALESCE(pr.changes->>'Branch', '') ILIKE $${i}`)
+    }
+    where.push(`(${parts.join(" OR ")})`)
   } else if (user.role === "hod" && !hodBranch) {
     // No branch on HOD → empty result set
     where.push(`FALSE`)

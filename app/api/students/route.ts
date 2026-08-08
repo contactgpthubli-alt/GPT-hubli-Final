@@ -58,7 +58,11 @@ export async function GET(req: Request) {
     if (user.reg_no) {
       await applyProgressionToStudent(user.reg_no, { eventType: "login_recompute" }).catch(() => null)
     }
-    const { rows } = await query("SELECT * FROM students WHERE reg_no = $1", [user.reg_no])
+    // Case-insensitive reg match (DTE / mixed case imports)
+    const { rows } = await query(
+      `SELECT * FROM students WHERE UPPER(TRIM(reg_no)) = UPPER(TRIM($1)) LIMIT 1`,
+      [user.reg_no],
+    )
     if (rows.length) {
       const row = rows[0]
       // Prefer normalized dept; fall back to users.branch
@@ -72,9 +76,24 @@ export async function GET(req: Request) {
       } else {
         row.dept = normalizeBranch(row.dept) || row.dept
       }
+      // Keep users.branch in sync with students.dept so HOD filters + sidebar stay correct
+      if (row.dept && row.dept !== "Not set") {
+        await query(
+          `UPDATE users SET branch = $2 WHERE id = $1 AND (branch IS NULL OR btrim(branch) = '' OR branch = 'Not set' OR branch IS DISTINCT FROM $2)`,
+          [user.id, row.dept],
+        ).catch(() => null)
+      }
       const academic = rowToSnapshot(row)
       return Response.json({
-        students: [{ ...row, ...academic, academic }],
+        students: [
+          {
+            ...row,
+            ...academic,
+            academic,
+            year_label: academic.year_label || row.year,
+            current_study_year: academic.current_study_year,
+          },
+        ],
         branches: OFFICIAL_BRANCHES,
         academic_settings: academicSettings,
       })

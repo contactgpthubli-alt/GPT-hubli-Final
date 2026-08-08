@@ -13,7 +13,7 @@
  * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
  * exam/ops/analysis/tc/acm/print are deferred until authenticated).
  */
-var GPT_PERF_V = "20260808perf"
+var GPT_PERF_V = "20260808fy1"
 var _gpthModsPromise = null
 function gpthLoadScript(src) {
   return new Promise(function (resolve) {
@@ -167,10 +167,37 @@ function __initGptBridge() {
     if (ava && !ava.querySelector('img')) ava.textContent = initialsOf(name);
     setText('stuWelcomeName', 'Hello, ' + name + ' 👋');
 
+    // Prefer live academic fields over stale static "CSE · 2nd Year" demo text
+    var liveDept =
+      (stu && (stu.dept || (stu.academic && stu.academic.dept))) ||
+      user.branch ||
+      '';
+    var liveYear = '';
+    if (stu) {
+      if (stu.year_label) liveYear = String(stu.year_label);
+      else if (stu.academic && stu.academic.year_label) liveYear = String(stu.academic.year_label);
+      else if (stu.year) liveYear = String(stu.year);
+      else if (stu.current_study_year === 1 || (stu.academic && stu.academic.current_study_year === 1)) liveYear = '1st Year';
+      else if (stu.current_study_year === 2 || (stu.academic && stu.academic.current_study_year === 2)) liveYear = '2nd Year';
+      else if (stu.current_study_year === 3 || (stu.academic && stu.academic.current_study_year === 3)) liveYear = '3rd Year';
+    }
+    // Short branch code for sidebar
+    var shortBranch = liveDept;
+    var dl = String(liveDept).toLowerCase();
+    if (dl.indexOf('computer') >= 0) shortBranch = 'CSE';
+    else if (dl.indexOf('civil') >= 0) shortBranch = 'Civil';
+    else if (dl.indexOf('electron') >= 0) shortBranch = 'ECE';
+    else if (dl.indexOf('mech') >= 0) shortBranch = 'ME';
+    var sbRole = document.querySelector('#dbStudent .sb-role');
+    if (sbRole) {
+      sbRole.textContent =
+        (shortBranch || 'Student') + (liveYear ? ' · ' + liveYear : '');
+    }
+
     var metaParts = [];
     if (reg) metaParts.push(reg);
-    if (stu && stu.dept) metaParts.push(stu.dept);
-    if (stu && stu.year) metaParts.push(stu.year);
+    if (liveDept) metaParts.push(liveDept);
+    if (liveYear) metaParts.push(liveYear);
     metaParts.push(academicYearLabel());
     setText('stuWelcomeMeta', metaParts.length ? metaParts.join(' · ') : '—');
 
@@ -178,8 +205,8 @@ function __initGptBridge() {
     setText('stuProfileName', name);
     var profMeta = [];
     if (reg) profMeta.push(reg);
-    if (stu && stu.dept) profMeta.push(stu.dept);
-    if (stu && stu.year) profMeta.push(stu.year);
+    if (liveDept) profMeta.push(liveDept);
+    if (liveYear) profMeta.push(liveYear);
     setText('stuProfileMeta', profMeta.length ? profMeta.join(' · ') : '—');
 
     var cgpa = stu && stu.cgpa != null && String(stu.cgpa).trim() !== '' ? String(stu.cgpa) : null;
@@ -3731,12 +3758,27 @@ function __initGptBridge() {
     return '';
   }
 
-  window.fillCertFromReg = async function (formKey) {
+  /**
+   * @param {string} formKey
+   * @param {{ silent?: boolean }} [opts] silent=true → no alert (login prefill)
+   */
+  window.fillCertFromReg = async function (formKey, opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
     var ids = certFormIds(formKey);
     if (!ids) return;
     var regEl = document.getElementById(ids.reg);
     if (!regEl) return;
     var reg = String(regEl.value || '').trim();
+    // Always prefer logged-in student reg on silent prefill
+    var myReg =
+      currentUser && currentUser.role === 'student'
+        ? String(currentUser.reg_no || window.STU_REG_NO || '').trim()
+        : '';
+    if (silent && myReg) {
+      reg = myReg;
+      regEl.value = myReg;
+    }
     if (!reg) {
       // clear autofill only
       ['name', 'branch', 'year'].forEach(function (k) {
@@ -3748,18 +3790,18 @@ function __initGptBridge() {
     }
     var stu = await resolveCertStudent(reg);
     if (stu && stu.mismatch) {
-      // Keep typed reg if expected missing; otherwise snap to account reg
+      // Snap to account reg — never alert during silent/login prefill
       if (stu.expected) {
-        alert('Register number must match your account (' + stu.expected + ').');
+        if (!silent) {
+          alert('Register number must match your account (' + stu.expected + ').');
+        }
         regEl.value = stu.expected;
         stu = await resolveCertStudent(regEl.value);
       } else {
-        // Do not wipe the field the student already filled
         return;
       }
     }
     if (!stu) {
-      // Keep register number; only clear empty autofill targets if needed
       return;
     }
     regEl.value = stu.reg_no || reg;
@@ -3773,21 +3815,21 @@ function __initGptBridge() {
     }
   };
 
-  /** Prefill register no. on all cert forms from logged-in student and autofill. */
+  /** Prefill register no. on all cert forms from logged-in student and autofill (silent). */
   window.prefillStudentCertForms = async function () {
     if (!currentUser || currentUser.role !== 'student') return;
     var reg = currentUser.reg_no || window.STU_REG_NO || '';
     if (!reg) return;
+    // Always overwrite leftover regs from a previous browser session
     ['tc', 'study', 'studying', 'noc', 'pdc'].forEach(function (key) {
       var ids = certFormIds(key);
       if (!ids) return;
       var regEl = document.getElementById(ids.reg);
-      if (regEl && !String(regEl.value || '').trim()) regEl.value = reg;
+      if (regEl) regEl.value = reg;
     });
-    // Autofill each form once
-    for (var i = 0; i < 5; i++) {
-      var keys = ['tc', 'study', 'studying', 'noc', 'pdc'];
-      await window.fillCertFromReg(keys[i]);
+    var keys = ['tc', 'study', 'studying', 'noc', 'pdc'];
+    for (var i = 0; i < keys.length; i++) {
+      await window.fillCertFromReg(keys[i], { silent: true });
     }
   };
 
@@ -5587,10 +5629,16 @@ function applyLiveStudentProfile(stu, reg) {
   if (!extra || typeof extra !== 'object') extra = {};
 
   // Locked only after Admin explicitly locks (Approve & Lock / Lock Edit).
-  // First-time students (no lock flag) may request profile edits freely.
+  // First-time / incomplete students get an editable profile without waiting for staff.
   window._stuProfileEditLocked = extra.profile_edit_locked === true || extra.profile_edit_locked === 'true';
-  window._stuProfileFirstTime = !window._stuProfileEditLocked &&
-    Object.keys(extra).filter(function (k) { return k !== 'profile_edit_locked'; }).length < 6;
+  var filledExtra = Object.keys(extra).filter(function (k) {
+    if (k === 'profile_edit_locked' || k === 'Profile Photo' || k === 'profile_photo') return false;
+    var v = extra[k];
+    return v != null && String(v).trim() !== '';
+  }).length;
+  // First-time if unlocked and profile still thin (< 8 meaningful fields)
+  window._stuProfileFirstTime = !window._stuProfileEditLocked && filledExtra < 8;
+  window._stuProfileIncomplete = !window._stuProfileEditLocked && filledExtra < 12;
 
   // Normalize labels for matching (trim + collapse spaces + case-insensitive map)
   var valuesByNorm = {};
@@ -6427,15 +6475,32 @@ async function updateStuProfileLockUI() {
   }
   if (firstBanner) {
     firstBanner.style.display = (!pending && window._stuProfileFirstTime) ? '' : 'none';
+    if (window._stuProfileFirstTime) {
+      firstBanner.innerHTML =
+        'Welcome! <strong>Your profile is editable</strong> for first-time fill. ' +
+        'Complete the fields and click <strong>Save My Profile</strong>. ' +
+        'Your HOD / Admin / Exam / ACM can also review update requests under Approvals.';
+    }
+  }
+
+  // First-time / incomplete: auto-open edit mode so Year-1 students are not stuck view-only
+  if (!pending && !window._stuProfileEditEnabled && (window._stuProfileFirstTime || window._stuProfileIncomplete) && !locked) {
+    try {
+      enableStuProfileEdit({ firstTime: true, quiet: true });
+    } catch (eAuto) { /* ignore */ }
   }
 }
 window.updateStuProfileLockUI = updateStuProfileLockUI;
 
 /** Unlock fields on Student → My Profile for a request draft (fee years follow Current Year rules). */
-function enableStuProfileEdit() {
+function enableStuProfileEdit(opts) {
+  opts = opts || {};
   // Students may always open a draft request (even if view-only / "locked")
   var container = document.getElementById('stuDynamicProfileSections');
-  if (!container) { alert('Profile section not found.'); return false; }
+  if (!container) {
+    if (!opts.quiet) alert('Profile section not found.');
+    return false;
+  }
 
   container.querySelectorAll('.fg').forEach(function (fg) {
     // Fee-year fields are controlled by applyStuFeeYearLocks — skip bulk unlock
@@ -6457,7 +6522,7 @@ function enableStuProfileEdit() {
       var hint = document.createElement('div');
       hint.className = 'stu-edit-hint';
       hint.style.cssText = 'font-size:0.65rem;color:var(--green);margin-top:3px;';
-      hint.textContent = '✏️ You can edit this field';
+      hint.textContent = 'You can edit this field';
       fg.appendChild(hint);
     }
   });
@@ -6472,11 +6537,16 @@ function enableStuProfileEdit() {
 
   var btn = document.getElementById('stuProfileUpdateBtn');
   if (btn) {
-    btn.textContent = '📝 Submit Edit Request';
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    btn.textContent = opts.firstTime || window._stuProfileFirstTime
+      ? 'Save My Profile'
+      : 'Submit Edit Request';
     btn.classList.add('gr');
   }
   var banner = document.getElementById('stuProfileEditBanner');
-  if (banner) banner.style.display = '';
+  if (banner) banner.style.display = opts.quiet ? 'none' : '';
 
   return true;
 }
@@ -6499,19 +6569,17 @@ async function submitStuProfileUpdate() {
     try {
       var pending = await profileApiGet('/api/profile-requests?mine=1');
       if (pending && ((pending.mine_pending > 0) || (pending.pending && pending.pending.length > 0))) {
-        alert('⏳ You already have an edit request pending Admin/HOD approval.\n\nWait until it is reviewed, then raise a new request if needed.');
+        alert('You already have an edit request pending Admin/HOD/Exam/ACM approval.\n\nWait until it is reviewed, then raise a new request if needed.');
         updateStuProfileLockUI();
         return;
       }
     } catch (e) { /* allow attempt if check fails */ }
 
-    enableStuProfileEdit();
+    enableStuProfileEdit({ firstTime: !!window._stuProfileFirstTime });
     alert(
-      '✏️ Edit request draft opened.\n\n' +
-      '• Change the fields you need\n' +
-      '• Fee sections unlock based on Current Year\n' +
-      '• Nothing saves until Admin / HOD / ACM approves\n\n' +
-      'Edit, then click "Submit Edit Request".'
+      window._stuProfileFirstTime
+        ? 'Profile is now editable.\n\nFill your details, then click Save My Profile.\nYour branch HOD, Admin, Exam Cell and ACM can also see update requests under Approvals.'
+        : 'Edit request draft opened.\n\n• Change the fields you need\n• Fee sections unlock based on Current Year\n• Submit so HOD / Admin / Exam / ACM can approve\n\nThen click "Submit Edit Request".'
     );
     return;
   }
@@ -6524,7 +6592,7 @@ async function submitStuProfileUpdate() {
     // Skip fully locked fee years (disabled) so older years are not wiped on merge.
     // View-only (readonly) fee fields for Completed are still submitted so admin sees them.
     if (field.disabled) return;
-    var labelText = label.textContent.replace(/✏️.*$/, '').trim();
+    var labelText = label.textContent.replace(/✏️.*$/, '').replace(/You can edit this field/g, '').trim();
     if (!labelText) return;
     changes[labelText] = field.value;
   });
@@ -6551,37 +6619,77 @@ async function submitStuProfileUpdate() {
     alert('System not ready. Please refresh the page and try again.');
     return;
   }
-  var res = await apiClient.post('/api/profile-requests', { targetType: 'student', targetId: regNo, changes: changes });
+
+  // First-time / incomplete: save profile data immediately + notify staff queue
+  var firstSave = !!window._stuProfileFirstTime || !!window._stuProfileIncomplete;
+  var res;
+  if (firstSave) {
+    res = await apiClient.post('/api/profile-requests', {
+      targetType: 'student',
+      targetId: regNo,
+      changes: changes,
+      first_time_save: true,
+    });
+  } else {
+    res = await apiClient.post('/api/profile-requests', {
+      targetType: 'student',
+      targetId: regNo,
+      changes: changes,
+    });
+  }
+
   if (res && res.ok) {
     var hasPhoto = !!changes['Profile Photo'];
-    alert(
-      '✅ Update request submitted! Awaiting Admin/HOD approval.\n\n' +
-      (hasPhoto ? '📷 Profile photo is included in this request.\n\n' : '') +
-      'Your profile stays view-only until an Admin reviews it. Approved data (including photo) will appear after approval.'
-    );
-    // Return to view-only immediately — nothing is saved without admin approval
-    window._stuProfileEditEnabled = false;
-    // Keep pending photo preview until approval; clear only after approved load
-    if (typeof renderStuDynamicProfile === 'function') renderStuDynamicProfile();
-    // Re-apply DB values (still old until approved) but keep pending photo preview
-    var keepPhoto = window._stuPendingPhoto;
-    var stu = (typeof students !== 'undefined' && regNo) ? students[regNo] : null;
-    if (stu && typeof window.applyLiveStudentProfile === 'function') {
-      window.applyLiveStudentProfile(stu, regNo);
+    if (res.applied_immediately) {
+      alert(
+        'Profile saved.\n\n' +
+        (hasPhoto ? 'Photo saved.\n\n' : '') +
+        'Your details are stored. Staff can still review later under Approvals if needed.'
+      );
+      window._stuProfileFirstTime = false;
+      window._stuProfileIncomplete = false;
+      window._stuProfileEditEnabled = false;
+      window._stuPendingPhoto = null;
+      // Refresh from server
+      try {
+        var s = await apiClient.get('/api/students?_ts=' + Date.now());
+        if (s && s.students && s.students[0] && typeof window.applyLiveStudentProfile === 'function') {
+          var row = s.students[0];
+          if (typeof students !== 'undefined') students[row.reg_no || regNo] = row;
+          window.applyLiveStudentProfile(row, row.reg_no || regNo);
+        }
+      } catch (eRef) {
+        updateStuProfileLockUI();
+      }
     } else {
-      updateStuProfileLockUI();
+      alert(
+        'Update request submitted! Awaiting HOD / Admin / Exam Cell / ACM approval.\n\n' +
+        (hasPhoto ? 'Profile photo is included in this request.\n\n' : '') +
+        'Open Approvals on the staff side to review. Your profile stays view-only until approved.'
+      );
+      window._stuProfileEditEnabled = false;
+      if (typeof renderStuDynamicProfile === 'function') renderStuDynamicProfile();
+      var keepPhoto = window._stuPendingPhoto;
+      var stu = (typeof students !== 'undefined' && regNo) ? students[regNo] : null;
+      if (stu && typeof window.applyLiveStudentProfile === 'function') {
+        window.applyLiveStudentProfile(stu, regNo);
+      } else {
+        updateStuProfileLockUI();
+      }
+      if (keepPhoto && typeof window.applyPhotoEverywhere === 'function') {
+        window._stuPendingPhoto = keepPhoto;
+        window.applyPhotoEverywhere('stu', keepPhoto);
+      }
+      var btn = document.getElementById('stuProfileUpdateBtn');
+      if (btn) {
+        btn.textContent = 'Edit Request Pending';
+        btn.disabled = true;
+        btn.style.opacity = '0.55';
+        btn.style.cursor = 'not-allowed';
+      }
     }
-    if (keepPhoto && typeof window.applyPhotoEverywhere === 'function') {
-      window._stuPendingPhoto = keepPhoto;
-      window.applyPhotoEverywhere('stu', keepPhoto);
-    }
-    var btn = document.getElementById('stuProfileUpdateBtn');
-    if (btn) {
-      btn.textContent = '⏳ Request Pending Approval';
-      btn.disabled = true;
-      btn.style.opacity = '0.55';
-      btn.style.cursor = 'not-allowed';
-    }
+  } else {
+    alert((res && (res.error || res.message)) || 'Could not submit profile. Try again.');
   }
 }
 window.submitStuProfileUpdate = submitStuProfileUpdate;
