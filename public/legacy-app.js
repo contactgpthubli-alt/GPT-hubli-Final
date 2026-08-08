@@ -129,10 +129,32 @@ function showSec(secId, linkEl) {
   });
   el.style.removeProperty('display');
   el.style.display = 'block';
+  // Smooth enter animation for the opened panel
+  try {
+    el.classList.remove('gpth-sec-enter');
+    void el.offsetWidth; // reflow so animation restarts
+    el.classList.add('gpth-sec-enter');
+    window.clearTimeout(el._gpthAnimT);
+    el._gpthAnimT = window.setTimeout(function () {
+      el.classList.remove('gpth-sec-enter');
+    }, 400);
+  } catch (eAnim) { /* ignore */ }
+  // Highlight selected sidebar item (and clear siblings)
   if (linkEl) {
     const sb = linkEl.closest('.sb');
     sb && sb.querySelectorAll('.sl').forEach(l => l.classList.remove('act'));
     linkEl.classList.add('act');
+  } else {
+    // Fallback: match menu item by showSec('secId'...) in onclick
+    try {
+      document.querySelectorAll('.sb .sl.act').forEach(function (l) { l.classList.remove('act'); });
+      document.querySelectorAll('.sb .sl').forEach(function (sl) {
+        var oc = sl.getAttribute('onclick') || '';
+        if (oc.indexOf("'" + secId + "'") !== -1 || oc.indexOf('"' + secId + '"') !== -1) {
+          sl.classList.add('act');
+        }
+      });
+    } catch (eHi) { /* ignore */ }
   }
   const titles = {
     adHome:'Dashboard', adApprovals:'Pending Approvals', adStudents:'Student Database',
@@ -182,6 +204,41 @@ function showSec(secId, linkEl) {
     } catch (e) { console.warn('[results] open', e); }
   }
 }
+
+/** Highlight a tab/button in its group (.tabs or parent) with smooth .act styles */
+function gpthMarkTabActive(btn) {
+  if (!btn) return;
+  try {
+    var row = btn.closest('.tabs') || btn.closest('.exam-staff-tabs') || btn.parentElement;
+    if (row) {
+      row.querySelectorAll('.tab, [data-exam-tab], .btn.act').forEach(function (t) {
+        if (t === btn) return;
+        // Only clear siblings that are tab-like
+        if (t.classList.contains('tab') || t.hasAttribute('data-exam-tab') || t.classList.contains('btn')) {
+          if (t.parentElement === btn.parentElement || (row.classList && row.classList.contains('tabs'))) {
+            t.classList.remove('act');
+          }
+        }
+      });
+      row.querySelectorAll(':scope > .tab, :scope > [data-exam-tab], :scope > .btn').forEach(function (t) {
+        t.classList.remove('act');
+      });
+    }
+    btn.classList.add('act');
+  } catch (e) { /* ignore */ }
+}
+window.gpthMarkTabActive = gpthMarkTabActive;
+
+// Global: any .tab click gets .act (covers inline onclick handlers that forget it)
+document.addEventListener(
+  'click',
+  function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('.tab, [data-exam-tab]') : null;
+    if (!t) return;
+    gpthMarkTabActive(t);
+  },
+  true,
+);
 
 // ===== EST TABS (old function kept for backward compat — new showESTTab added in new JS block below) =====
 function showESTTabLegacy(tabId, linkEl) {

@@ -845,13 +845,33 @@
         barWire.querySelectorAll('[data-exam-tab]').forEach(function (btn) {
           btn.onclick = function () {
             var id = btn.getAttribute('data-exam-tab') || '';
+            // Highlight active sub-tab with smooth style (.act)
+            barWire.querySelectorAll('[data-exam-tab]').forEach(function (b) {
+              b.classList.remove('act');
+            });
+            btn.classList.add('act');
             var vEl = document.getElementById(cfg.prefix + 'ResultsVerify');
             var fEl = document.getElementById(cfg.prefix + 'FeeDesk');
             var sEl = document.getElementById(cfg.prefix + 'FeeSchedule');
             var pEl = document.getElementById(cfg.prefix + 'Pathways');
-            if (vEl) vEl.style.display = id.indexOf('ResultsVerify') >= 0 ? '' : 'none';
-            if (fEl) fEl.style.display = id.indexOf('FeeDesk') >= 0 ? '' : 'none';
-            if (sEl) sEl.style.display = id.indexOf('FeeSchedule') >= 0 ? '' : 'none';
+            function showPanel(el, on) {
+              if (!el) return;
+              el.style.display = on ? '' : 'none';
+              if (on) {
+                try {
+                  el.classList.remove('gpth-sec-enter');
+                  void el.offsetWidth;
+                  el.classList.add('gpth-sec-enter');
+                  window.clearTimeout(el._gpthAnimT);
+                  el._gpthAnimT = window.setTimeout(function () {
+                    el.classList.remove('gpth-sec-enter');
+                  }, 400);
+                } catch (eA) { /* ignore */ }
+              }
+            }
+            showPanel(vEl, id.indexOf('ResultsVerify') >= 0);
+            showPanel(fEl, id.indexOf('FeeDesk') >= 0);
+            showPanel(sEl, id.indexOf('FeeSchedule') >= 0);
             if (pEl) pEl.style.display = 'none';
             if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(cfg.prefix);
             else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(cfg.prefix);
