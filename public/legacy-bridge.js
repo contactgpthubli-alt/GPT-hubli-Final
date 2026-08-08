@@ -10257,12 +10257,17 @@ setInterval(function () {
     return h12 + ':' + min + ' ' + ap;
   }
 
+  /**
+   * Ensure Subject field is a dropdown (not free-type). Rebuilds the control once
+   * so Year / Branch / Date changes can repopulate real curriculum options.
+   */
   function ensureAttSubjectInput() {
     var el = document.getElementById('attSubject');
     if (!el) return null;
-    // Free-type subject only (C-25 not loaded; staff type code/title themselves)
-    if (el.tagName === 'INPUT' && el.getAttribute('data-free') === '1') {
+    // Already a proper select dropdown
+    if (el.tagName === 'SELECT' && el.getAttribute('data-curr') === '1') {
       ensureAttFormFieldOrder();
+      attBindSubjectReloaders();
       return el;
     }
     var fg = el.closest ? el.closest('.fg') : el.parentNode;
@@ -10275,19 +10280,28 @@ setInterval(function () {
     var wrap = document.createElement('div');
     wrap.id = 'attSubjectWrap';
     wrap.innerHTML =
-      '<input id="attSubject" data-free="1" type="text" placeholder="Type subject (e.g. 20CE31P — Engineering Mechanics)" ' +
-      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;" />' +
+      '<select id="attSubject" data-curr="1" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;background:#fff;">' +
+      '<option value="">— Select subject —</option>' +
+      '<option value="__other__">Other (type yourself)</option>' +
+      '</select>' +
+      '<input id="attSubjectOther" type="text" placeholder="Type subject code & name" ' +
+      'style="display:none;width:100%;margin-top:8px;padding:9px;border-radius:8px;border:1.5px solid var(--border);font-size:0.88rem;" />' +
       '<div id="attSemHint" style="margin-top:6px;font-size:0.75rem;opacity:.8;line-height:1.35;">' +
-      'Type the subject name/code yourself for now (C-25 list not loaded; C-20 final year can also type). Select <strong>Year</strong> first for the student roster filter.' +
+      'Select <strong>Year / Class</strong> and <strong>Branch</strong> to load official subjects for the running semester.' +
       '</div>';
     if (fg) {
-      fg.innerHTML = '<label id="attSubjectLabel">Subject (type yourself)</label>';
+      fg.innerHTML = '<label id="attSubjectLabel">Subject</label>';
       fg.appendChild(wrap);
     } else if (el.parentNode) {
       el.parentNode.replaceChild(wrap, el);
     }
-    var inp = document.getElementById('attSubject');
-    if (inp && prev && prev !== '__other__') inp.value = prev;
+    var sel = document.getElementById('attSubject');
+    if (sel && prev && prev !== '__other__') {
+      // keep previous value if still present after load
+      sel.setAttribute('data-prev', prev);
+    }
+    attBindOtherToggle(sel);
     ensureAttFormFieldOrder();
     attBindSubjectReloaders();
     return document.getElementById('attSubject');
@@ -10330,7 +10344,7 @@ setInterval(function () {
   /**
    * Syllabus scheme for a class year on a date.
    * Admission 2020-21…2024-25 → C-20; 2025-26+ → C-25.
-   * C-25 key list is NOT in the app yet — I/II Year get free-type only.
+   * AY 2026-27: I & II Year → C-25; III Year → C-20.
    */
   function attSchemeForStudyYear(studyYear, dateInput) {
     var yn = typeof studyYear === 'number' ? studyYear : attStudyYearNum(studyYear);
@@ -10360,32 +10374,226 @@ setInterval(function () {
     });
   }
 
+  function attSubjectOptionValue(sub) {
+    if (!sub) return '';
+    var code = String(sub.code || '').trim();
+    var name = String(sub.name || '').trim();
+    if (code && name) return code + ' — ' + name;
+    return code || name || '';
+  }
+
+  /**
+   * Load official C-20 / C-25 subjects into the attendance Subject dropdown
+   * for the selected Branch + Year and the running semester (from date).
+   */
   window.loadAttCurriculumSubjects = async function loadAttCurriculumSubjects() {
-    // Subject is free-type for now — only update label/hint from year + date term.
     ensureAttSubjectInput();
     ensureAttFormFieldOrder();
     var year = (document.getElementById('attYear') && document.getElementById('attYear').value) || '';
+    var branch =
+      (document.getElementById('attBranch') && document.getElementById('attBranch').value) || '';
     var dateVal =
       (document.getElementById('attDate') && document.getElementById('attDate').value) || '';
     var term = attCalendarTermInfo(dateVal || new Date());
     var studyY = attStudyYearNum(year);
     var scheme = attSchemeForStudyYear(studyY, dateVal);
     var runningSem = studyY ? attSemesterFromYearAndParity(studyY, term.parity) : null;
+    var branchCode = attBranchCode(branch);
     var lab = document.getElementById('attSubjectLabel');
-    if (lab) lab.textContent = 'Subject (type yourself)';
+    if (lab) lab.textContent = 'Subject';
+    var sel = document.getElementById('attSubject');
     var hint = document.getElementById('attSemHint');
-    if (hint) {
-      hint.innerHTML =
-        (studyY
-          ? 'Year ' +
-            studyY +
-            (scheme ? ' · <strong>' + attEsc(scheme) + '</strong>' : '') +
-            (runningSem != null ? ' · running Sem ' + runningSem : '') +
-            ' · '
-          : 'Select <strong>Year / Class</strong> first · ') +
-        'Type subject code &amp; name (e.g. <code>20CE31P — Engineering Mechanics</code>). ' +
-        'Official C-25 list not loaded yet. June odd / January even.';
+    var prev =
+      (sel && sel.getAttribute('data-prev')) ||
+      (sel && sel.value && sel.value !== '__other__' ? sel.value : '') ||
+      '';
+
+    function paintHint(msg, isWarn) {
+      if (!hint) return;
+      hint.style.color = isWarn ? '#b45309' : '';
+      hint.innerHTML = msg;
     }
+
+    if (!sel) return;
+
+    if (!studyY) {
+      sel.innerHTML =
+        '<option value="">— Select Year / Class first —</option>' +
+        '<option value="__other__">Other (type yourself)</option>';
+      attBindOtherToggle(sel);
+      paintHint('Select <strong>Year / Class</strong> to load subjects for the running semester (odd/even from date).');
+      return;
+    }
+    if (!branchCode) {
+      sel.innerHTML =
+        '<option value="">— Select Branch first —</option>' +
+        '<option value="__other__">Other (type yourself)</option>';
+      attBindOtherToggle(sel);
+      paintHint('Select <strong>Branch</strong> to load official subjects.');
+      return;
+    }
+    if (!scheme) {
+      sel.innerHTML =
+        '<option value="">— Scheme unknown —</option>' +
+        '<option value="__other__">Other (type yourself)</option>';
+      attBindOtherToggle(sel);
+      paintHint('Could not resolve syllabus scheme for this year. Use Other to type the subject.', true);
+      return;
+    }
+
+    sel.innerHTML = '<option value="">Loading subjects…</option>';
+    paintHint(
+      'Year ' +
+        studyY +
+        ' · <strong>' +
+        attEsc(scheme) +
+        '</strong>' +
+        (runningSem != null ? ' · Sem ' + runningSem : '') +
+        ' · ' +
+        attEsc(term.short || '') +
+        ' term — loading…',
+    );
+
+    var list = [];
+    try {
+      var api = window.api;
+      var url =
+        '/api/curriculum?scheme=' +
+        encodeURIComponent(scheme) +
+        '&branch=' +
+        encodeURIComponent(branchCode);
+      var res = api && typeof api.get === 'function' ? await api.get(url) : null;
+      if (!res && typeof fetch === 'function') {
+        var fr = await fetch(url, { credentials: 'same-origin' });
+        res = fr.ok ? await fr.json() : null;
+      }
+      if (res && Array.isArray(res.subjects)) list = res.subjects;
+      else if (res && res.by_semester && typeof res.by_semester === 'object') {
+        Object.keys(res.by_semester).forEach(function (k) {
+          var arr = res.by_semester[k];
+          if (Array.isArray(arr)) list = list.concat(arr);
+        });
+      }
+    } catch (eLoad) {
+      list = [];
+    }
+
+    // Prefer running semester; if empty (e.g. C-25 Sem 3+ not listed yet), fall back to year band then all
+    var filtered = list.slice();
+    var filterNote = '';
+    if (runningSem != null) {
+      var bySem = list.filter(function (s) {
+        return Number(s.semester) === Number(runningSem);
+      });
+      if (bySem.length) {
+        filtered = bySem;
+        filterNote = 'Showing Sem ' + runningSem + ' subjects only.';
+      } else {
+        // Year band: Y1→1-2, Y2→3-4, Y3→5-6
+        var lo = 2 * studyY - 1;
+        var hi = 2 * studyY;
+        var byYear = list.filter(function (s) {
+          var sm = Number(s.semester);
+          return sm >= lo && sm <= hi;
+        });
+        if (byYear.length) {
+          filtered = byYear;
+          filterNote =
+            'No subjects listed yet for Sem ' +
+            runningSem +
+            ' — showing Year ' +
+            studyY +
+            ' list (Sem ' +
+            lo +
+            '–' +
+            hi +
+            ').';
+        } else if (list.length) {
+          filtered = list;
+          filterNote =
+            'Sem ' +
+            runningSem +
+            ' not in syllabus yet — showing all loaded ' +
+            scheme +
+            ' subjects for this branch.';
+        } else {
+          filtered = [];
+          filterNote =
+            'No official ' +
+            scheme +
+            ' subjects loaded for this branch/year yet. Use Other to type.';
+        }
+      }
+    }
+
+    // Sort by semester then code
+    filtered.sort(function (a, b) {
+      var sa = Number(a.semester) || 0;
+      var sb = Number(b.semester) || 0;
+      if (sa !== sb) return sa - sb;
+      return String(a.code || '').localeCompare(String(b.code || ''));
+    });
+
+    var opts = ['<option value="">— Select subject —</option>'];
+    var lastSem = null;
+    filtered.forEach(function (s) {
+      var sm = Number(s.semester);
+      if (sm && sm !== lastSem && (runningSem == null || filtered.length > 8)) {
+        opts.push(
+          '<option disabled value="">—— Semester ' + sm + ' ——</option>',
+        );
+        lastSem = sm;
+      }
+      var val = attSubjectOptionValue(s);
+      if (!val) return;
+      var label = val + (s.is_audit ? ' (audit)' : '');
+      opts.push('<option value="' + attEsc(val) + '">' + attEsc(label) + '</option>');
+    });
+    opts.push('<option value="__other__">Other (type yourself)</option>');
+    sel.innerHTML = opts.join('');
+    attBindOtherToggle(sel);
+
+    // Restore previous selection when still in list
+    if (prev) {
+      var found = false;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === prev) {
+          sel.value = prev;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // Try match by code prefix
+        var codeOnly = String(prev).split(/[—–-]/)[0].trim();
+        for (var j = 0; j < sel.options.length; j++) {
+          if (sel.options[j].value.indexOf(codeOnly) === 0) {
+            sel.value = sel.options[j].value;
+            found = true;
+            break;
+          }
+        }
+      }
+      sel.removeAttribute('data-prev');
+    }
+
+    paintHint(
+      'Year ' +
+        studyY +
+        ' · <strong>' +
+        attEsc(scheme) +
+        '</strong> · ' +
+        attEsc(branchCode) +
+        (runningSem != null ? ' · Sem ' + runningSem : '') +
+        ' · ' +
+        attEsc(term.label || term.short || '') +
+        (filtered.length ? ' · <strong>' + filtered.length + ' subjects</strong>' : '') +
+        (filterNote ? '<br/>' + filterNote : '') +
+        (filtered.length
+          ? ''
+          : '<br/>Pick <strong>Other</strong> to type a subject until the syllabus list is complete.'),
+      !filtered.length,
+    );
   };
 
   function attResolveSubjectValue() {
@@ -11239,7 +11447,7 @@ setInterval(function () {
       return;
     }
     if (!subj) {
-      alert('Please select a C-20 subject (or type under Other).');
+      alert('Please select a subject from the list (or choose Other and type the subject).');
       return;
     }
 

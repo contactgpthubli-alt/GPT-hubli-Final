@@ -74,12 +74,12 @@ export async function GET(req: Request) {
         : null,
     scheme_rule:
       "Admission 2020-21 to 2024-25 → C-20; 2025-26 onwards → C-25. " +
-      "C-25 Sem 2 subjects are loaded from the May 2026 result ledger (CE/CSE/ECE/ME). " +
+      "C-25 Sem 1–2 loaded (all branches). Sem 3+ when official lists arrive. " +
       "C-20 inventory remains for final-year / older batches.",
     note:
       scheme === "C-25"
         ? subjects.length
-          ? "C-25 Sem 2 subjects available. Sem 1 / later semesters will be added when official lists arrive."
+          ? "C-25 Sem 1–2 subjects available for this branch. Sem 3+ will be added when official lists arrive."
           : "C-25 subjects for this branch are not listed yet — contact Exam Section."
         : null,
   })
