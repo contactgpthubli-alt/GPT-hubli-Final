@@ -99,26 +99,67 @@
 
   function ensureOpsMenus() {
     if (!roleOk()) return;
+    var u = window.currentUser || {};
     var after = function (oc) {
       return oc.indexOf('Home') !== -1 || oc.indexOf('Exam') !== -1 || oc.indexOf('ACM') !== -1;
     };
-    // Admin
-    injectNav('#dbAdmin', 'adOpsLiveNav', 'adOpsLive', 'adOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Management', '🏷️', after);
-    injectNav('#dbAdmin', 'adOpsXferNav', 'adOpsTransfer', 'adOpsTransfer', 'Branch Transfer', '🔀', after);
+
+    // Exam Cell uses scoped admin shell — do NOT inject extra top-level ops menus there
+    // (they reappear after applyExamAdminScope and look like "all menus").
+    if (u.role !== 'exam' && !window._examScopedAdmin) {
+      injectNav('#dbAdmin', 'adOpsLiveNav', 'adOpsLive', 'adOpsLive', 'Live Academic', '📡', after);
+      injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Management', '🏷️', after);
+      injectNav('#dbAdmin', 'adOpsXferNav', 'adOpsTransfer', 'adOpsTransfer', 'Branch Transfer', '🔀', after);
+    } else {
+      // Hard-hide if an older session left them in the DOM
+      ;['adOpsLiveNav', 'adOpsCatNav', 'adOpsXferNav'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+
+    // ACM: only Student Management hub on admin shell (not separate Live/Transfer)
+    if (u.role === 'acm' || window._acmScopedAdmin) {
+      injectNav('#dbAdmin', 'adOpsCatNav', 'adOpsCategory', 'adOpsCategory', 'Student Management', '🏷️', after);
+      ;['adOpsLiveNav', 'adOpsXferNav'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    } else if (u.role === 'admin' || u.role === 'principal') {
+      // already injected above when not exam
+    }
+
     // Principal
-    injectNav('#dbPrincipal', 'priOpsLiveNav', 'priOpsLive', 'priOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbPrincipal', 'priOpsCatNav', 'priOpsCategory', 'priOpsCategory', 'Student Management', '🏷️', after);
-    injectNav('#dbPrincipal', 'priOpsXferNav', 'priOpsTransfer', 'priOpsTransfer', 'Branch Transfer', '🔀', after);
-    // Faculty shell (HOD + exam modules often live here)
-    injectNav('#dbFaculty', 'facOpsLiveNav', 'facOpsLive', 'facOpsLive', 'Live Academic', '📡', after);
-    injectNav('#dbFaculty', 'facOpsCatNav', 'facOpsCategory', 'facOpsCategory', 'Student Management', '🏷️', after);
-    injectNav('#dbFaculty', 'facOpsXferNav', 'facOpsTransfer', 'facOpsTransfer', 'Branch Transfer', '🔀', after);
+    if (u.role === 'principal' || u.role === 'admin') {
+      injectNav('#dbPrincipal', 'priOpsLiveNav', 'priOpsLive', 'priOpsLive', 'Live Academic', '📡', after);
+      injectNav('#dbPrincipal', 'priOpsCatNav', 'priOpsCategory', 'priOpsCategory', 'Student Management', '🏷️', after);
+      injectNav('#dbPrincipal', 'priOpsXferNav', 'priOpsTransfer', 'priOpsTransfer', 'Branch Transfer', '🔀', after);
+    }
+    // Faculty shell (HOD — full ops menus)
+    if (u.role === 'hod' || u.role === 'faculty' || u.role === 'admin' || u.role === 'principal') {
+      injectNav('#dbFaculty', 'facOpsLiveNav', 'facOpsLive', 'facOpsLive', 'Live Academic', '📡', after);
+      injectNav('#dbFaculty', 'facOpsCatNav', 'facOpsCategory', 'facOpsCategory', 'Student Management', '🏷️', after);
+      injectNav('#dbFaculty', 'facOpsXferNav', 'facOpsTransfer', 'facOpsTransfer', 'Branch Transfer', '🔀', after);
+    }
     // Rename if an older "Student Category" nav is already in the DOM
     ;['adOpsCatNav', 'priOpsCatNav', 'facOpsCatNav'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.innerHTML = '<span class="sli">🏷️</span>Student Management';
     });
+
+    // Re-assert scoped shells after any inject (fixes intermittent full menu)
+    try {
+      if (window._examScopedAdmin && typeof window.paintExamAdminMenu === 'function') {
+        window.paintExamAdminMenu(window.currentUser);
+      } else if (window._examScopedAdmin && typeof window.applyExamAdminScope === 'function') {
+        window.applyExamAdminScope(window.currentUser);
+      }
+      if (window._acmScopedAdmin && typeof window.paintAcmAdminMenu === 'function') {
+        window.paintAcmAdminMenu(window.currentUser);
+      } else if (window._acmScopedAdmin && typeof window.applyAcmAdminScope === 'function') {
+        window.applyAcmAdminScope(window.currentUser);
+      }
+    } catch (eRescope) { /* ignore */ }
   }
 
   function panelHtmlLive(pid) {

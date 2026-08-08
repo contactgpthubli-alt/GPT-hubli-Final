@@ -8,12 +8,15 @@ import {
   computeExamFees,
   parseChallans,
   challanTotal,
+  loadFineSchedule,
+  resolveFineFromSchedule,
   type ExamAttemptRow,
   type AttemptResult,
   type AttemptStatus,
   type ChallanEntry,
   EXAM_FEE_MANAGERS,
 } from "@/lib/exam-results"
+import { stripEmoji } from "@/lib/no-emoji"
 import { hodBranchOf } from "@/lib/account-approvals"
 import { branchCodeFromDept } from "@/lib/curriculum-c20"
 
@@ -74,12 +77,15 @@ export async function GET(req: Request) {
   )
   const attempts = attRows.map(mapAttempt)
   const effective = effectiveSubjectStatus(attempts)
-  const fine = Number(url.searchParams.get("fine") || 0) || 0
+  // Fine always from Exam Cell schedule (ignore client ?fine=)
+  const schedule = await loadFineSchedule(cycle)
+  const fineInfo = resolveFineFromSchedule(schedule)
   const fees = computeExamFees({
     entryType: ctx.entry_type,
     currentStudyYear: ctx.current_study_year,
     effective,
-    fine,
+    fine: fineInfo.fine,
+    fineLabel: fineInfo.label,
     includePending: true,
   })
 
@@ -93,6 +99,11 @@ export async function GET(req: Request) {
   return Response.json({
     student: ctx,
     fees,
+    fine_schedule: {
+      exam_cycle: cycle,
+      tiers: schedule,
+      resolved: fineInfo,
+    },
     payment: pay
       ? {
           id: pay.id,
@@ -110,7 +121,7 @@ export async function GET(req: Request) {
         }
       : null,
     note:
-      "K2 is a treasury challan process — there is no free public K2 API integrated. Student enters receipt number(s); Exam Section verifies manually and ticks Paid.",
+      "K2 is a treasury challan process — there is no free public K2 API integrated. Student enters receipt number(s); Exam Section verifies manually and ticks Paid. Fine is set by Exam Section date schedule (students cannot edit fine).",
   })
 }
 
@@ -220,12 +231,16 @@ export async function POST(req: Request) {
 
   const { rows: attRows } = await query(`SELECT * FROM student_exam_attempts WHERE reg_no = $1`, [reg])
   const effective = effectiveSubjectStatus(attRows.map(mapAttempt))
-  const fine = Number(b.fine) || 0
+  // Fine always from Exam Cell schedule (ignore client body.fine)
+  const schedule = await loadFineSchedule(cycle)
+  const fineInfo = resolveFineFromSchedule(schedule)
+  const fine = fineInfo.fine
   const fees = computeExamFees({
     entryType: ctx.entry_type,
     currentStudyYear: ctx.current_study_year,
     effective,
     fine,
+    fineLabel: fineInfo.label,
     includePending: true,
   })
 
@@ -238,7 +253,11 @@ export async function POST(req: Request) {
     return badRequest("Exam Section already marked this cycle as Paid. Contact them for corrections.")
   }
 
-  const note = b.note != null ? String(b.note).trim() : null
+  const note = b.note != null ? stripEmoji(String(b.note)).slice(0, 500) || null : null
+  // Strip emoji from challan receipt numbers
+  for (const c of challans) {
+    c.receipt_no = stripEmoji(c.receipt_no).slice(0, 80)
+  }
   if (existing[0]) {
     await query(
       `UPDATE exam_fee_payments SET
@@ -316,26 +335,30 @@ export async function PATCH(req: Request) {
       const ctx = await loadStudentContext(reg)
       if (!ctx) return badRequest("Student not found")
       const { rows: attRows } = await query(`SELECT * FROM student_exam_attempts WHERE reg_no = $1`, [reg])
+      const sched = await loadFineSchedule(cycle)
+      const fineInfo = resolveFineFromSchedule(sched)
       const fees = computeExamFees({
         entryType: ctx.entry_type,
         currentStudyYear: ctx.current_study_year,
         effective: effectiveSubjectStatus(attRows.map(mapAttempt)),
-        fine: Number(b.fine) || 0,
+        fine: fineInfo.fine,
+        fineLabel: fineInfo.label,
       })
       const challans = parseChallans(b.challans)
       const { rows: ins } = await query(
         `INSERT INTO exam_fee_payments
           (reg_no, exam_cycle, entry_type, computed_total, fine_amount, breakup, challans, status, staff_note)
-         VALUES ($1,'current',$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8) RETURNING id`,
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9) RETURNING id`,
         [
           reg,
+          cycle,
           ctx.entry_type,
           fees.total,
           fees.fine,
           JSON.stringify(fees.lines),
           JSON.stringify(challans),
           status,
-          b.note != null ? String(b.note) : null,
+          b.note != null ? stripEmoji(String(b.note)).slice(0, 500) || null : null,
         ],
       )
       payId = ins[0].id
@@ -347,7 +370,8 @@ export async function PATCH(req: Request) {
   if (!cur[0]) return badRequest("Payment record not found")
   if (!(await staffCanAccessReg(user, String(cur[0].reg_no)))) return unauthorized()
 
-  const staffNote = b.note != null ? String(b.note) : cur[0].staff_note
+  const staffNote =
+    b.note != null ? stripEmoji(String(b.note)).slice(0, 500) || null : cur[0].staff_note
   let challansJson = cur[0].challans
   if (Array.isArray(b.challans)) {
     challansJson = parseChallans(b.challans)

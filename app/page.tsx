@@ -25,16 +25,16 @@ export default function Page() {
         {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
       </Script>
       {/* Instant CMS shell — hide old public landing before heavy scripts load */}
-      <Script src="/cms-boot.js?v=20260806sec" strategy="beforeInteractive" />
+      <Script src="/cms-boot.js?v=20260808emoji" strategy="beforeInteractive" />
       {/* Core app scripts — afterInteractive so DOM from legacy body exists */}
       <Script src="/legacy-app.js?v=20260806mgmt" strategy="afterInteractive" />
       {/* legacy-bridge.js patches the legacy globals to persist via the API.
           Must load after legacy-app.js (same strategy preserves document order). */}
-      <Script src="/legacy-bridge.js?v=20260807smhub" strategy="afterInteractive" />
-      {/* Exam results self-entry, HOD pathways, live fees + multi K2 (manual paid tick) */}
-      <Script src="/legacy-exam.js?v=20260806c25" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260808examfix" strategy="afterInteractive" />
+      {/* Exam results, fee schedule, live fees + multi K2 (manual paid tick). Pathways = HOD only. */}
+      <Script src="/legacy-exam.js?v=20260808feesched" strategy="afterInteractive" />
       {/* Live academic dashboard, student category, branch transfer (Exam/ACM/HOD/Principal/Admin) */}
-      <Script src="/legacy-ops.js?v=20260807smhub" strategy="afterInteractive" />
+      <Script src="/legacy-ops.js?v=20260808examfix" strategy="afterInteractive" />
       {/* Result analysis: sem / year / subject pass–fail % (live) */}
       <Script src="/legacy-result-analysis.js?v=20260806filt2" strategy="afterInteractive" />
       {/* Non-critical modules — defer so login paints faster / less main-thread freeze */}

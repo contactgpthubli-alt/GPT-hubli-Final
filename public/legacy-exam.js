@@ -510,16 +510,18 @@
   function ensureStuExamFeesPanel() {
     var panel = document.getElementById('stuExamFees');
     if (!panel) return;
-    if (panel.getAttribute('data-exam-live') === '1') return;
-    panel.setAttribute('data-exam-live', '1');
+    // Rebuild if older panel still has manual fine input
+    if (panel.getAttribute('data-exam-live') === '2') return;
+    panel.setAttribute('data-exam-live', '2');
     panel.innerHTML =
-      '<div class="info-box">💰 <strong>Exam Fees (live from your results)</strong> — Fee is calculated from backlog / regular status. ' +
-      'Pay on the official <strong>K2 (Khajane-II)</strong> website, then enter receipt number(s) here. ' +
-      'There is <strong>no online K2 payment API</strong> in this portal. Multiple challans allowed (e.g. ₹300 + ₹50). ' +
-      'Exam Section will <strong>manually tick Paid</strong> after verifying.</div>' +
+      '<div class="info-box"><strong>Exam Fees (live from your results)</strong> — Base fee from backlog / current semester. ' +
+      '<strong>Fine</strong> is set by Exam Section date schedule (you cannot edit fine). ' +
+      'Pay on official <strong>K2 (Khajane-II)</strong>, then enter receipt number(s) here. ' +
+      'No online K2 payment API. Multiple challans allowed (e.g. Rs 300 + Rs 50). ' +
+      'Exam Section will manually mark Paid after verifying.</div>' +
 
       '<div class="card" style="padding:16px;margin-bottom:14px;border:1.5px solid #fdba74;background:#fff7ed;">' +
-      '<h3 style="margin:0 0 10px;font-size:1rem;color:#9a3412;">⚠️ Important — K2 challan must use these exact details</h3>' +
+      '<h3 style="margin:0 0 10px;font-size:1rem;color:#9a3412;">Important — K2 challan must use these exact details</h3>' +
       '<p style="margin:0 0 10px;font-size:0.88rem;line-height:1.5;color:#7c2d12;">' +
       'If you select the wrong district / department / DDO, your fee will <strong>not</strong> reach the correct office. ' +
       'Check carefully before generating the challan.</p>' +
@@ -532,10 +534,10 @@
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">' +
       '<a class="btn go" href="' + K2_CHALLAN_URL + '" target="_blank" rel="noopener noreferrer" ' +
       'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
-      '🔗 Open K2 Challan Generation</a>' +
+      'Open K2 Challan Generation</a>' +
       '<a class="btn ol" href="' + K2_SAMPLE_PDF + '" target="_blank" rel="noopener noreferrer" ' +
       'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
-      '📄 View sample K2 challan (PDF)</a>' +
+      'View sample K2 challan (PDF)</a>' +
       '</div>' +
       '<p style="margin:12px 0 0;font-size:0.8rem;opacity:.8;line-height:1.45;">' +
       'After payment, copy the <strong>K2 receipt / challan number</strong> and amount into the form below and submit. ' +
@@ -544,21 +546,21 @@
 
       '<div class="card" style="padding:16px;margin-bottom:14px;">' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' +
-      '<button type="button" class="btn ol" onclick="window.examFeesReload&&window.examFeesReload()">↻ Recalculate</button>' +
-      '<label style="font-size:0.8rem;">Fine ₹ <input id="examFeeFine" type="number" min="0" value="0" ' +
-      'style="width:90px;padding:6px;border-radius:6px;border:1.5px solid var(--border);" onchange="window.examFeesReload&&window.examFeesReload()" /></label>' +
+      '<button type="button" class="btn ol" onclick="window.examFeesReload&&window.examFeesReload()">Recalculate</button>' +
+      '<span id="examFeeFineBanner" style="font-size:0.82rem;padding:6px 10px;border-radius:8px;background:#f1f5f9;border:1px solid var(--border);"></span>' +
       '</div>' +
+      '<div id="examFeeScheduleInfo" style="font-size:0.8rem;margin-bottom:8px;opacity:.9;"></div>' +
       '<div id="examFeeBreakup" style="font-size:0.85rem;"></div>' +
-      '<div style="margin-top:10px;font-size:1.05rem;font-weight:800;color:var(--navy);">Total: <span id="examFeeTotal">₹ 0</span></div>' +
+      '<div style="margin-top:10px;font-size:1.05rem;font-weight:800;color:var(--navy);">Total: <span id="examFeeTotal">Rs 0</span></div>' +
       '<div id="examFeePayStatus" style="margin-top:8px;font-size:0.82rem;"></div>' +
       '</div>' +
       '<div class="card" style="padding:16px;">' +
       '<h3 style="margin:0 0 10px;font-size:0.95rem;color:var(--navy);">K2 Challan receipts (multiple allowed)</h3>' +
-      '<p style="margin:0 0 10px;font-size:0.82rem;opacity:.8;">Enter receipt no. from your paid K2 challan. Add another row if you paid in parts.</p>' +
+      '<p style="margin:0 0 10px;font-size:0.82rem;opacity:.8;">Enter receipt no. from your paid K2 challan. Add another row if you paid in parts. Emojis are not allowed in text fields.</p>' +
       '<div id="examChallanList"></div>' +
       '<button type="button" class="btn ol" style="margin:8px 0;" onclick="window.examAddChallanRow&&window.examAddChallanRow()">+ Add another challan</button>' +
       '<div class="fg" style="margin-top:8px;"><label>Note to Exam Section (optional)</label>' +
-      '<input id="examFeeNote" type="text" placeholder="e.g. Paid ₹300 first, balance ₹50 next day" ' +
+      '<input id="examFeeNote" type="text" placeholder="e.g. Paid Rs 300 first, balance Rs 50 next day" ' +
       'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
       '<button type="button" class="btn go" style="margin-top:12px;" onclick="window.examSubmitChallans&&window.examSubmitChallans()">Submit challan details</button>' +
       '</div>';
@@ -585,13 +587,51 @@
 
   window.examFeesReload = async function () {
     ensureStuExamFeesPanel();
-    var fine = Number((document.getElementById('examFeeFine') || {}).value || 0) || 0;
     var box = document.getElementById('examFeeBreakup');
     var tot = document.getElementById('examFeeTotal');
     var stEl = document.getElementById('examFeePayStatus');
+    var banner = document.getElementById('examFeeFineBanner');
+    var schedInfo = document.getElementById('examFeeScheduleInfo');
     try {
-      var data = await api('/api/exam/fees?fine=' + encodeURIComponent(fine));
+      var data = await api('/api/exam/fees');
       var lines = (data.fees && data.fees.lines) || [];
+      var fineAmt = (data.fees && data.fees.fine) || 0;
+      var resolved = data.fine_schedule && data.fine_schedule.resolved;
+      if (banner) {
+        if (fineAmt > 0) {
+          banner.style.background = '#fef2f2';
+          banner.style.borderColor = '#fecaca';
+          banner.innerHTML =
+            '<strong>Fine Rs ' + fineAmt + '</strong>' +
+            (resolved && resolved.label ? ' — ' + esc(resolved.label) : '');
+        } else {
+          banner.style.background = '#ecfdf5';
+          banner.style.borderColor = '#a7f3d0';
+          banner.innerHTML =
+            '<strong>No fine</strong>' +
+            (resolved && resolved.label ? ' — ' + esc(resolved.label) : ' (Exam schedule)');
+        }
+      }
+      if (schedInfo) {
+        var tiers = (data.fine_schedule && data.fine_schedule.tiers) || [];
+        if (!tiers.length) {
+          schedInfo.textContent = 'Exam Section has not published a fine date schedule yet.';
+        } else {
+          schedInfo.innerHTML =
+            'Fine windows (Exam schedule): ' +
+            tiers
+              .map(function (t) {
+                return (
+                  esc(String(t.from_date).slice(0, 10)) +
+                  ' to ' +
+                  esc(String(t.to_date).slice(0, 10)) +
+                  ' = Rs ' +
+                  (t.fine_amount || 0)
+                );
+              })
+              .join(' · ');
+        }
+      }
       if (box) {
         if (!lines.length) {
           box.innerHTML = '<p style="opacity:.7;">No fee lines — enter results first (or all passed).</p>';
@@ -599,26 +639,33 @@
           box.innerHTML =
             '<table style="width:100%;border-collapse:collapse;"><tbody>' +
             lines.map(function (l) {
-              return '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;">' +
-                esc(l.label) + '</td><td style="padding:6px;text-align:right;font-weight:700;">₹ ' +
-                l.amount + '</td></tr>';
+              var isFine = l.kind === 'fine';
+              return (
+                '<tr style="border-bottom:1px solid var(--border);' +
+                (isFine ? 'background:#fff7ed;' : '') +
+                '"><td style="padding:6px;">' +
+                esc(l.label) +
+                '</td><td style="padding:6px;text-align:right;font-weight:700;">Rs ' +
+                l.amount +
+                '</td></tr>'
+              );
             }).join('') +
             '</tbody></table>';
         }
       }
-      if (tot) tot.textContent = '₹ ' + ((data.fees && data.fees.total) || 0);
+      if (tot) tot.textContent = 'Rs ' + ((data.fees && data.fees.total) || 0);
       if (stEl) {
         var p = data.payment;
         if (!p) stEl.innerHTML = '<span class="badge pending">Not submitted</span>';
         else {
           stEl.innerHTML =
             'Status: <strong>' + esc(p.status) + '</strong>' +
-            (p.challan_total != null ? ' · Challan total ₹ ' + p.challan_total : '') +
+            (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
             (p.paid_marked_by_name ? ' · Marked by ' + esc(p.paid_marked_by_name) : '') +
             (p.challans && p.challans.length
               ? '<div style="margin-top:6px;font-size:0.75rem;">' +
                 p.challans.map(function (c) {
-                  return esc(c.receipt_no) + ' — ₹' + c.amount;
+                  return esc(c.receipt_no) + ' — Rs ' + c.amount;
                 }).join('<br>') +
                 '</div>'
               : '');
@@ -638,15 +685,14 @@
       if (no && amt > 0) challans.push({ receipt_no: no, amount: amt });
     });
     if (!challans.length) {
-      alert('Enter at least one K2 receipt number and amount. Use + Add another if you paid twice (e.g. ₹300 + ₹50).');
+      alert('Enter at least one K2 receipt number and amount. Use + Add another if you paid twice (e.g. Rs 300 + Rs 50).');
       return;
     }
-    var fine = Number((document.getElementById('examFeeFine') || {}).value || 0) || 0;
     var note = ((document.getElementById('examFeeNote') || {}).value || '').trim();
     try {
       var data = await api('/api/exam/fees', {
         method: 'POST',
-        body: { challans: challans, fine: fine, note: note },
+        body: { challans: challans, note: note },
       });
       alert(data.message || 'Challan details submitted. Exam Section will verify manually.');
       window.examFeesReload();
@@ -655,7 +701,23 @@
     }
   };
 
-  /* ---------- Staff: verify results + fee desk ---------- */
+  /* ---------- Staff: verify results + fee desk + fee schedule ---------- */
+  function stripExamPathwaysUi(root, prefix) {
+    if (!root) return;
+    var p = document.getElementById(prefix + 'Pathways');
+    if (p && p.parentNode) p.parentNode.removeChild(p);
+    root.querySelectorAll('[data-exam-tab="' + prefix + 'Pathways"]').forEach(function (btn) {
+      if (btn.parentNode) btn.parentNode.removeChild(btn);
+    });
+    // Also strip bare "Pathways" buttons left by older deploys
+    root.querySelectorAll('button').forEach(function (btn) {
+      var t = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/pathways/i.test(t) && btn.getAttribute('data-exam-tab') === prefix + 'Pathways') {
+        if (btn.parentNode) btn.parentNode.removeChild(btn);
+      }
+    });
+  }
+
   function ensureExamStaffPanels() {
     // Inject into adExam and facExamModule
     ;[
@@ -664,68 +726,125 @@
     ].forEach(function (cfg) {
       var root = document.getElementById(cfg.root);
       if (!root) return;
-      if (document.getElementById(cfg.prefix + 'ResultsVerify')) return;
 
-      // tab buttons area
-      var tabs = root.querySelector('.tabs') || root.querySelector('[class*="tab"]') || null;
-      var tabHost = root.querySelector('.card-hd') || root.firstElementChild;
-      var bar = document.createElement('div');
-      bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);';
-      bar.innerHTML =
-        '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">✅ Result verification</button>' +
-        '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">💰 Exam fees desk</button>';
-      root.insertBefore(bar, root.firstChild);
+      // Always remove Pathways from Exam shell (HOD keeps own menu)
+      stripExamPathwaysUi(root, cfg.prefix);
 
-      var v = document.createElement('div');
-      v.id = cfg.prefix + 'ResultsVerify';
-      v.style.display = 'none';
-      v.innerHTML =
-        '<div class="info-box">✅ <strong>Result verification (per student)</strong> — ' +
-        'HOD = own branch; Exam / Principal / Admin = all. Open one student, review semester-wise subjects (larger view with name), ' +
-        'then verify/reject. Verified rows lock for students.</div>' +
-        '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
-        '<select id="' + cfg.prefix + 'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
-        '<option value="">All branches</option>' +
-        '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
-        '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
-        '<select id="' + cfg.prefix + 'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
-        '<option value="pending">Pending only</option><option value="">All statuses</option>' +
-        '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
-        '<button type="button" class="btn ol" data-exam-reload-rv="' + cfg.prefix + '" style="padding:10px 14px;">↻ Reload students</button>' +
-        '</div><div id="' + cfg.prefix + 'RvList" style="padding:8px 10px 16px;"></div>';
-      root.appendChild(v);
+      if (!document.getElementById(cfg.prefix + 'ResultsVerify')) {
+        var bar = document.createElement('div');
+        bar.className = 'exam-staff-tabs';
+        bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);';
+        bar.innerHTML =
+          '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">Result verification</button>' +
+          '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">Exam fees desk</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Fee schedule</button>';
+        root.insertBefore(bar, root.firstChild);
 
-      var f = document.createElement('div');
-      f.id = cfg.prefix + 'FeeDesk';
-      f.style.display = 'none';
-      f.innerHTML =
-        '<div class="info-box">💰 Exam fees desk — <strong>no K2 API</strong>. Students enter challan number(s); ' +
-        'you verify payment offline and tick <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
-        'Multiple challans supported (e.g. ₹300 + ₹50).</div>' +
-        '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-        '<select id="' + cfg.prefix + 'FdBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-        '<option value="">All branches</option>' +
-        '<option value="civil">Civil</option><option value="computer">CSE</option>' +
-        '<option value="electron">ECE</option><option value="mech">ME</option></select>' +
-        '<select id="' + cfg.prefix + 'FdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-        '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
-        '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
-        '<button type="button" class="btn ol" data-exam-reload-fd="' + cfg.prefix + '">↻ Load</button></div>' +
-        '<div id="' + cfg.prefix + 'FdList" style="padding:10px;overflow-x:auto;"></div>';
-      root.appendChild(f);
+        var v = document.createElement('div');
+        v.id = cfg.prefix + 'ResultsVerify';
+        v.style.display = 'none';
+        v.innerHTML =
+          '<div class="info-box"><strong>Result verification (per student)</strong> — ' +
+          'HOD = own branch; Exam / Principal / Admin = all. Open one student, review semester-wise subjects (larger view with name), ' +
+          'then verify/reject. Verified rows lock for students.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+          '<select id="' + cfg.prefix + 'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+          '<option value="">All branches</option>' +
+          '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
+          '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
+          '<select id="' + cfg.prefix + 'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+          '<option value="pending">Pending only</option><option value="">All statuses</option>' +
+          '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+          '<button type="button" class="btn ol" data-exam-reload-rv="' + cfg.prefix + '" style="padding:10px 14px;">Reload students</button>' +
+          '</div><div id="' + cfg.prefix + 'RvList" style="padding:8px 10px 16px;"></div>';
+        root.appendChild(v);
 
-      bar.querySelectorAll('[data-exam-tab]').forEach(function (btn) {
-        btn.onclick = function () {
-          var id = btn.getAttribute('data-exam-tab');
-          v.style.display = id.indexOf('Results') >= 0 ? '' : 'none';
-          f.style.display = id.indexOf('Fee') >= 0 ? '' : 'none';
-          if (id.indexOf('Results') >= 0) window.examStaffLoadVerify(cfg.prefix);
-          else window.examStaffLoadFees(cfg.prefix);
-        };
-      });
+        var f = document.createElement('div');
+        f.id = cfg.prefix + 'FeeDesk';
+        f.style.display = 'none';
+        f.innerHTML =
+          '<div class="info-box">Exam fees desk — <strong>no K2 API</strong>. Students enter challan number(s); ' +
+          'you verify payment offline and tick <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
+          'Multiple challans supported (e.g. Rs 300 + Rs 50). Fine amount comes from <strong>Fee schedule</strong> dates.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<select id="' + cfg.prefix + 'FdBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="">All branches</option>' +
+          '<option value="civil">Civil</option><option value="computer">CSE</option>' +
+          '<option value="electron">ECE</option><option value="mech">ME</option></select>' +
+          '<select id="' + cfg.prefix + 'FdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
+          '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+          '<button type="button" class="btn ol" data-exam-reload-fd="' + cfg.prefix + '">Load</button></div>' +
+          '<div id="' + cfg.prefix + 'FdList" style="padding:10px;overflow-x:auto;"></div>';
+        root.appendChild(f);
+      }
+
+      // Fee schedule panel (always ensure; may be missing on older shells)
+      if (!document.getElementById(cfg.prefix + 'FeeSchedule')) {
+        var bar2 =
+          root.querySelector('.exam-staff-tabs') ||
+          (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
+        if (bar2 && !bar2.querySelector('[data-exam-tab="' + cfg.prefix + 'FeeSchedule"]')) {
+          var sbtn = document.createElement('button');
+          sbtn.type = 'button';
+          sbtn.className = 'btn ol';
+          sbtn.setAttribute('data-exam-tab', cfg.prefix + 'FeeSchedule');
+          sbtn.textContent = 'Fee schedule';
+          bar2.appendChild(sbtn);
+        }
+        var s = document.createElement('div');
+        s.id = cfg.prefix + 'FeeSchedule';
+        s.style.display = 'none';
+        s.innerHTML =
+          '<div class="info-box"><strong>Exam fee fine schedule</strong> — Set date windows without fine and with fine. ' +
+          'Example: until 02-08-2026 fine Rs 0; from 03-08-2026 to 13-08-2026 fine Rs 50. Use <strong>+</strong> to add more windows. ' +
+          'Students see this fine automatically on their Exam Fees panel (they cannot edit fine).</div>' +
+          '<div class="card" style="padding:14px;margin:10px;">' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">' +
+          '<div><label style="font-size:0.72rem;font-weight:700;">Exam cycle</label><br>' +
+          '<input id="' + cfg.prefix + 'FsCycle" type="text" value="current" ' +
+          'style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);width:140px;" /></div>' +
+          '<button type="button" class="btn ol" onclick="window.examFeeScheduleLoad&&window.examFeeScheduleLoad(\'' +
+          cfg.prefix +
+          '\')">Load</button>' +
+          '<button type="button" class="btn pr" onclick="window.examFeeScheduleSave&&window.examFeeScheduleSave(\'' +
+          cfg.prefix +
+          '\')">Save schedule</button>' +
+          '</div>' +
+          '<div id="' + cfg.prefix + 'FsResolved" style="font-size:0.85rem;margin-bottom:10px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"></div>' +
+          '<div id="' + cfg.prefix + 'FsRows"></div>' +
+          '<button type="button" class="btn ol" style="margin-top:10px;" onclick="window.examFeeScheduleAddRow&&window.examFeeScheduleAddRow(\'' +
+          cfg.prefix +
+          '\')">+ Add date window</button>' +
+          '</div>';
+        root.appendChild(s);
+      }
+
+      // Wire tab clicks (rebind every ensure)
+      var barWire =
+        root.querySelector('.exam-staff-tabs') ||
+        (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
+      if (barWire) {
+        barWire.querySelectorAll('[data-exam-tab]').forEach(function (btn) {
+          btn.onclick = function () {
+            var id = btn.getAttribute('data-exam-tab') || '';
+            var vEl = document.getElementById(cfg.prefix + 'ResultsVerify');
+            var fEl = document.getElementById(cfg.prefix + 'FeeDesk');
+            var sEl = document.getElementById(cfg.prefix + 'FeeSchedule');
+            var pEl = document.getElementById(cfg.prefix + 'Pathways');
+            if (vEl) vEl.style.display = id.indexOf('ResultsVerify') >= 0 ? '' : 'none';
+            if (fEl) fEl.style.display = id.indexOf('FeeDesk') >= 0 ? '' : 'none';
+            if (sEl) sEl.style.display = id.indexOf('FeeSchedule') >= 0 ? '' : 'none';
+            if (pEl) pEl.style.display = 'none';
+            if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(cfg.prefix);
+            else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(cfg.prefix);
+            else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(cfg.prefix);
+          };
+        });
+      }
     });
 
-    // HOD: Result verification + Pathway manager (per academic year)
+    // HOD: Result verification + Pathway manager (per academic year) — keep for HOD only
     if (window.currentUser && window.currentUser.role === 'hod') {
       var facContent = document.querySelector('#dbFaculty .db-content');
       var facMenu = document.querySelector('#dbFaculty .sb-menu');
@@ -810,61 +929,125 @@
       });
     }
 
-    // Admin / Exam / Principal: pathway tab on exam shell
-    ;[
-      { root: 'adExam', prefix: 'adEx' },
-      { root: 'facExamModule', prefix: 'facEx' },
-    ].forEach(function (cfg) {
-      var root = document.getElementById(cfg.root);
-      if (!root || document.getElementById(cfg.prefix + 'Pathways')) return;
-      var bar = root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement;
-      if (bar) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn ol';
-        btn.setAttribute('data-exam-tab', cfg.prefix + 'Pathways');
-        btn.textContent = '🛤️ Pathways';
-        bar.appendChild(btn);
-        btn.onclick = function () {
-          var v = document.getElementById(cfg.prefix + 'ResultsVerify');
-          var f = document.getElementById(cfg.prefix + 'FeeDesk');
-          var p = document.getElementById(cfg.prefix + 'Pathways');
-          if (v) v.style.display = 'none';
-          if (f) f.style.display = 'none';
-          if (p) {
-            p.style.display = '';
-            window.examPathwayLoadStaff && window.examPathwayLoadStaff(cfg.prefix);
-          }
-        };
+    // Pathways intentionally NOT injected on Exam Module (HOD-only via sidebar).
+  }
+
+  function examFeeScheduleAddRow(prefix, data) {
+    data = data || {};
+    var host = document.getElementById(prefix + 'FsRows');
+    if (!host) return;
+    var row = document.createElement('div');
+    row.className = 'exam-fs-row';
+    row.style.cssText =
+      'display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;';
+    row.innerHTML =
+      '<div><label style="font-size:0.7rem;font-weight:700;">From date</label><br>' +
+      '<input class="fs-from" type="date" value="' +
+      esc(data.from_date || '') +
+      '" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.7rem;font-weight:700;">To date</label><br>' +
+      '<input class="fs-to" type="date" value="' +
+      esc(data.to_date || '') +
+      '" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.7rem;font-weight:700;">Fine amount (Rs)</label><br>' +
+      '<input class="fs-amt" type="number" min="0" step="1" value="' +
+      esc(data.fine_amount != null ? String(data.fine_amount) : '0') +
+      '" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);width:110px;" /></div>' +
+      '<div style="flex:1;min-width:140px;"><label style="font-size:0.7rem;font-weight:700;">Note (optional)</label><br>' +
+      '<input class="fs-label" type="text" placeholder="e.g. without fine / first fine" value="' +
+      esc(data.label || '') +
+      '" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<button type="button" class="btn ol" style="padding:8px 10px;" title="Remove row">Remove</button>';
+    row.querySelector('button').onclick = function () {
+      if (host.querySelectorAll('.exam-fs-row').length <= 1) {
+        alert('Keep at least one date window.');
+        return;
       }
-      if (!document.getElementById(cfg.prefix + 'Pathways')) {
-        var pdiv = document.createElement('div');
-        pdiv.id = cfg.prefix + 'Pathways';
-        pdiv.style.display = 'none';
-        pdiv.innerHTML =
-          '<div class="info-box">Manage Sem 5–6 pathways by branch and academic year (same as HOD).</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:end;">' +
-          '<div><label style="font-size:0.72rem;">Branch</label><br>' +
-          '<select id="' + cfg.prefix + 'PwBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="CSE">CSE</option><option value="CE">Civil</option>' +
-          '<option value="ECE">ECE</option><option value="ME">ME</option></select></div>' +
-          '<div><label style="font-size:0.72rem;">Academic year</label><br>' +
-          '<input id="' + cfg.prefix + 'PwYear" type="text" placeholder="2025-26" ' +
-          'style="padding:8px;border-radius:8px;border:1.5px solid var(--border);width:110px;" /></div>' +
-          '<button type="button" class="btn ol" onclick="window.examPathwayLoadStaff&&window.examPathwayLoadStaff(\'' +
-          cfg.prefix + '\')">↻ Load</button>' +
-          '<button type="button" class="btn pr" onclick="window.examPathwaySaveOfferingsStaff&&window.examPathwaySaveOfferingsStaff(\'' +
-          cfg.prefix + '\')">💾 Save offerings</button>' +
-          '</div>' +
-          '<div id="' + cfg.prefix + 'PwOfferings" style="padding:10px;"></div>' +
-          '<div id="' + cfg.prefix + 'PwStudents" style="padding:10px;"></div>' +
-          '<div style="padding:10px;"><button type="button" class="btn go" ' +
-          'onclick="window.examPathwaySaveAssignmentsStaff&&window.examPathwaySaveAssignmentsStaff(\'' +
-          cfg.prefix + '\')">💾 Save assignments</button></div>';
-        root.appendChild(pdiv);
+      host.removeChild(row);
+    };
+    host.appendChild(row);
+  }
+
+  window.examFeeScheduleAddRow = function (prefix) {
+    examFeeScheduleAddRow(prefix, { fine_amount: 0 });
+  };
+
+  window.examFeeScheduleLoad = async function (prefix) {
+    var cycleEl = document.getElementById(prefix + 'FsCycle');
+    var cycle = ((cycleEl && cycleEl.value) || 'current').trim() || 'current';
+    var host = document.getElementById(prefix + 'FsRows');
+    var resEl = document.getElementById(prefix + 'FsResolved');
+    if (!host) return;
+    try {
+      var data = await api('/api/exam/fee-schedule?exam_cycle=' + encodeURIComponent(cycle));
+      host.innerHTML = '';
+      var tiers = data.tiers || [];
+      if (!tiers.length) {
+        // Seed example: without-fine + one fine window
+        examFeeScheduleAddRow(prefix, { fine_amount: 0, label: 'Without fine' });
+        examFeeScheduleAddRow(prefix, { fine_amount: 50, label: 'First fine window' });
+      } else {
+        tiers.forEach(function (t) {
+          examFeeScheduleAddRow(prefix, {
+            from_date: String(t.from_date || '').slice(0, 10),
+            to_date: String(t.to_date || '').slice(0, 10),
+            fine_amount: t.fine_amount,
+            label: t.label || '',
+          });
+        });
+      }
+      if (resEl) {
+        var r = data.resolved || {};
+        resEl.innerHTML =
+          '<strong>Today (' +
+          esc(r.as_of || '') +
+          '):</strong> Fine Rs ' +
+          (r.fine != null ? r.fine : 0) +
+          ' — ' +
+          esc(r.label || '') +
+          (tiers.length
+            ? '<div style="margin-top:6px;opacity:.85;">' +
+              tiers.length +
+              ' window(s) saved for cycle <code>' +
+              esc(cycle) +
+              '</code>.</div>'
+            : '<div style="margin-top:6px;color:#9a3412;">No schedule saved yet — fill dates and Save.</div>');
+      }
+    } catch (e) {
+      if (resEl) resEl.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.examFeeScheduleSave = async function (prefix) {
+    var cycleEl = document.getElementById(prefix + 'FsCycle');
+    var cycle = ((cycleEl && cycleEl.value) || 'current').trim() || 'current';
+    var host = document.getElementById(prefix + 'FsRows');
+    if (!host) return;
+    var tiers = [];
+    host.querySelectorAll('.exam-fs-row').forEach(function (row) {
+      var from = ((row.querySelector('.fs-from') || {}).value || '').trim();
+      var to = ((row.querySelector('.fs-to') || {}).value || '').trim();
+      var amt = Number((row.querySelector('.fs-amt') || {}).value || 0) || 0;
+      var label = ((row.querySelector('.fs-label') || {}).value || '').trim();
+      if (from && to) {
+        tiers.push({ from_date: from, to_date: to, fine_amount: amt, label: label || null });
       }
     });
-  }
+    if (!tiers.length) {
+      alert('Add at least one date window with From and To dates.');
+      return;
+    }
+    try {
+      var data = await api('/api/exam/fee-schedule', {
+        method: 'PUT',
+        body: { exam_cycle: cycle, tiers: tiers },
+      });
+      alert(data.message || 'Schedule saved.');
+      window.examFeeScheduleLoad(prefix);
+    } catch (e) {
+      alert('Save failed: ' + e.message);
+    }
+  };
 
   function currentAyGuess() {
     var d = new Date();

@@ -1904,6 +1904,14 @@ function __initGptBridge() {
     if (!window._acmScopedAdmin && !window._examScopedAdmin) return;
     window._acmScopedAdmin = false;
     window._examScopedAdmin = false;
+    if (window._acmScopeTimers) {
+      window._acmScopeTimers.forEach(function (t) { clearTimeout(t); });
+      window._acmScopeTimers = [];
+    }
+    if (window._examScopeTimers) {
+      window._examScopeTimers.forEach(function (t) { clearTimeout(t); });
+      window._examScopeTimers = [];
+    }
     var root = document.getElementById('dbAdmin');
     if (!root) return;
     root.querySelectorAll('.sb .sl, .sb .sb-sec').forEach(function (el) {
@@ -1922,25 +1930,34 @@ function __initGptBridge() {
    * ACM = scoped admin: same Approvals + Students tools as Root Admin,
    * plus ACM Module. No Cash/Fees, no other admin menus.
    */
-  function applyAcmAdminScope(user) {
+  function paintAcmAdminMenu(user) {
     var root = document.getElementById('dbAdmin');
-    if (!root) return;
-    window._acmScopedAdmin = true;
-    window._examScopedAdmin = false;
-    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
-    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
-    var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adACM: 1 };
+    if (!root || !window._acmScopedAdmin) return;
+    // ACM: Approvals + Students + Student Data + ACM + Student Management hub (write like HOD).
+    // Hide separate Live Academic / Branch Transfer top-level (inside SM hub tabs).
+    var allowedSecs = {
+      adApprovals: 1,
+      adStudents: 1,
+      adStudentData: 1,
+      adACM: 1,
+      adOpsCategory: 1,
+    };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
+      var id = sl.id || '';
       var keep = false;
       if (oc.indexOf('logout') !== -1) keep = true;
       if (sl.getAttribute('data-staff-profile') === '1') keep = true;
       Object.keys(allowedSecs).forEach(function (sec) {
         if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
       });
+      if (id === 'adOpsCatNav') keep = true;
+      if (id === 'adOpsLiveNav' || id === 'adOpsXferNav') keep = false;
+      if (oc.indexOf('adOpsLive') !== -1 || oc.indexOf('adOpsTransfer') !== -1) keep = false;
+      if (oc.indexOf('adExam') !== -1) keep = false;
+      if (oc.indexOf('adAcademicYear') !== -1) keep = false;
       sl.style.display = keep ? '' : 'none';
     });
-    // Hide section labels (Main / Office / System) — ACM only needs the three links
     root.querySelectorAll('.sb .sb-sec').forEach(function (sec) {
       sec.style.display = 'none';
     });
@@ -1957,6 +1974,27 @@ function __initGptBridge() {
     if (ava && user && user.display_name && !ava.querySelector('img')) {
       ava.textContent = initialsOf(user.display_name);
     }
+  }
+
+  function applyAcmAdminScope(user) {
+    var root = document.getElementById('dbAdmin');
+    if (!root) return;
+    window._acmScopedAdmin = true;
+    window._examScopedAdmin = false;
+    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
+    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
+
+    paintAcmAdminMenu(user || window.currentUser);
+
+    if (!window._acmScopeTimers) window._acmScopeTimers = [];
+    window._acmScopeTimers.forEach(function (t) { clearTimeout(t); });
+    window._acmScopeTimers = [80, 300, 800, 2000, 5000].map(function (ms) {
+      return setTimeout(function () {
+        if (!window._acmScopedAdmin) return;
+        paintAcmAdminMenu(window.currentUser || user);
+      }, ms);
+    });
+
     // Open ACM Module by default
     var acmLink = null;
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
@@ -1988,8 +2026,9 @@ function __initGptBridge() {
       // warm cache for Students section
       window.renderAdminStudentDatabase();
     }
-    console.log('[bridge] ACM scoped admin shell active (Approvals + Students + ACM)');
+    console.log('[bridge] ACM scoped admin shell active (Approvals + Students + ACM + Student Management)');
   }
+  window.paintAcmAdminMenu = paintAcmAdminMenu;
   window.applyAcmAdminScope = applyAcmAdminScope;
   window.clearAcmAdminScope = clearAcmAdminScope;
 
@@ -2225,6 +2264,10 @@ function __initGptBridge() {
   function clearExamAdminScope() {
     if (!window._examScopedAdmin) return;
     window._examScopedAdmin = false;
+    if (window._examScopeTimers) {
+      window._examScopeTimers.forEach(function (t) { clearTimeout(t); });
+      window._examScopeTimers = [];
+    }
     var root = document.getElementById('dbAdmin');
     if (!root) return;
     root.querySelectorAll('.sb .sl, .sb .sb-sec').forEach(function (el) {
@@ -2240,28 +2283,37 @@ function __initGptBridge() {
   }
 
   /**
-   * Exam Cell = same Approvals + Students + Student Data as ACM,
-   * plus Exam Module (PDC, lookup, print/export). No ACM Module.
+   * Hide every admin sidebar item except the Exam allow-list.
+   * Safe to call repeatedly (ops/SM inject can re-add menus later).
    */
-  function applyExamAdminScope(user) {
-    ensureExamAdminDesk();
+  function paintExamAdminMenu(user) {
     var root = document.getElementById('dbAdmin');
-    if (!root) return;
-    window._examScopedAdmin = true;
-    window._acmScopedAdmin = false;
-    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
-    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
+    if (!root || !window._examScopedAdmin) return;
+    // Exam Cell: Approvals, Students, Student Data, Exam Module only.
+    // No Branch Transfer / Live Academic / Student Management top-level (ops inject).
+    // No ACM, no Academic Year, no full Root Admin menus.
     var allowedSecs = { adApprovals: 1, adStudents: 1, adStudentData: 1, adExam: 1 };
+    var forbiddenIds = {
+      adOpsLiveNav: 1,
+      adOpsCatNav: 1,
+      adOpsXferNav: 1,
+      adAcademicYearNav: 1,
+      adAccountApprovalsNav: 1,
+    };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
+      var id = sl.id || '';
       var keep = false;
       if (oc.indexOf('logout') !== -1) keep = true;
       if (sl.getAttribute('data-staff-profile') === '1') keep = true;
       Object.keys(allowedSecs).forEach(function (sec) {
         if (oc.indexOf("'" + sec + "'") !== -1 || oc.indexOf('"' + sec + '"') !== -1) keep = true;
       });
-      // Hide ACM for exam scoped shell
+      // Explicit deny — ops hub injects these after login and would otherwise "stick"
+      if (forbiddenIds[id]) keep = false;
+      if (oc.indexOf('adOps') !== -1) keep = false;
       if (oc.indexOf('adACM') !== -1) keep = false;
+      if (oc.indexOf('adAcademicYear') !== -1) keep = false;
       sl.style.display = keep ? '' : 'none';
     });
     root.querySelectorAll('.sb .sb-sec').forEach(function (sec) {
@@ -2280,6 +2332,33 @@ function __initGptBridge() {
     if (ava && user && user.display_name && !ava.querySelector('img')) {
       ava.textContent = initialsOf(user.display_name);
     }
+  }
+
+  /**
+   * Exam Cell = same Approvals + Students + Student Data as ACM,
+   * plus Exam Module (PDC, lookup, print/export). No ACM Module.
+   */
+  function applyExamAdminScope(user) {
+    ensureExamAdminDesk();
+    var root = document.getElementById('dbAdmin');
+    if (!root) return;
+    window._examScopedAdmin = true;
+    window._acmScopedAdmin = false;
+    try { updateViewingAsBadge(user || window.currentUser); } catch (e) { /* ignore */ }
+    try { ensureStaffDeskProfile(user || window.currentUser); } catch (e) { /* ignore */ }
+
+    paintExamAdminMenu(user || window.currentUser);
+
+    // Re-paint after late menu injects (legacy-ops / SM hub / Academic Year)
+    if (!window._examScopeTimers) window._examScopeTimers = [];
+    window._examScopeTimers.forEach(function (t) { clearTimeout(t); });
+    window._examScopeTimers = [80, 300, 800, 2000, 5000].map(function (ms) {
+      return setTimeout(function () {
+        if (!window._examScopedAdmin) return;
+        paintExamAdminMenu(window.currentUser || user);
+      }, ms);
+    });
+
     var examLink = document.getElementById('adExamNav');
     if (typeof window.showSec === 'function') {
       window.showSec('adExam', examLink);
@@ -2298,6 +2377,7 @@ function __initGptBridge() {
   }
   window.applyExamAdminScope = applyExamAdminScope;
   window.clearExamAdminScope = clearExamAdminScope;
+  window.paintExamAdminMenu = paintExamAdminMenu;
 
   /** Fix sticky "VIEWING AS …" badge so it always matches the real logged-in role. */
   function updateViewingAsBadge(user) {
@@ -2896,6 +2976,14 @@ function __initGptBridge() {
     try { clearExamAdminScope(); } catch (e) { /* ignore */ }
     api.post('/api/auth/logout').catch(function () { /* ignore */ });
     setCurrentUser(null);
+    // Always drop sticky "VIEWING AS …" chip after logout
+    try {
+      if (typeof window.updateViewingAsBadge === 'function') window.updateViewingAsBadge(null);
+      else {
+        var badge = document.getElementById('_demoRoleBadge');
+        if (badge) badge.remove();
+      }
+    } catch (eBadge) { /* ignore */ }
     window.__allowDashboardOpen = false;
     if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
     try { origLogout(); } catch (e2) { /* ignore */ }

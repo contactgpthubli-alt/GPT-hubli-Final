@@ -103,7 +103,157 @@ export async function ensureExamResultsSchema(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_exam_fee_status ON exam_fee_payments(status, updated_at DESC)`,
   )
 
+  /** Exam Cell fine windows: date ranges + fine amount (0 = without fine). */
+  await query(`
+    CREATE TABLE IF NOT EXISTS exam_fee_fine_schedule (
+      id              BIGSERIAL PRIMARY KEY,
+      exam_cycle      TEXT NOT NULL DEFAULT 'current',
+      from_date       DATE NOT NULL,
+      to_date         DATE NOT NULL,
+      fine_amount     INT  NOT NULL DEFAULT 0,
+      ord             INT  NOT NULL DEFAULT 0,
+      label           TEXT,
+      created_by      BIGINT,
+      created_by_name TEXT,
+      created_by_role TEXT,
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      CONSTRAINT exam_fee_fine_schedule_dates CHECK (to_date >= from_date),
+      CONSTRAINT exam_fee_fine_schedule_amt CHECK (fine_amount >= 0)
+    )
+  `)
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_exam_fee_fine_sched_cycle
+       ON exam_fee_fine_schedule(exam_cycle, ord, from_date)`,
+  )
+
   schemaReady = true
+}
+
+export type FineScheduleTier = {
+  id?: number
+  exam_cycle?: string
+  from_date: string
+  to_date: string
+  fine_amount: number
+  ord: number
+  label?: string | null
+}
+
+/** Calendar date YYYY-MM-DD in Asia/Kolkata. */
+export function todayIndiaISO(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d)
+}
+
+function formatDmy(iso: string): string {
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return iso
+  return `${m[3]}-${m[2]}-${m[1]}`
+}
+
+/**
+ * Resolve fine for a calendar day from Exam Cell schedule tiers.
+ * - Matching from..to inclusive → that fine
+ * - Before first tier → 0
+ * - After last tier ends → last tier fine (Exam must update schedule)
+ */
+export function resolveFineFromSchedule(
+  tiers: FineScheduleTier[],
+  onDate?: string | null,
+): {
+  fine: number
+  label: string
+  tier: FineScheduleTier | null
+  as_of: string
+  has_schedule: boolean
+} {
+  const asOf = (onDate && /^\d{4}-\d{2}-\d{2}$/.test(onDate) ? onDate : todayIndiaISO()) as string
+  if (!tiers.length) {
+    return {
+      fine: 0,
+      label: "No fine schedule set by Exam Section",
+      tier: null,
+      as_of: asOf,
+      has_schedule: false,
+    }
+  }
+  const sorted = tiers
+    .slice()
+    .sort(
+      (a, b) =>
+        String(a.from_date).localeCompare(String(b.from_date)) ||
+        (a.ord || 0) - (b.ord || 0),
+    )
+
+  for (const t of sorted) {
+    const from = String(t.from_date).slice(0, 10)
+    const to = String(t.to_date).slice(0, 10)
+    if (asOf >= from && asOf <= to) {
+      const amt = Math.max(0, Number(t.fine_amount) || 0)
+      return {
+        fine: amt,
+        label:
+          amt === 0
+            ? `No fine (until ${formatDmy(to)})`
+            : `Fine (${formatDmy(from)} – ${formatDmy(to)})`,
+        tier: t,
+        as_of: asOf,
+        has_schedule: true,
+      }
+    }
+  }
+
+  if (asOf < String(sorted[0].from_date).slice(0, 10)) {
+    return {
+      fine: 0,
+      label: `Before fee window (starts ${formatDmy(String(sorted[0].from_date).slice(0, 10))})`,
+      tier: null,
+      as_of: asOf,
+      has_schedule: true,
+    }
+  }
+
+  const last = sorted[sorted.length - 1]
+  const amt = Math.max(0, Number(last.fine_amount) || 0)
+  const lastTo = String(last.to_date).slice(0, 10)
+  return {
+    fine: amt,
+    label:
+      amt === 0
+        ? `No fine (schedule ended ${formatDmy(lastTo)})`
+        : `Fine (after ${formatDmy(lastTo)} — last schedule rate)`,
+    tier: last,
+    as_of: asOf,
+    has_schedule: true,
+  }
+}
+
+export async function loadFineSchedule(examCycle = "current"): Promise<FineScheduleTier[]> {
+  await ensureExamResultsSchema()
+  const cycle = String(examCycle || "current").trim() || "current"
+  const { rows } = await query(
+    `SELECT id, exam_cycle, to_char(from_date, 'YYYY-MM-DD') AS from_date,
+            to_char(to_date, 'YYYY-MM-DD') AS to_date,
+            fine_amount, ord, label
+       FROM exam_fee_fine_schedule
+      WHERE exam_cycle = $1
+      ORDER BY from_date ASC, ord ASC, id ASC`,
+    [cycle],
+  )
+  return rows.map((r) => ({
+    id: Number(r.id),
+    exam_cycle: String(r.exam_cycle),
+    from_date: String(r.from_date),
+    to_date: String(r.to_date),
+    fine_amount: Number(r.fine_amount) || 0,
+    ord: Number(r.ord) || 0,
+    label: r.label != null ? String(r.label) : null,
+  }))
 }
 
 /** Map admission year → scheme (C-20: 2020-21..2024-25, C-25: 2025-26+). */
@@ -331,11 +481,14 @@ export function computeExamFees(opts: {
   currentSemester?: number | null
   effective: ReturnType<typeof effectiveSubjectStatus>
   fine?: number
+  /** Label for the fine line (e.g. date window from Exam schedule). */
+  fineLabel?: string | null
   /** If true, count pending+verified; else verified only for "must pay" */
   includePending?: boolean
 }): { total: number; fine: number; lines: FeeBreakupLine[] } {
   const includePending = opts.includePending !== false
   const fine = Math.max(0, Number(opts.fine) || 0)
+  const fineLabel = (opts.fineLabel && String(opts.fineLabel).trim()) || "Fine"
   const lines: FeeBreakupLine[] = []
 
   // Only subjects that are not yet passed (verified pass)
@@ -402,7 +555,22 @@ export function computeExamFees(opts: {
   // Lateral bridge optional lines are manual fine-style — skip auto unless fails in "bridge" not modeled
   let total = lines.reduce((s, l) => s + l.amount, 0) + fine
   if (fine > 0) {
-    lines.push({ label: "Fine", semester: null, kind: "fine", fail_count: 0, amount: fine })
+    lines.push({
+      label: fineLabel,
+      semester: null,
+      kind: "fine",
+      fail_count: 0,
+      amount: fine,
+    })
+  } else if (opts.fineLabel) {
+    // Show zero-fine window so students see Exam schedule status
+    lines.push({
+      label: fineLabel,
+      semester: null,
+      kind: "fine",
+      fail_count: 0,
+      amount: 0,
+    })
   }
   return { total, fine, lines }
 }

@@ -85,4 +85,82 @@
   setTimeout(lockShells, 0);
   setTimeout(lockShells, 50);
   setTimeout(lockShells, 200);
+
+  /** Block emoji in user-entered text (inputs / textareas / contenteditable). */
+  function stripEmojiLocal(s) {
+    try {
+      return String(s == null ? "" : s)
+        .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, "")
+        .replace(/\p{Extended_Pictographic}/gu, "");
+    } catch (e) {
+      return String(s == null ? "" : s).replace(
+        /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g,
+        "",
+      );
+    }
+  }
+
+  function isTextEntry(el) {
+    if (!el || el.disabled || el.readOnly) return false;
+    if (el.isContentEditable) return true;
+    var tag = (el.tagName || "").toUpperCase();
+    if (tag === "TEXTAREA") return true;
+    if (tag !== "INPUT") return false;
+    var t = (el.type || "text").toLowerCase();
+    return (
+      t === "text" ||
+      t === "search" ||
+      t === "email" ||
+      t === "tel" ||
+      t === "url" ||
+      !el.type
+    );
+  }
+
+  function scrubField(el) {
+    if (!isTextEntry(el)) return;
+    if (el.isContentEditable) {
+      var plain = el.innerText || el.textContent || "";
+      var cleanedC = stripEmojiLocal(plain);
+      if (cleanedC !== plain) el.innerText = cleanedC;
+      return;
+    }
+    if (typeof el.value !== "string") return;
+    var before = el.value;
+    var cleaned = stripEmojiLocal(before);
+    if (cleaned !== before) {
+      var start = el.selectionStart;
+      var end = el.selectionEnd;
+      el.value = cleaned;
+      try {
+        if (typeof start === "number" && typeof end === "number") {
+          var removed = before.length - cleaned.length;
+          var pos = Math.max(0, Math.min(cleaned.length, (end || 0) - Math.max(0, removed)));
+          el.setSelectionRange(pos, pos);
+        }
+      } catch (e2) {
+        /* ignore */
+      }
+    }
+  }
+
+  document.addEventListener(
+    "input",
+    function (e) {
+      scrubField(e.target);
+    },
+    true,
+  );
+  document.addEventListener(
+    "paste",
+    function (e) {
+      var el = e.target;
+      if (!isTextEntry(el) || el.isContentEditable) return;
+      // Let paste land then scrub
+      setTimeout(function () {
+        scrubField(el);
+      }, 0);
+    },
+    true,
+  );
 })();
