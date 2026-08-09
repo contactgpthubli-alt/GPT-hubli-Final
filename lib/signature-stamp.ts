@@ -84,6 +84,7 @@ export function actionVerb(action: StampAction): string {
     accepted: "Accepted by",
     cancelled: "Cancelled by",
     paid: "Marked paid by",
+    not_paid: "Marked not paid by",
     waived: "Waived by",
     removed: "Removed by",
     flagged: "Flagged by",

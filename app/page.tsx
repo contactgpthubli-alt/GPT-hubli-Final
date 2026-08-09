@@ -27,8 +27,8 @@ export default function Page() {
       {/* Instant CMS shell — hide old public landing before heavy scripts load */}
       <Script src="/cms-boot.js?v=20260808perf" strategy="beforeInteractive" />
       {/* Core only on first paint — exam/ops/ACM/TC load AFTER login (see legacy-bridge ensureStaffModules) */}
-      <Script src="/legacy-app.js?v=20260808lib1" strategy="afterInteractive" />
-      <Script src="/legacy-bridge.js?v=20260808attSubj" strategy="afterInteractive" />
+      <Script src="/legacy-app.js?v=20260809makeup1" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260809makeup1" strategy="afterInteractive" />
     </>
   )
 }

@@ -83,26 +83,31 @@
   function ensureStuResultsPanel() {
     var panel = document.getElementById('stuResults');
     if (!panel) return;
-    // Rebuild if first paint OR older markup without official results card
-    if (panel.getAttribute('data-exam-live') === '1' && document.getElementById('examOfficialHost')) return;
-    panel.setAttribute('data-exam-live', '1');
+    // v2 = Regular | Makeup tabs
+    if (panel.getAttribute('data-exam-live') === '2' && document.getElementById('examOfficialHost')) return;
+    panel.setAttribute('data-exam-live', '2');
     panel.innerHTML =
-      '<div class="info-box">📊 <strong>My Exam Results</strong> — Official ledger results appear below when published. ' +
-      'You can also enter pass/fail &amp; grade from your marksheet for verification. ' +
-      'Scheme: admission <strong>2020-21 to 2024-25 = C-20</strong>; ' +
-      '<strong>2025-26+ = C-25</strong> (Sem 2 subjects loaded from May 2026 ledger). ' +
-      'Final year (III) is still C-20 until 2027-28. ITI/PUC lateral skip Year-1. HOD / Principal / Exam verify. Verified rows lock.</div>' +
+      '<div class="info-box"><strong>My Exam Results</strong> — Official ledger when published. ' +
+      '<strong>Regular</strong> = normal semester entry. <strong>Makeup</strong> = only after Exam opens a makeup month ' +
+      '(e.g. July / August 2026) for failed even-sem subjects. HOD / Exam verify. Verified rows lock.</div>' +
       '<div id="examStuMeta" style="padding:8px 4px;font-size:0.82rem;opacity:.85;"></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+      '<button type="button" class="btn pr" id="stuResTabReg" onclick="window.stuResShowTab&&window.stuResShowTab(\'regular\')">Regular</button>' +
+      '<button type="button" class="btn ol" id="stuResTabMk" onclick="window.stuResShowTab&&window.stuResShowTab(\'makeup\')">Makeup</button>' +
+      '<span id="stuResMakeupBadge" style="display:none;font-size:0.75rem;font-weight:800;padding:6px 10px;border-radius:999px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;"></span>' +
+      '</div>' +
+      /* Regular pane */
+      '<div id="stuResPaneRegular">' +
       '<div class="card" style="margin-bottom:14px;" id="examOfficialCard">' +
       '<div class="card-hd"><h3>Official published results</h3></div>' +
       '<div id="examOfficialHost" style="padding:12px 16px;"><p style="opacity:.7;">Loading…</p></div></div>' +
       '<div class="card" style="margin-bottom:14px;">' +
-      '<div class="card-hd"><h3>Enter / update results</h3>' +
+      '<div class="card-hd"><h3>Enter / update results (Regular)</h3>' +
       '<div class="card-acts">' +
-      '<button type="button" class="btn ol" onclick="window.examStuReload&&window.examStuReload()">↻ Refresh</button> ' +
-      '<button type="button" class="btn pr" onclick="window.examStuSave&&window.examStuSave(false)">💾 Save draft</button> ' +
-      '<button type="button" class="btn go" onclick="window.examStuSave&&window.examStuSave(true)">📤 Submit for verification</button> ' +
-      '<button type="button" class="btn ol" onclick="window.examPrintProvisional&&window.examPrintProvisional()">🖨️ Provisional card</button>' +
+      '<button type="button" class="btn ol" onclick="window.examStuReload&&window.examStuReload()">Refresh</button> ' +
+      '<button type="button" class="btn pr" onclick="window.examStuSave&&window.examStuSave(false)">Save draft</button> ' +
+      '<button type="button" class="btn go" onclick="window.examStuSave&&window.examStuSave(true)">Submit for verification</button> ' +
+      '<button type="button" class="btn ol" onclick="window.examPrintProvisional&&window.examPrintProvisional()">Provisional card</button>' +
       '</div></div>' +
       '<div style="padding:12px 16px;">' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;">' +
@@ -116,8 +121,265 @@
       '<div id="examStuFormHost"><p style="opacity:.7;">Loading subjects…</p></div>' +
       '</div></div>' +
       '<div class="card"><div class="card-hd"><h3>All attempts &amp; status</h3></div>' +
-      '<div id="examStuList" style="padding:12px 16px;overflow-x:auto;"></div></div>';
+      '<div id="examStuList" style="padding:12px 16px;overflow-x:auto;"></div></div>' +
+      '</div>' +
+      /* Makeup pane */
+      '<div id="stuResPaneMakeup" style="display:none;">' +
+      '<div id="stuMakeupBanner" class="info-box" style="margin-bottom:12px;">Loading makeup status…</div>' +
+      '<div class="card" style="margin-bottom:14px;">' +
+      '<div class="card-hd"><h3>Makeup result entry</h3>' +
+      '<div class="card-acts">' +
+      '<button type="button" class="btn ol" onclick="window.makeupStuReload&&window.makeupStuReload()">Refresh</button> ' +
+      '<button type="button" class="btn pr" onclick="window.makeupStuSave&&window.makeupStuSave(false)">Save draft</button> ' +
+      '<button type="button" class="btn go" onclick="window.makeupStuSave&&window.makeupStuSave(true)">Submit for verification</button>' +
+      '</div></div>' +
+      '<div style="padding:12px 16px;">' +
+      '<p style="font-size:0.8rem;opacity:.8;margin:0 0 10px;">Only subjects you have <strong>not passed</strong> (fail/absent) after regular even-sem results. Session is set by Exam (makeup month).</p>' +
+      '<div id="stuMakeupFormHost"><p style="opacity:.7;">Open the Makeup tab when Exam declares the month.</p></div>' +
+      '</div></div>' +
+      '<div class="card"><div class="card-hd"><h3>My makeup attempts</h3></div>' +
+      '<div id="stuMakeupList" style="padding:12px 16px;overflow-x:auto;"></div></div>' +
+      '</div>';
   }
+
+  window.stuResShowTab = function (tab) {
+    var reg = document.getElementById('stuResPaneRegular');
+    var mk = document.getElementById('stuResPaneMakeup');
+    var bR = document.getElementById('stuResTabReg');
+    var bM = document.getElementById('stuResTabMk');
+    if (reg) reg.style.display = tab === 'regular' ? '' : 'none';
+    if (mk) mk.style.display = tab === 'makeup' ? '' : 'none';
+    if (bR) bR.className = tab === 'regular' ? 'btn pr' : 'btn ol';
+    if (bM) bM.className = tab === 'makeup' ? 'btn pr' : 'btn ol';
+    if (tab === 'makeup') window.makeupStuReload && window.makeupStuReload();
+  };
+
+  window._makeupStuState = { cycle: null, eligible: [], makeup_attempts: [] };
+
+  window.makeupStuReload = async function () {
+    ensureStuResultsPanel();
+    var banner = document.getElementById('stuMakeupBanner');
+    var host = document.getElementById('stuMakeupFormHost');
+    var list = document.getElementById('stuMakeupList');
+    var badge = document.getElementById('stuResMakeupBadge');
+    try {
+      var data = await api('/api/exam/makeup/attempts');
+      window._makeupStuState = data;
+      var cycle = data.cycle;
+      if (badge) {
+        if (cycle && cycle.status === 'open') {
+          badge.style.display = '';
+          badge.textContent = 'Open · ' + (cycle.month_label || cycle.label || 'Makeup');
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+      if (banner) {
+        if (!cycle) {
+          banner.innerHTML =
+            '<strong>Makeup not declared yet.</strong> Exam Section will open a makeup month ' +
+            '(e.g. July / August 2026) after even-sem results. Check back then.';
+          banner.style.background = '#f8fafc';
+        } else if (cycle.status === 'open') {
+          banner.innerHTML =
+            '<strong>Makeup open:</strong> ' +
+            esc(cycle.month_label) +
+            ' · Session <strong>' +
+            esc(cycle.session_name) +
+            '</strong>' +
+            (cycle.note ? '<div style="margin-top:6px;opacity:.85;">' + esc(cycle.note) + '</div>' : '');
+          banner.style.background = '#ecfdf5';
+        } else {
+          banner.innerHTML =
+            '<strong>Makeup cycle is ' +
+            esc(cycle.status) +
+            '.</strong> ' +
+            esc(cycle.month_label || '') +
+            ' — new entry closed.';
+          banner.style.background = '#fef3c7';
+        }
+      }
+      window.makeupStuPaintForm();
+      if (list) {
+        var rows = data.makeup_attempts || [];
+        if (!rows.length) {
+          list.innerHTML = '<p style="opacity:.7;">No makeup attempts yet.</p>';
+        } else {
+          list.innerHTML =
+            '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+            '<th style="text-align:left;padding:6px;">Subject</th><th>Session</th><th>Result</th><th>Grade</th><th>Status</th></tr></thead><tbody>' +
+            rows
+              .map(function (a) {
+                return (
+                  '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+                  esc(a.subject_code) +
+                  '</strong><div style="font-size:0.72rem;opacity:.75;">' +
+                  esc(a.subject_name) +
+                  ' · Sem ' +
+                  a.semester +
+                  '</div></td><td style="padding:6px;">' +
+                  esc(a.exam_session) +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.result) +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.grade || '—') +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.status) +
+                  (a.verified_by_name
+                    ? '<div style="font-size:0.7rem;opacity:.75;">' + esc(a.verified_by_name) + '</div>'
+                    : '') +
+                  '</td></tr>'
+                );
+              })
+              .join('') +
+            '</tbody></table>';
+        }
+      }
+    } catch (e) {
+      if (banner) banner.textContent = e.message || 'Failed to load makeup';
+      if (host) host.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.makeupStuPaintForm = function () {
+    var host = document.getElementById('stuMakeupFormHost');
+    if (!host) return;
+    var data = window._makeupStuState || {};
+    var cycle = data.cycle;
+    if (!cycle || cycle.status !== 'open') {
+      host.innerHTML =
+        '<p style="opacity:.75;">Makeup entry unlocks when Exam sets status to <strong>Open</strong>.</p>';
+      return;
+    }
+    var eligible = data.eligible || [];
+    var existing = data.makeup_attempts || [];
+    if (!eligible.length && !existing.length) {
+      host.innerHTML =
+        '<p style="opacity:.75;">No failed subjects eligible for this makeup (or you have already passed all).</p>';
+      return;
+    }
+    // Merge eligible + any existing makeup rows not in eligible
+    var byCode = {};
+    eligible.forEach(function (e) {
+      byCode[e.subject_code] = {
+        code: e.subject_code,
+        name: e.subject_name,
+        semester: e.semester,
+      };
+    });
+    existing.forEach(function (a) {
+      if (!byCode[a.subject_code]) {
+        byCode[a.subject_code] = {
+          code: a.subject_code,
+          name: a.subject_name,
+          semester: a.semester,
+        };
+      }
+    });
+    var codes = Object.keys(byCode).sort();
+    var html =
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr>' +
+      '<th style="text-align:left;padding:6px;">Subject</th><th>Session</th><th>Result</th><th>Grade</th></tr></thead><tbody>';
+    codes.forEach(function (code) {
+      var sub = byCode[code];
+      var ex =
+        existing.filter(function (a) {
+          return a.subject_code === code;
+        })[0] || {};
+      var locked = ex.status === 'verified';
+      html +=
+        '<tr class="makeup-stu-row" data-code="' +
+        esc(sub.code) +
+        '" data-name="' +
+        esc(sub.name) +
+        '" data-sem="' +
+        sub.semester +
+        '" data-locked="' +
+        (locked ? '1' : '0') +
+        '" style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:8px 6px;"><strong>' +
+        esc(sub.code) +
+        '</strong><div style="font-size:0.72rem;opacity:.75;">' +
+        esc(sub.name) +
+        ' · Sem ' +
+        sub.semester +
+        '</div>' +
+        (locked ? '<span class="badge active">Verified</span>' : '') +
+        (ex.status === 'pending' ? '<span class="badge pending">Pending</span>' : '') +
+        '</td>' +
+        '<td style="padding:6px;font-size:0.78rem;">' +
+        esc(cycle.session_name) +
+        '</td>' +
+        '<td style="padding:6px;"><select class="makeup-res" ' +
+        (locked ? 'disabled' : '') +
+        ' style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        ['pass', 'fail', 'absent']
+          .map(function (r) {
+            return (
+              '<option value="' +
+              r +
+              '"' +
+              (ex.result === r ? ' selected' : '') +
+              '>' +
+              r +
+              '</option>'
+            );
+          })
+          .join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><select class="makeup-grade" ' +
+        (locked ? 'disabled' : '') +
+        ' style="padding:6px;border-radius:6px;border:1px solid var(--border);">';
+      GRADES.forEach(function (g) {
+        html +=
+          '<option value="' +
+          esc(g) +
+          '"' +
+          (String(ex.grade || '') === g ? ' selected' : '') +
+          '>' +
+          (g || '—') +
+          '</option>';
+      });
+      html += '</select></td></tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  };
+
+  window.makeupStuSave = async function (submit) {
+    var rows = document.querySelectorAll('#stuMakeupFormHost tr.makeup-stu-row');
+    var attempts = [];
+    rows.forEach(function (tr) {
+      if (tr.getAttribute('data-locked') === '1') return;
+      var res = (tr.querySelector('.makeup-res') || {}).value || 'fail';
+      var grade = (tr.querySelector('.makeup-grade') || {}).value || '';
+      attempts.push({
+        subject_code: tr.getAttribute('data-code'),
+        subject_name: tr.getAttribute('data-name'),
+        semester: Number(tr.getAttribute('data-sem')),
+        result: res,
+        grade: grade,
+      });
+    });
+    if (!attempts.length) {
+      alert('No editable makeup subjects to save.');
+      return;
+    }
+    try {
+      var data = await api('/api/exam/makeup/attempts', {
+        method: 'POST',
+        body: { action: submit ? 'submit' : 'save', attempts: attempts },
+      });
+      if (data.errors && data.errors.length) {
+        alert('Saved with notes:\n' + data.errors.join('\n'));
+      } else {
+        alert(submit ? 'Submitted for HOD / Exam verification.' : 'Draft saved.');
+      }
+      window.makeupStuReload();
+    } catch (e) {
+      alert(e.message || 'Save failed');
+    }
+  };
 
   window._examStuState = { curriculum: [], attempts: [], student: null, effective: [] };
 
@@ -176,6 +438,17 @@
 
   window.examStuReload = async function () {
     ensureStuResultsPanel();
+    // Refresh makeup badge quietly
+    try {
+      var mk = await api('/api/exam/makeup/cycles');
+      var badge = document.getElementById('stuResMakeupBadge');
+      if (badge && mk.open) {
+        badge.style.display = '';
+        badge.textContent = 'Open · ' + (mk.open.month_label || mk.open.label || 'Makeup');
+      } else if (badge) {
+        badge.style.display = 'none';
+      }
+    } catch (eMk) { /* ignore */ }
     var meta = document.getElementById('examStuMeta');
     var host = document.getElementById('examStuFormHost');
     var list = document.getElementById('examStuList');
@@ -507,18 +780,71 @@
     'https://k2.karnataka.gov.in/wps/portal/Khajane-II/Scope/Remittance/ChallanGeneration/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTSycnQ39nQ38LVx8LA0C_f3DQn28PAwNQkz1w8EKDHAARwP9KGL041EQhd_4cP0ovFa4GBJQYGFEQIGBAVQBHlcU5IZGGGR6pgMA7DD6nQ!!/dz/d5/L2dBISEvZ0FBIS9nQSEh/';
   var K2_SAMPLE_PDF = '/docs/sample-k2-challan.pdf';
 
+  function k2WarningCardHtml() {
+    return (
+      '<div class="card" style="padding:16px;margin-bottom:14px;border:1.5px solid #fdba74;background:#fff7ed;">' +
+      '<h3 style="margin:0 0 10px;font-size:1rem;color:#9a3412;">Important — K2 challan must use these exact details</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.88rem;line-height:1.5;color:#7c2d12;">' +
+      'If you select the wrong district / department / DDO, your fee will <strong>not</strong> reach the correct office. ' +
+      'Check carefully before generating the challan.</p>' +
+      '<ul style="margin:0 0 12px;padding-left:1.2rem;font-size:0.9rem;line-height:1.65;color:#0f172a;">' +
+      '<li><strong>District:</strong> Bengaluru Urban</li>' +
+      '<li><strong>Department:</strong> DEPARTMENT OF TECHNICAL EDUCATION</li>' +
+      '<li><strong>DDO Office:</strong> DIRECTORATE OF TECHNICAL EDUCATION, BANGALORE</li>' +
+      '<li><strong>DDO Code:</strong> <span style="font-family:ui-monospace,monospace;font-weight:800;letter-spacing:0.03em;">14254O</span></li>' +
+      '</ul>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">' +
+      '<a class="btn go" href="' +
+      K2_CHALLAN_URL +
+      '" target="_blank" rel="noopener noreferrer" ' +
+      'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
+      'Open K2 Challan Generation</a>' +
+      '<a class="btn ol" href="' +
+      K2_SAMPLE_PDF +
+      '" target="_blank" rel="noopener noreferrer" ' +
+      'style="padding:11px 16px;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">' +
+      'View sample K2 challan (PDF)</a>' +
+      '</div>' +
+      '<p style="margin:12px 0 0;font-size:0.8rem;opacity:.8;line-height:1.45;">' +
+      'After payment, copy the <strong>K2 receipt / challan number</strong> and amount into the form below and submit. ' +
+      'Keep the paid challan PDF/print for your records.</p>' +
+      '</div>'
+    );
+  }
+
   function ensureStuExamFeesPanel() {
     var panel = document.getElementById('stuExamFees');
     if (!panel) return;
-    // Rebuild if older panel still has manual fine input
-    if (panel.getAttribute('data-exam-live') === '2') return;
-    panel.setAttribute('data-exam-live', '2');
+    // v4 = Regular exam | Makeup exam | Admission
+    if (panel.getAttribute('data-exam-live') === '4') return;
+    panel.setAttribute('data-exam-live', '4');
     panel.innerHTML =
-      '<div class="info-box"><strong>Exam Fees (live from your results)</strong> — Base fee from backlog / current semester. ' +
+      /* Live Admission fee status — always visible when student opens Fees */
+      '<div id="admFeeStatusBar" class="card" style="padding:14px 16px;margin-bottom:14px;border:2px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">' +
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+      '<div style="font-size:0.72rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;opacity:.7;">Admission fees</div>' +
+      '<div id="admFeeStatusPill" style="font-size:0.95rem;font-weight:800;padding:8px 14px;border-radius:999px;background:#f1f5f9;border:1.5px solid var(--border);">Loading…</div>' +
+      '<div id="admFeeStatusYear" style="font-size:0.8rem;opacity:.8;"></div>' +
+      '</div>' +
+      '<div id="admFeeStatusStamp" style="font-size:0.78rem;max-width:100%;"></div>' +
+      '</div>' +
+      '<p id="admFeeStatusHint" style="margin:-6px 0 14px;font-size:0.78rem;opacity:.75;line-height:1.45;">' +
+      'Admission paid/not paid is set by your verifier. Exam fees: use <strong>Regular</strong> or <strong>Makeup</strong> tabs (same K2, different amounts).</p>' +
+
+      /* Tabs */
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+      '<button type="button" class="btn pr" id="stuFeeTabExam" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'exam\')">Regular exam fees</button>' +
+      '<button type="button" class="btn ol" id="stuFeeTabMakeup" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'makeup\')">Makeup fees</button>' +
+      '<button type="button" class="btn ol" id="stuFeeTabAdm" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'admission\')">Admission fees</button>' +
+      '<span id="stuFeeMakeupBadge" style="display:none;font-size:0.72rem;font-weight:800;padding:6px 10px;border-radius:999px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;"></span>' +
+      '</div>' +
+
+      /* ---- Regular Exam fees pane ---- */
+      '<div id="stuFeePaneExam">' +
+      '<div class="info-box"><strong>Regular exam fees</strong> — Base fee from backlog / current semester. ' +
       '<strong>Fine</strong> is set by Exam Section date schedule (you cannot edit fine). ' +
       'Pay on official <strong>K2 (Khajane-II)</strong>, then enter receipt number(s) here. ' +
-      'No online K2 payment API. Multiple challans allowed (e.g. Rs 300 + Rs 50). ' +
-      'Exam Section will manually mark Paid after verifying.</div>' +
+      'No online K2 payment API. Multiple challans allowed. Exam marks Paid after verifying.</div>' +
 
       '<div class="card" style="padding:16px;margin-bottom:14px;border:1.5px solid #fdba74;background:#fff7ed;">' +
       '<h3 style="margin:0 0 10px;font-size:1rem;color:#9a3412;">Important — K2 challan must use these exact details</h3>' +
@@ -563,10 +889,363 @@
       '<input id="examFeeNote" type="text" placeholder="e.g. Paid Rs 300 first, balance Rs 50 next day" ' +
       'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
       '<button type="button" class="btn go" style="margin-top:12px;" onclick="window.examSubmitChallans&&window.examSubmitChallans()">Submit challan details</button>' +
+      '</div>' +
+      '</div>' +
+
+      /* ---- Makeup exam fees pane ---- */
+      '<div id="stuFeePaneMakeup" style="display:none;">' +
+      '<div id="makeupFeeCycleBanner" class="info-box" style="margin-bottom:12px;">Loading makeup fee status…</div>' +
+      k2WarningCardHtml() +
+      '<div class="card" style="padding:16px;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' +
+      '<button type="button" class="btn ol" onclick="window.makeupFeesReload&&window.makeupFeesReload()">Recalculate makeup fee</button>' +
+      '<span id="makeupFeeFineBanner" style="font-size:0.82rem;padding:6px 10px;border-radius:8px;background:#f1f5f9;border:1px solid var(--border);"></span>' +
+      '</div>' +
+      '<div id="makeupFeeBreakup" style="font-size:0.85rem;"></div>' +
+      '<div style="margin-top:10px;font-size:1.05rem;font-weight:800;color:var(--navy);">Makeup total: <span id="makeupFeeTotal">Rs 0</span></div>' +
+      '<div id="makeupFeePayStatus" style="margin-top:8px;font-size:0.82rem;"></div>' +
+      '</div>' +
+      '<div class="card" style="padding:16px;">' +
+      '<h3 style="margin:0 0 10px;font-size:0.95rem;color:var(--navy);">K2 Challan receipts (Makeup — multiple allowed)</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.82rem;opacity:.8;">Same K2 process as regular. Enter receipt no. and amount. Exam marks Paid separately for makeup.</p>' +
+      '<div id="makeupChallanList"></div>' +
+      '<button type="button" class="btn ol" style="margin:8px 0;" onclick="window.makeupAddChallanRow&&window.makeupAddChallanRow()">+ Add another challan</button>' +
+      '<div class="fg" style="margin-top:8px;"><label>Note to Exam Section (optional)</label>' +
+      '<input id="makeupFeeNote" type="text" placeholder="Makeup payment note" ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<button type="button" class="btn go" style="margin-top:12px;" onclick="window.makeupSubmitChallans&&window.makeupSubmitChallans()">Submit makeup challan details</button>' +
+      '</div>' +
+      '</div>' +
+
+      /* ---- Admission fees pane ---- */
+      '<div id="stuFeePaneAdm" style="display:none;">' +
+      '<div class="info-box"><strong>Admission / year tuition fees</strong> — Enter amount, receipt number and paid date after you pay. ' +
+      'Your verifier (Cash / Office / HOD / ACM) confirms <strong>Paid</strong> or <strong>Not paid</strong>. ' +
+      'The live status bar at the top updates as soon as they confirm.</div>' +
+      '<div class="card" style="padding:16px;">' +
+      '<h3 style="margin:0 0 12px;font-size:0.95rem;color:var(--navy);">Submit payment proof</h3>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">' +
+      '<div class="fg" style="margin:0;"><label>Fee amount (₹)</label>' +
+      '<input id="admFeeAmount" type="text" placeholder="e.g. 12000" ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div class="fg" style="margin:0;"><label>Receipt number</label>' +
+      '<input id="admFeeReceipt" type="text" placeholder="Receipt / challan no." ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div class="fg" style="margin:0;"><label>Fees paid date</label>' +
+      '<input id="admFeeDate" type="date" ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '</div>' +
+      '<div class="fg" style="margin-top:12px;"><label>Note to verifier (optional)</label>' +
+      '<input id="admFeeNote" type="text" placeholder="Any note for Cash / Office" ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<button type="button" class="btn go" style="margin-top:14px;" onclick="window.admFeeSubmit&&window.admFeeSubmit()">Submit for verification</button>' +
+      '<div id="admFeeSubmitMsg" style="margin-top:10px;font-size:0.82rem;"></div>' +
+      '<div id="admFeeRecordDetail" style="margin-top:14px;font-size:0.82rem;"></div>' +
+      '</div>' +
       '</div>';
+
     window.examAddChallanRow();
     window.examAddChallanRow();
   }
+
+  window.stuFeeShowTab = function (tab) {
+    var exam = document.getElementById('stuFeePaneExam');
+    var mk = document.getElementById('stuFeePaneMakeup');
+    var adm = document.getElementById('stuFeePaneAdm');
+    var bEx = document.getElementById('stuFeeTabExam');
+    var bMk = document.getElementById('stuFeeTabMakeup');
+    var bAd = document.getElementById('stuFeeTabAdm');
+    if (exam) exam.style.display = tab === 'exam' ? '' : 'none';
+    if (mk) mk.style.display = tab === 'makeup' ? '' : 'none';
+    if (adm) adm.style.display = tab === 'admission' ? '' : 'none';
+    if (bEx) bEx.className = tab === 'exam' ? 'btn pr' : 'btn ol';
+    if (bMk) bMk.className = tab === 'makeup' ? 'btn pr' : 'btn ol';
+    if (bAd) bAd.className = tab === 'admission' ? 'btn pr' : 'btn ol';
+    if (tab === 'admission') window.admFeeReload && window.admFeeReload();
+    if (tab === 'makeup') window.makeupFeesReload && window.makeupFeesReload();
+    if (tab === 'exam') window.examFeesReload && window.examFeesReload();
+  };
+
+  window.makeupAddChallanRow = function () {
+    var host = document.getElementById('makeupChallanList');
+    if (!host) return;
+    var n = host.querySelectorAll('.makeup-ch-row').length + 1;
+    var div = document.createElement('div');
+    div.className = 'makeup-ch-row';
+    div.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:end;';
+    div.innerHTML =
+      '<div style="flex:1;min-width:160px;"><label style="font-size:0.72rem;">Challan ' +
+      n +
+      ' receipt no.</label>' +
+      '<input class="makeup-ch-no" type="text" placeholder="K2 receipt number" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div style="width:120px;"><label style="font-size:0.72rem;">Amount ₹</label>' +
+      '<input class="makeup-ch-amt" type="number" min="0" step="1" placeholder="0" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);" /></div>';
+    host.appendChild(div);
+  };
+
+  window.makeupFeesReload = async function () {
+    ensureStuExamFeesPanel();
+    var host = document.getElementById('makeupChallanList');
+    if (host && !host.querySelector('.makeup-ch-row')) {
+      window.makeupAddChallanRow();
+      window.makeupAddChallanRow();
+    }
+    var banner = document.getElementById('makeupFeeCycleBanner');
+    var box = document.getElementById('makeupFeeBreakup');
+    var tot = document.getElementById('makeupFeeTotal');
+    var stEl = document.getElementById('makeupFeePayStatus');
+    var fineB = document.getElementById('makeupFeeFineBanner');
+    var badge = document.getElementById('stuFeeMakeupBadge');
+    try {
+      var data = await api('/api/exam/makeup/fees');
+      var cycle = data.cycle;
+      if (badge) {
+        if (cycle && cycle.status === 'open') {
+          badge.style.display = '';
+          badge.textContent = 'Makeup open · ' + (cycle.month_label || '');
+        } else badge.style.display = 'none';
+      }
+      if (banner) {
+        if (!cycle) {
+          banner.innerHTML =
+            '<strong>No makeup declared.</strong> Exam Section opens makeup fees when they declare the month (e.g. July / August 2026).';
+        } else if (cycle.status !== 'open') {
+          banner.innerHTML =
+            '<strong>Makeup cycle ' +
+            esc(cycle.status) +
+            ':</strong> ' +
+            esc(cycle.month_label) +
+            ' — payment entry closed.';
+        } else {
+          banner.innerHTML =
+            '<strong>Makeup fees · ' +
+            esc(cycle.month_label) +
+            '</strong> — ₹' +
+            (cycle.fee_per_subject || 0) +
+            ' per failed subject' +
+            (cycle.fee_base ? ' + base ₹' + cycle.fee_base : '') +
+            '. Same K2 as regular; paid status is separate.';
+        }
+      }
+      var lines = (data.fees && data.fees.lines) || [];
+      var fineAmt = (data.fees && data.fees.fine) || 0;
+      if (fineB) {
+        if (fineAmt > 0) {
+          fineB.style.background = '#fef2f2';
+          fineB.innerHTML = '<strong>Makeup fine Rs ' + fineAmt + '</strong>';
+        } else {
+          fineB.style.background = '#ecfdf5';
+          fineB.innerHTML = '<strong>No makeup fine</strong> (or not scheduled)';
+        }
+      }
+      if (box) {
+        if (!lines.length) {
+          box.innerHTML =
+            '<p style="opacity:.7;">No makeup fee lines — no open fails, or cycle not open.</p>';
+        } else {
+          box.innerHTML =
+            '<table style="width:100%;border-collapse:collapse;"><tbody>' +
+            lines
+              .map(function (l) {
+                return (
+                  '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;">' +
+                  esc(l.label) +
+                  '</td><td style="padding:6px;text-align:right;font-weight:700;">Rs ' +
+                  l.amount +
+                  '</td></tr>'
+                );
+              })
+              .join('') +
+            '</tbody></table>';
+        }
+      }
+      if (tot) tot.textContent = 'Rs ' + ((data.fees && data.fees.total) || 0);
+      if (stEl) {
+        var p = data.payment;
+        if (!p) stEl.innerHTML = '<span class="badge pending">Not submitted</span>';
+        else {
+          var stampHtml = '';
+          if (p.paid_marked_by_name && window.gpthStamp && p.stamp) {
+            stampHtml = window.gpthStamp.html(p.stamp, 'paid');
+          } else if (p.paid_marked_by_name) {
+            stampHtml =
+              '<div style="margin-top:6px;font-size:0.8rem;">Marked by <strong>' +
+              esc(p.paid_marked_by_name) +
+              '</strong></div>';
+          }
+          stEl.innerHTML =
+            'Makeup status: <strong>' +
+            esc(p.status) +
+            '</strong>' +
+            (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
+            stampHtml;
+        }
+      }
+    } catch (e) {
+      if (banner) banner.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.makeupSubmitChallans = async function () {
+    var rows = document.querySelectorAll('#makeupChallanList .makeup-ch-row');
+    var challans = [];
+    rows.forEach(function (row) {
+      var no = ((row.querySelector('.makeup-ch-no') || {}).value || '').trim();
+      var amt = Number((row.querySelector('.makeup-ch-amt') || {}).value || 0);
+      if (no && amt > 0) challans.push({ receipt_no: no, amount: amt });
+    });
+    if (!challans.length) {
+      alert('Enter at least one K2 receipt number and amount for makeup.');
+      return;
+    }
+    var note = ((document.getElementById('makeupFeeNote') || {}).value || '').trim();
+    try {
+      var data = await api('/api/exam/makeup/fees', {
+        method: 'POST',
+        body: { challans: challans, note: note },
+      });
+      alert(data.message || 'Makeup challan submitted.');
+      window.makeupFeesReload();
+    } catch (e) {
+      alert(e.message || 'Submit failed');
+    }
+  };
+
+  function paintAdmFeeStatusBar(data) {
+    var pill = document.getElementById('admFeeStatusPill');
+    var yr = document.getElementById('admFeeStatusYear');
+    var stampEl = document.getElementById('admFeeStatusStamp');
+    var bar = document.getElementById('admFeeStatusBar');
+    var detail = document.getElementById('admFeeRecordDetail');
+    if (!pill) return;
+    var st = (data && data.live && data.live.status) || (data && data.status) || 'not_paid';
+    var label = (data && data.live && data.live.label) || 'Not paid';
+    var yLabel = (data && data.year_label) || '';
+    if (yr) yr.textContent = yLabel ? 'For ' + yLabel : '';
+    pill.textContent = label;
+    if (st === 'paid') {
+      pill.style.background = '#dcfce7';
+      pill.style.borderColor = '#86efac';
+      pill.style.color = '#166534';
+      if (bar) {
+        bar.style.borderColor = '#86efac';
+        bar.style.background = '#f0fdf4';
+      }
+    } else if (st === 'pending') {
+      pill.style.background = '#fef3c7';
+      pill.style.borderColor = '#fcd34d';
+      pill.style.color = '#92400e';
+      if (bar) {
+        bar.style.borderColor = '#fcd34d';
+        bar.style.background = '#fffbeb';
+      }
+    } else {
+      pill.style.background = '#fee2e2';
+      pill.style.borderColor = '#fca5a5';
+      pill.style.color = '#991b1b';
+      if (bar) {
+        bar.style.borderColor = '#fca5a5';
+        bar.style.background = '#fef2f2';
+      }
+    }
+    var rec = data && data.record;
+    if (stampEl) {
+      stampEl.innerHTML = '';
+      if (rec && rec.verified_by_name) {
+        if (window.gpthStamp && rec.stamp) {
+          stampEl.innerHTML = window.gpthStamp.html(rec.stamp, st === 'paid' ? 'paid' : 'verified');
+        } else {
+          stampEl.innerHTML =
+            '<span style="opacity:.85;">Confirmed by <strong>' +
+            esc(rec.verified_by_name) +
+            '</strong>' +
+            (rec.verified_by_role ? ' (' + esc(rec.verified_by_role) + ')' : '') +
+            '</span>';
+        }
+      } else if (st === 'pending') {
+        stampEl.innerHTML = '<span style="opacity:.8;">Waiting for verifier confirmation</span>';
+      } else {
+        stampEl.innerHTML = '<span style="opacity:.7;">Not confirmed yet</span>';
+      }
+    }
+    if (detail) {
+      if (!rec) {
+        detail.innerHTML = '<span style="opacity:.7;">No proof submitted for this year yet.</span>';
+      } else {
+        detail.innerHTML =
+          '<div class="card" style="padding:12px;background:var(--bg);border:1px solid var(--border);">' +
+          '<div><strong>Submitted proof</strong></div>' +
+          '<div style="margin-top:6px;">Amount: <strong>₹ ' +
+          esc(rec.amount || '—') +
+          '</strong> · Receipt: <strong>' +
+          esc(rec.receipt_no || '—') +
+          '</strong>' +
+          (rec.paid_date ? ' · Date: ' + esc(rec.paid_date) : '') +
+          '</div>' +
+          (rec.student_note
+            ? '<div style="margin-top:4px;opacity:.8;">Note: ' + esc(rec.student_note) + '</div>'
+            : '') +
+          (rec.staff_note
+            ? '<div style="margin-top:4px;opacity:.8;">Verifier note: ' + esc(rec.staff_note) + '</div>'
+            : '') +
+          '</div>';
+      }
+      // Prefill form from last submit
+      if (rec) {
+        var a = document.getElementById('admFeeAmount');
+        var r = document.getElementById('admFeeReceipt');
+        var d = document.getElementById('admFeeDate');
+        if (a && rec.amount) a.value = rec.amount;
+        if (r && rec.receipt_no) r.value = rec.receipt_no;
+        if (d && rec.paid_date) d.value = String(rec.paid_date).slice(0, 10);
+      }
+    }
+  }
+
+  window.admFeeReload = async function () {
+    ensureStuExamFeesPanel();
+    try {
+      var data = await api('/api/admission-fees');
+      paintAdmFeeStatusBar(data);
+    } catch (e) {
+      var pill = document.getElementById('admFeeStatusPill');
+      if (pill) {
+        pill.textContent = 'Status unavailable';
+        pill.style.background = '#f1f5f9';
+      }
+    }
+  };
+
+  window.admFeeSubmit = async function () {
+    var amount = ((document.getElementById('admFeeAmount') || {}).value || '').trim();
+    var receipt = ((document.getElementById('admFeeReceipt') || {}).value || '').trim();
+    var paidDate = ((document.getElementById('admFeeDate') || {}).value || '').trim();
+    var note = ((document.getElementById('admFeeNote') || {}).value || '').trim();
+    var msg = document.getElementById('admFeeSubmitMsg');
+    if (!amount || !receipt) {
+      alert('Enter fee amount and receipt number.');
+      return;
+    }
+    try {
+      var res = await api('/api/admission-fees', {
+        method: 'POST',
+        body: { amount: amount, receipt_no: receipt, paid_date: paidDate || null, note: note || null },
+      });
+      if (msg) {
+        msg.style.color = '#166534';
+        msg.textContent = res.message || 'Submitted for verification.';
+      }
+      await window.admFeeReload();
+    } catch (e) {
+      if (msg) {
+        msg.style.color = '#991b1b';
+        msg.textContent = e.message || 'Submit failed';
+      }
+      alert(e.message || 'Submit failed');
+    }
+  };
 
   window.examAddChallanRow = function () {
     var host = document.getElementById('examChallanList');
@@ -735,7 +1414,42 @@
     });
   }
 
+  /** Standalone Admission fees desk for Cash / Office shells (no full Exam module). */
+  function ensureStandaloneAdmFeeDesk() {
+    ;[
+      { root: 'facCash', prefix: 'cashAf' },
+      { root: 'adOpsCategory', prefix: 'adAf' },
+      { root: 'facOpsCategory', prefix: 'facAf' },
+    ].forEach(function (cfg) {
+      var root = document.getElementById(cfg.root);
+      if (!root) return;
+      if (document.getElementById(cfg.prefix + 'AdmFeeDesk')) return;
+      var wrap = document.createElement('div');
+      wrap.id = cfg.prefix + 'AdmFeeDesk';
+      wrap.style.cssText = 'margin:12px 0;';
+      wrap.innerHTML =
+        '<div class="card" style="padding:14px;border:1.5px solid #93c5fd;background:#eff6ff;">' +
+        '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">Admission fees — Paid / Not paid desk</h3>' +
+        '<p style="margin:0 0 10px;font-size:0.8rem;opacity:.85;line-height:1.45;">Students submit proof under <strong>Fees → Admission fees</strong>. ' +
+        'Confirm here so the live status bar updates on the student portal (your name is stamped).</p>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' +
+        '<select id="' +
+        cfg.prefix +
+        'AfStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+        '<option value="pending">Pending only</option><option value="">All</option>' +
+        '<option value="paid">Paid</option><option value="not_paid">Not paid</option></select>' +
+        '<button type="button" class="btn ol" onclick="window.admFeeStaffLoad&&window.admFeeStaffLoad(\'' +
+        cfg.prefix +
+        '\')">Load queue</button></div>' +
+        '<div id="' +
+        cfg.prefix +
+        'AfList" style="overflow-x:auto;"></div></div>';
+      root.insertBefore(wrap, root.firstChild);
+    });
+  }
+
   function ensureExamStaffPanels() {
+    ensureStandaloneAdmFeeDesk();
     // Inject into adExam and facExamModule
     ;[
       { root: 'adExam', prefix: 'adEx' },
@@ -754,7 +1468,12 @@
         bar.innerHTML =
           '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">Result verification</button>' +
           '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">Exam fees desk</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Fee schedule</button>';
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'AdmFeeDesk">Admission fees desk</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Fee schedule</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupCycle">Makeup declare</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupVerify">Makeup results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupFeeDesk">Makeup fees desk</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupFeeSched">Makeup fee schedule</button>';
         root.insertBefore(bar, root.firstChild);
 
         var v = document.createElement('div');
@@ -794,6 +1513,156 @@
           '<button type="button" class="btn ol" data-exam-reload-fd="' + cfg.prefix + '">Load</button></div>' +
           '<div id="' + cfg.prefix + 'FdList" style="padding:10px;overflow-x:auto;"></div>';
         root.appendChild(f);
+
+        var af = document.createElement('div');
+        af.id = cfg.prefix + 'AdmFeeDesk';
+        af.style.display = 'none';
+        af.innerHTML =
+          '<div class="info-box"><strong>Admission fees desk</strong> — Students submit amount + receipt under Fees → Admission fees. ' +
+          'Confirm <strong>Paid</strong> or <strong>Not paid</strong>. Status appears live on the student Fees status bar (with your name stamp).</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<select id="' + cfg.prefix + 'AfStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="pending">Pending only</option><option value="">All</option>' +
+          '<option value="paid">Paid</option><option value="not_paid">Not paid</option></select>' +
+          '<button type="button" class="btn ol" data-exam-reload-af="' + cfg.prefix + '">Load</button></div>' +
+          '<div id="' + cfg.prefix + 'AfList" style="padding:10px;overflow-x:auto;"></div>';
+        root.appendChild(af);
+      }
+
+      // Makeup panels (declare / verify / fees / schedule)
+      if (!document.getElementById(cfg.prefix + 'MakeupCycle')) {
+        var mkBar = root.querySelector('.exam-staff-tabs');
+        if (mkBar) {
+          ;[
+            ['MakeupCycle', 'Makeup declare'],
+            ['MakeupVerify', 'Makeup results'],
+            ['MakeupFeeDesk', 'Makeup fees desk'],
+            ['MakeupFeeSched', 'Makeup fee schedule'],
+          ].forEach(function (pair) {
+            if (mkBar.querySelector('[data-exam-tab="' + cfg.prefix + pair[0] + '"]')) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn ol';
+            b.setAttribute('data-exam-tab', cfg.prefix + pair[0]);
+            b.textContent = pair[1];
+            mkBar.appendChild(b);
+          });
+        }
+        var mkCycle = document.createElement('div');
+        mkCycle.id = cfg.prefix + 'MakeupCycle';
+        mkCycle.style.display = 'none';
+        mkCycle.innerHTML =
+          '<div class="info-box"><strong>Declare makeup exam month</strong> — e.g. July / August 2026. ' +
+          'Students then use Results → Makeup and Fees → Makeup. Only one cycle Open at a time. ' +
+          'Fee per failed subject is separate from regular exam fees.</div>' +
+          '<div class="card" style="padding:14px;margin:10px;">' +
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
+          '<div class="fg" style="margin:0;"><label>Month label</label>' +
+          '<input id="' + cfg.prefix + 'MkMonth" type="text" placeholder="July / August 2026" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div class="fg" style="margin:0;"><label>Session name (on results)</label>' +
+          '<input id="' + cfg.prefix + 'MkSession" type="text" placeholder="Makeup Jul-Aug 2026" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div class="fg" style="margin:0;"><label>Fee ₹ / failed subject</label>' +
+          '<input id="' + cfg.prefix + 'MkFeeSub" type="number" value="250" min="0" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div class="fg" style="margin:0;"><label>Base fee ₹ (optional)</label>' +
+          '<input id="' + cfg.prefix + 'MkFeeBase" type="number" value="0" min="0" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '</div>' +
+          '<div class="fg" style="margin-top:10px;"><label>Note to students (optional)</label>' +
+          '<input id="' + cfg.prefix + 'MkNote" type="text" placeholder="After even-sem results…" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button type="button" class="btn pr" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
+          cfg.prefix +
+          '\',\'draft\')">Save draft</button>' +
+          '<button type="button" class="btn go" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
+          cfg.prefix +
+          '\',\'open\')">Declare &amp; Open</button>' +
+          '<button type="button" class="btn ol" onclick="window.makeupCycleLoad&&window.makeupCycleLoad(\'' +
+          cfg.prefix +
+          '\')">Refresh list</button>' +
+          '</div>' +
+          '<div id="' + cfg.prefix + 'MkCycleList" style="margin-top:14px;"></div></div>';
+        root.appendChild(mkCycle);
+
+        var mkV = document.createElement('div');
+        mkV.id = cfg.prefix + 'MakeupVerify';
+        mkV.style.display = 'none';
+        mkV.innerHTML =
+          '<div class="info-box"><strong>Makeup result verification</strong> — Pending makeup attempts from students. ' +
+          'HOD = own branch; Exam / Principal / Admin = all.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<select id="' + cfg.prefix + 'MkVStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="pending">Pending</option><option value="">All</option>' +
+          '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+          '<button type="button" class="btn ol" onclick="window.makeupStaffLoadVerify&&window.makeupStaffLoadVerify(\'' +
+          cfg.prefix +
+          '\')">Load</button></div>' +
+          '<div id="' + cfg.prefix + 'MkVList" style="padding:10px;overflow-x:auto;"></div>';
+        root.appendChild(mkV);
+
+        var mkFd = document.createElement('div');
+        mkFd.id = cfg.prefix + 'MakeupFeeDesk';
+        mkFd.style.display = 'none';
+        mkFd.innerHTML =
+          '<div class="info-box"><strong>Makeup fees desk</strong> — Separate from regular exam fees. Same K2 receipts; mark Paid after offline verify.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<select id="' + cfg.prefix + 'MkFdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
+          '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+          '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
+          cfg.prefix +
+          '\')">Load</button></div>' +
+          '<div id="' + cfg.prefix + 'MkFdList" style="padding:10px;overflow-x:auto;"></div>';
+        root.appendChild(mkFd);
+
+        var mkFs = document.createElement('div');
+        mkFs.id = cfg.prefix + 'MakeupFeeSched';
+        mkFs.style.display = 'none';
+        mkFs.innerHTML =
+          '<div class="info-box"><strong>Makeup fine schedule</strong> — Optional date windows for makeup fines (not regular exam fines). Uses the open makeup cycle.</div>' +
+          '<div class="card" style="padding:14px;margin:10px;">' +
+          '<button type="button" class="btn ol" onclick="window.makeupFeeSchedLoad&&window.makeupFeeSchedLoad(\'' +
+          cfg.prefix +
+          '\')">Load</button> ' +
+          '<button type="button" class="btn pr" onclick="window.makeupFeeSchedSave&&window.makeupFeeSchedSave(\'' +
+          cfg.prefix +
+          '\')">Save</button> ' +
+          '<button type="button" class="btn ol" onclick="window.makeupFeeSchedAddRow&&window.makeupFeeSchedAddRow(\'' +
+          cfg.prefix +
+          '\')">+ Window</button>' +
+          '<div id="' + cfg.prefix + 'MkFsInfo" style="margin:10px 0;font-size:0.85rem;"></div>' +
+          '<div id="' + cfg.prefix + 'MkFsRows"></div></div>';
+        root.appendChild(mkFs);
+      }
+
+      // Ensure Admission fees desk tab exists on older shells
+      if (!document.getElementById(cfg.prefix + 'AdmFeeDesk')) {
+        var barAf =
+          root.querySelector('.exam-staff-tabs') ||
+          (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
+        if (barAf && !barAf.querySelector('[data-exam-tab="' + cfg.prefix + 'AdmFeeDesk"]')) {
+          var afbtn = document.createElement('button');
+          afbtn.type = 'button';
+          afbtn.className = 'btn ol';
+          afbtn.setAttribute('data-exam-tab', cfg.prefix + 'AdmFeeDesk');
+          afbtn.textContent = 'Admission fees desk';
+          barAf.appendChild(afbtn);
+        }
+        var af2 = document.createElement('div');
+        af2.id = cfg.prefix + 'AdmFeeDesk';
+        af2.style.display = 'none';
+        af2.innerHTML =
+          '<div class="info-box"><strong>Admission fees desk</strong> — Confirm Paid / Not paid. Shows live on student Fees bar.</div>' +
+          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<select id="' + cfg.prefix + 'AfStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+          '<option value="pending">Pending only</option><option value="">All</option>' +
+          '<option value="paid">Paid</option><option value="not_paid">Not paid</option></select>' +
+          '<button type="button" class="btn ol" data-exam-reload-af="' + cfg.prefix + '">Load</button></div>' +
+          '<div id="' + cfg.prefix + 'AfList" style="padding:10px;overflow-x:auto;"></div>';
+        root.appendChild(af2);
       }
 
       // Fee schedule panel (always ensure; may be missing on older shells)
@@ -852,6 +1721,7 @@
             btn.classList.add('act');
             var vEl = document.getElementById(cfg.prefix + 'ResultsVerify');
             var fEl = document.getElementById(cfg.prefix + 'FeeDesk');
+            var afEl = document.getElementById(cfg.prefix + 'AdmFeeDesk');
             var sEl = document.getElementById(cfg.prefix + 'FeeSchedule');
             var pEl = document.getElementById(cfg.prefix + 'Pathways');
             function showPanel(el, on) {
@@ -869,13 +1739,44 @@
                 } catch (eA) { /* ignore */ }
               }
             }
+            var mkC = document.getElementById(cfg.prefix + 'MakeupCycle');
+            var mkV = document.getElementById(cfg.prefix + 'MakeupVerify');
+            var mkFd = document.getElementById(cfg.prefix + 'MakeupFeeDesk');
+            var mkFs = document.getElementById(cfg.prefix + 'MakeupFeeSched');
             showPanel(vEl, id.indexOf('ResultsVerify') >= 0);
-            showPanel(fEl, id.indexOf('FeeDesk') >= 0);
-            showPanel(sEl, id.indexOf('FeeSchedule') >= 0);
+            // FeeDesk must not match AdmFeeDesk / MakeupFeeDesk
+            showPanel(
+              fEl,
+              id.indexOf('FeeDesk') >= 0 &&
+                id.indexOf('AdmFeeDesk') < 0 &&
+                id.indexOf('MakeupFeeDesk') < 0,
+            );
+            showPanel(afEl, id.indexOf('AdmFeeDesk') >= 0);
+            showPanel(
+              sEl,
+              id.indexOf('FeeSchedule') >= 0 && id.indexOf('MakeupFeeSched') < 0,
+            );
+            showPanel(mkC, id.indexOf('MakeupCycle') >= 0);
+            showPanel(mkV, id.indexOf('MakeupVerify') >= 0);
+            showPanel(mkFd, id.indexOf('MakeupFeeDesk') >= 0);
+            showPanel(mkFs, id.indexOf('MakeupFeeSched') >= 0);
             if (pEl) pEl.style.display = 'none';
             if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(cfg.prefix);
+            else if (id.indexOf('AdmFeeDesk') >= 0) window.admFeeStaffLoad(cfg.prefix);
+            else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(cfg.prefix);
             else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(cfg.prefix);
+            else if (id.indexOf('MakeupFeeSched') >= 0) window.makeupFeeSchedLoad(cfg.prefix);
             else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(cfg.prefix);
+            else if (id.indexOf('MakeupCycle') >= 0) window.makeupCycleLoad(cfg.prefix);
+            else if (id.indexOf('MakeupVerify') >= 0) window.makeupStaffLoadVerify(cfg.prefix);
+          };
+        });
+        // Wire Load buttons for admission fee desk
+        root.querySelectorAll('[data-exam-reload-af]').forEach(function (btn) {
+          if (btn._admBound) return;
+          btn._admBound = true;
+          btn.onclick = function () {
+            window.admFeeStaffLoad(btn.getAttribute('data-exam-reload-af'));
           };
         });
       }
@@ -1720,6 +2621,404 @@
     }
   };
 
+  /* ---------- Makeup staff helpers ---------- */
+  window.makeupCycleLoad = async function (prefix) {
+    var list = document.getElementById(prefix + 'MkCycleList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    try {
+      var data = await api('/api/exam/makeup/cycles');
+      var cycles = data.cycles || [];
+      if (!cycles.length) {
+        list.innerHTML = '<p style="opacity:.7;">No cycles yet. Declare a month above.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+        '<th>Month</th><th>Session</th><th>Fee/subj</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+      cycles.forEach(function (c) {
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(c.month_label) +
+          '</strong><div style="font-size:0.72rem;opacity:.75;">' +
+          esc(c.label) +
+          '</div></td><td style="padding:6px;">' +
+          esc(c.session_name) +
+          '</td><td style="padding:6px;">₹' +
+          c.fee_per_subject +
+          (c.fee_base ? ' +' + c.fee_base : '') +
+          '</td><td style="padding:6px;"><strong>' +
+          esc(c.status) +
+          '</strong>' +
+          (c.declared_by_name
+            ? '<div style="font-size:0.7rem;">' + esc(c.declared_by_name) + '</div>'
+            : '') +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          (c.status !== 'open'
+            ? '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupCycleSetStatus(' +
+              c.id +
+              ',\'open\',\'' +
+              prefix +
+              '\')">Open</button> '
+            : '') +
+          (c.status === 'open'
+            ? '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b45309;color:#fff;" onclick="window.makeupCycleSetStatus(' +
+              c.id +
+              ',\'closed\',\'' +
+              prefix +
+              '\')">Close</button>'
+            : '') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.makeupCycleCreate = async function (prefix, status) {
+    var month = ((document.getElementById(prefix + 'MkMonth') || {}).value || '').trim();
+    var session = ((document.getElementById(prefix + 'MkSession') || {}).value || '').trim();
+    var feeSub = Number((document.getElementById(prefix + 'MkFeeSub') || {}).value || 250);
+    var feeBase = Number((document.getElementById(prefix + 'MkFeeBase') || {}).value || 0);
+    var note = ((document.getElementById(prefix + 'MkNote') || {}).value || '').trim();
+    if (!month) {
+      alert('Enter month label (e.g. July / August 2026)');
+      return;
+    }
+    try {
+      await api('/api/exam/makeup/cycles', {
+        method: 'POST',
+        body: {
+          month_label: month,
+          session_name: session || undefined,
+          fee_per_subject: feeSub,
+          fee_base: feeBase,
+          note: note || null,
+          status: status || 'draft',
+          even_sems_only: true,
+          semesters: [2, 4, 6],
+        },
+      });
+      alert(status === 'open' ? 'Makeup opened for students.' : 'Draft saved.');
+      window.makeupCycleLoad(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.makeupCycleSetStatus = async function (id, status, prefix) {
+    try {
+      await api('/api/exam/makeup/cycles', {
+        method: 'PATCH',
+        body: { id: id, status: status },
+      });
+      window.makeupCycleLoad(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.makeupStaffLoadVerify = async function (prefix) {
+    var list = document.getElementById(prefix + 'MkVList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    var st = (document.getElementById(prefix + 'MkVStatus') || {}).value || 'pending';
+    try {
+      var q = '/api/exam/makeup/attempts?list=1&status=' + encodeURIComponent(st);
+      var data = await api(q);
+      var rows = data.attempts || [];
+      if (!rows.length) {
+        list.innerHTML = '<p style="opacity:.7;">No makeup attempts for this filter.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>Student</th><th>Subject</th><th>Session</th><th>Result</th><th>Status</th><th></th></tr></thead><tbody>';
+      rows.forEach(function (a) {
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(a.reg_no) +
+          '</strong><div style="opacity:.75;">' +
+          esc(a.student_name || '') +
+          '</div></td><td style="padding:6px;">' +
+          esc(a.subject_code) +
+          '<div style="font-size:0.7rem;">' +
+          esc(a.subject_name) +
+          ' · Sem ' +
+          a.semester +
+          '</div></td><td style="padding:6px;">' +
+          esc(a.exam_session) +
+          '</td><td style="padding:6px;">' +
+          esc(a.result) +
+          ' ' +
+          esc(a.grade || '') +
+          '</td><td style="padding:6px;">' +
+          esc(a.status) +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          (a.status === 'pending'
+            ? '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupMarkAttempt(' +
+              a.id +
+              ',\'verify\',\'' +
+              prefix +
+              '\')">Verify</button> ' +
+              '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b91c1c;color:#fff;" onclick="window.makeupMarkAttempt(' +
+              a.id +
+              ',\'reject\',\'' +
+              prefix +
+              '\')">Reject</button>'
+            : '—') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.makeupMarkAttempt = async function (id, action, prefix) {
+    var note = action === 'reject' ? prompt('Reject note (optional):') : null;
+    try {
+      await api('/api/exam/makeup/attempts', {
+        method: 'PATCH',
+        body: { id: id, action: action, reject_note: note },
+      });
+      window.makeupStaffLoadVerify(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.makeupStaffLoadFees = async function (prefix) {
+    var list = document.getElementById(prefix + 'MkFdList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    var st = (document.getElementById(prefix + 'MkFdStatus') || {}).value || '';
+    try {
+      var q = '/api/exam/makeup/fees?';
+      if (st) q += 'status=' + encodeURIComponent(st) + '&';
+      var data = await api(q);
+      var payments = data.payments || [];
+      if (!payments.length) {
+        list.innerHTML =
+          '<p style="opacity:.7;">No makeup fee records' +
+          (data.cycle ? ' for ' + esc(data.cycle.month_label) : ' (declare an open cycle first)') +
+          '.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>Reg / Name</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+      payments.forEach(function (p) {
+        var ch =
+          (p.challans || [])
+            .map(function (c) {
+              return esc(c.receipt_no) + ' ₹' + c.amount;
+            })
+            .join('<br>') || '—';
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(p.reg_no) +
+          '</strong><div style="opacity:.75;">' +
+          esc(p.name || '') +
+          '</div></td><td style="padding:6px;">₹ ' +
+          p.computed_total +
+          '</td><td style="padding:6px;font-size:0.72rem;">' +
+          ch +
+          '</td><td style="padding:6px;"><strong>' +
+          esc(p.status) +
+          '</strong></td><td style="padding:6px;white-space:nowrap;">' +
+          '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupMarkPaid(' +
+          p.id +
+          ',\'paid\',\'' +
+          prefix +
+          '\')">Paid</button> ' +
+          '<button type="button" class="btn ol" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupMarkPaid(' +
+          p.id +
+          ',\'partial\',\'' +
+          prefix +
+          '\')">Partial</button> ' +
+          '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b45309;color:#fff;" onclick="window.makeupMarkPaid(' +
+          p.id +
+          ',\'due\',\'' +
+          prefix +
+          '\')">Due</button></td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.makeupMarkPaid = async function (id, status, prefix) {
+    try {
+      await api('/api/exam/makeup/fees', {
+        method: 'PATCH',
+        body: { id: id, status: status },
+      });
+      alert('Makeup fee marked ' + status);
+      window.makeupStaffLoadFees(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.makeupFeeSchedAddRow = function (prefix, data) {
+    var host = document.getElementById(prefix + 'MkFsRows');
+    if (!host) return;
+    data = data || { fine_amount: 0 };
+    var div = document.createElement('div');
+    div.className = 'mk-fs-row';
+    div.style.cssText =
+      'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:end;padding:8px;border:1px solid var(--border);border-radius:8px;';
+    div.innerHTML =
+      '<div><label style="font-size:0.7rem;">From</label><br><input class="mk-fs-from" type="date" value="' +
+      esc(data.from_date || '') +
+      '" style="padding:6px;border-radius:6px;border:1px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.7rem;">To</label><br><input class="mk-fs-to" type="date" value="' +
+      esc(data.to_date || '') +
+      '" style="padding:6px;border-radius:6px;border:1px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.7rem;">Fine ₹</label><br><input class="mk-fs-amt" type="number" min="0" value="' +
+      (data.fine_amount || 0) +
+      '" style="width:90px;padding:6px;border-radius:6px;border:1px solid var(--border);" /></div>' +
+      '<div><label style="font-size:0.7rem;">Label</label><br><input class="mk-fs-label" type="text" value="' +
+      esc(data.label || '') +
+      '" style="padding:6px;border-radius:6px;border:1px solid var(--border);" /></div>';
+    host.appendChild(div);
+  };
+
+  window.makeupFeeSchedLoad = async function (prefix) {
+    var info = document.getElementById(prefix + 'MkFsInfo');
+    var host = document.getElementById(prefix + 'MkFsRows');
+    if (host) host.innerHTML = '';
+    try {
+      var data = await api('/api/exam/makeup/fee-schedule');
+      if (info) {
+        info.innerHTML = data.cycle
+          ? 'Cycle: <strong>' +
+            esc(data.cycle.month_label) +
+            '</strong> (' +
+            esc(data.cycle.status) +
+            ')'
+          : 'No open cycle — open a makeup cycle first.';
+      }
+      var tiers = data.tiers || [];
+      if (!tiers.length) {
+        window.makeupFeeSchedAddRow(prefix, { fine_amount: 0, label: 'Without fine' });
+      } else {
+        tiers.forEach(function (t) {
+          window.makeupFeeSchedAddRow(prefix, t);
+        });
+      }
+    } catch (e) {
+      if (info) info.textContent = e.message || 'Load failed';
+    }
+  };
+
+  window.makeupFeeSchedSave = async function (prefix) {
+    var rows = document.querySelectorAll('#' + prefix + 'MkFsRows .mk-fs-row');
+    var tiers = [];
+    rows.forEach(function (row) {
+      var from = ((row.querySelector('.mk-fs-from') || {}).value || '').trim();
+      var to = ((row.querySelector('.mk-fs-to') || {}).value || '').trim();
+      var amt = Number((row.querySelector('.mk-fs-amt') || {}).value || 0);
+      var label = ((row.querySelector('.mk-fs-label') || {}).value || '').trim();
+      if (from && to) tiers.push({ from_date: from, to_date: to, fine_amount: amt, label: label || null });
+    });
+    if (!tiers.length) {
+      alert('Add at least one date window');
+      return;
+    }
+    try {
+      await api('/api/exam/makeup/fee-schedule', { method: 'PUT', body: { tiers: tiers } });
+      alert('Makeup fine schedule saved.');
+      window.makeupFeeSchedLoad(prefix);
+    } catch (e) {
+      alert(e.message || 'Save failed');
+    }
+  };
+
+  window.admFeeStaffLoad = async function (prefix) {
+    var list = document.getElementById(prefix + 'AfList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    var st = (document.getElementById(prefix + 'AfStatus') || {}).value || '';
+    var q = '/api/admission-fees?';
+    if (st) q += 'status=' + encodeURIComponent(st) + '&';
+    try {
+      var data = await api(q);
+      var records = data.records || [];
+      if (!records.length) {
+        list.innerHTML = '<p style="opacity:.7;">No admission fee records for this filter.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>Reg / Name</th><th>Year</th><th>Proof</th><th>Status</th><th>Verifier</th><th>Actions</th></tr></thead><tbody>';
+      records.forEach(function (p) {
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);">' +
+          '<td style="padding:6px;"><strong>' +
+          esc(p.reg_no) +
+          '</strong><div style="opacity:.75;">' +
+          esc(p.name || '') +
+          '</div><div style="font-size:0.7rem;opacity:.65;">' +
+          esc(p.dept || '') +
+          '</div></td>' +
+          '<td style="padding:6px;">' +
+          esc(p.year_label || '') +
+          '</td>' +
+          '<td style="padding:6px;font-size:0.72rem;">' +
+          (p.amount || p.receipt_no
+            ? '₹ ' + esc(p.amount || '—') + '<br>' + esc(p.receipt_no || '') + (p.paid_date ? '<br>' + esc(p.paid_date) : '')
+            : '—') +
+          (p.student_note ? '<div style="opacity:.75;margin-top:2px;">' + esc(p.student_note) + '</div>' : '') +
+          '</td>' +
+          '<td style="padding:6px;"><strong>' +
+          esc(p.status) +
+          '</strong></td>' +
+          '<td style="padding:6px;font-size:0.72rem;">' +
+          (p.verified_by_name
+            ? esc(p.verified_by_name) + (p.verified_by_role ? ' (' + esc(p.verified_by_role) + ')' : '')
+            : '—') +
+          '</td>' +
+          '<td style="padding:6px;white-space:nowrap;">' +
+          '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" ' +
+          "onclick='window.admFeeMark(" +
+          p.id +
+          ",\"paid\")'>Paid</button> " +
+          '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b91c1c;color:#fff;" ' +
+          "onclick='window.admFeeMark(" +
+          p.id +
+          ",\"not_paid\")'>Not paid</button>" +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.admFeeMark = async function (id, status) {
+    try {
+      await api('/api/admission-fees', { method: 'PATCH', body: { id: id, status: status } });
+      alert(
+        status === 'paid'
+          ? 'Marked Paid — student Fees status bar will show Paid (with your stamp).'
+          : 'Marked Not paid — student Fees status bar will show Not paid.',
+      );
+      ;['adEx', 'facEx', 'cashAf', 'adAf', 'facAf'].forEach(function (p) {
+        if (document.getElementById(p + 'AfList')) window.admFeeStaffLoad(p);
+      });
+    } catch (e) {
+      alert(e.message || 'Update failed');
+    }
+  };
+
   window.examMarkPaid = async function (id, status) {
     try {
       await api('/api/exam/fees', { method: 'PATCH', body: { id: id, status: status } });
@@ -1788,6 +3087,8 @@
       if (secId === 'stuExamFees') {
         ensureStuExamFeesPanel();
         window.examFeesReload();
+        window.admFeeReload && window.admFeeReload();
+        window.makeupFeesReload && window.makeupFeesReload();
       }
       if (secId === 'adExam' || secId === 'facExamModule') {
         ensureExamStaffPanels();
