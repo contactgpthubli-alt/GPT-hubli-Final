@@ -108,6 +108,12 @@ export async function GET(req: Request) {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
   await ensureExamResultsSchema()
+  try {
+    const { ensureMakeupExamSchema } = await import("@/lib/makeup-exam")
+    await ensureMakeupExamSchema()
+  } catch {
+    /* optional makeup columns */
+  }
 
   const url = new URL(req.url)
   const statusF = (url.searchParams.get("status") || "").trim()
@@ -188,14 +194,28 @@ export async function GET(req: Request) {
 
   const params: unknown[] = []
   const where: string[] = []
+  // regular | makeup | all — default regular for staff list (Result Verification regular tab)
+  const kindRaw = url.searchParams.get("kind") ?? url.searchParams.get("attempt_kind")
+  const kindF = (kindRaw != null ? String(kindRaw) : "regular").trim().toLowerCase() || "regular"
   if (reg) {
     params.push(reg)
     where.push(`a.reg_no = $${params.length}`)
     if (!(await staffCanAccessReg(user, reg))) return unauthorized("Not your branch")
   }
-  if (statusF) {
+  if (statusF === "pending") {
+    // Awaiting staff action: submitted pending + unsubmitted drafts
+    where.push(`a.status IN ('pending', 'draft')`)
+  } else if (statusF) {
     params.push(statusF)
     where.push(`a.status = $${params.length}`)
+  }
+  if (kindF === "makeup") {
+    where.push(`(COALESCE(a.attempt_kind, 'regular') = 'makeup' OR a.makeup_cycle_id IS NOT NULL)`)
+  } else if (kindF === "all") {
+    /* no attempt_kind filter */
+  } else {
+    // regular (default)
+    where.push(`(COALESCE(a.attempt_kind, 'regular') <> 'makeup' AND a.makeup_cycle_id IS NULL)`)
   }
   if (user.role === "hod") {
     const my = hodBranchOf(user)

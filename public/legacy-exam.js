@@ -1662,28 +1662,56 @@
           v.id = prefix + 'ResultsVerify';
           v.style.display = 'none';
           v.innerHTML =
-            '<div class="info-box"><strong>Regular exam results verification</strong> — Verify student self-entry (pass/fail/grade) after they upload. ' +
-            'HOD = own branch; Exam / Principal / Admin = all. Verified rows lock.</div>' +
+            '<div class="info-box"><strong>Regular exam results verification</strong> — Verify student self-entry after they upload. ' +
+            'Default lists <strong>all statuses</strong> (imported rows are already verified). Use <em>Pending / draft</em> for new submissions only.</div>' +
             '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
             '<select id="' +
             prefix +
-            'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+            'RvBranch" onchange="window.examStaffLoadVerify&&window.examStaffLoadVerify(\'' +
+            prefix +
+            '\',{kind:\'regular\'})" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
             '<option value="">All branches</option>' +
             '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
             '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
             '<select id="' +
             prefix +
-            'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
-            '<option value="pending">Pending only</option><option value="">All statuses</option>' +
-            '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+            'RvStatus" onchange="window.examStaffLoadVerify&&window.examStaffLoadVerify(\'' +
+            prefix +
+            '\',{kind:\'regular\'})" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+            '<option value="">All statuses</option>' +
+            '<option value="pending">Pending / draft (need verify)</option>' +
+            '<option value="verified">Verified only</option>' +
+            '<option value="rejected">Rejected only</option></select>' +
             '<button type="button" class="btn ol" data-exam-reload-rv="' +
             prefix +
-            '" style="padding:10px 14px;">Reload students</button>' +
+            '" data-exam-kind="regular" style="padding:10px 14px;">Reload students</button>' +
             '</div><div id="' +
             prefix +
             'RvList" style="padding:8px 10px 16px;"></div>';
           root.appendChild(v);
-        } else adoptPanel(root, prefix + 'ResultsVerify');
+        } else {
+          adoptPanel(root, prefix + 'ResultsVerify');
+          // Upgrade filters if still old "Pending only" default
+          var stOld = document.getElementById(prefix + 'RvStatus');
+          if (stOld && stOld.getAttribute('data-gpth-upgraded') !== '1') {
+            stOld.setAttribute('data-gpth-upgraded', '1');
+            stOld.innerHTML =
+              '<option value="">All statuses</option>' +
+              '<option value="pending">Pending / draft (need verify)</option>' +
+              '<option value="verified">Verified only</option>' +
+              '<option value="rejected">Rejected only</option>';
+            stOld.value = '';
+            stOld.onchange = function () {
+              window.examStaffLoadVerify && window.examStaffLoadVerify(prefix, { kind: 'regular' });
+            };
+          }
+          var brOld = document.getElementById(prefix + 'RvBranch');
+          if (brOld) {
+            brOld.onchange = function () {
+              window.examStaffLoadVerify && window.examStaffLoadVerify(prefix, { kind: 'regular' });
+            };
+          }
+        }
       }
 
       // Always re-home panels for this shell kind
@@ -1855,7 +1883,8 @@
                 target.classList.add('gpth-sec-enter');
               } catch (eA) { /* ignore */ }
             }
-            if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(prefix);
+            if (id.indexOf('ResultsVerify') >= 0)
+              window.examStaffLoadVerify(prefix, { kind: 'regular' });
             else if (id.indexOf('RegularCycle') >= 0) window.regularCycleLoad(prefix);
             else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(prefix);
             else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(prefix);
@@ -1868,6 +1897,38 @@
             }
           };
         });
+        // Auto-open first tab when shell is empty/hidden
+        if (cfg.kind === 'result' && cfg.root === 'adResultVerify') {
+          var firstBtn =
+            barWire.querySelector('[data-exam-tab$="ResultsVerify"]') ||
+            barWire.querySelector('[data-exam-tab]');
+          var shown = root.querySelector('[id$="ResultsVerify"]');
+          if (firstBtn && shown && (shown.style.display === 'none' || !shown.offsetParent)) {
+            try {
+              firstBtn.click();
+            } catch (eClick) {
+              window.examStaffLoadVerify(prefix, { kind: 'regular' });
+            }
+          } else if (shown && shown.style.display !== 'none') {
+            window.examStaffLoadVerify(prefix, { kind: 'regular' });
+          }
+        }
+        if (cfg.kind === 'fee' && cfg.root === 'adExamFee') {
+          var feeBtn = barWire.querySelector('[data-exam-tab$="FeeDesk"]:not([data-exam-tab*="Makeup"])');
+          // FeeDesk matches MakeupFeeDesk — pick Regular fee verification button text
+          feeBtn =
+            barWire.querySelector('[data-exam-tab="' + prefix + 'FeeDesk"]') || feeBtn;
+          if (feeBtn) {
+            var feePanel = document.getElementById(prefix + 'FeeDesk');
+            if (feePanel && feePanel.style.display === 'none') {
+              try {
+                feeBtn.click();
+              } catch (eF) {
+                window.examStaffLoadFees && window.examStaffLoadFees(prefix);
+              }
+            }
+          }
+        }
       }
     });
 
@@ -2336,14 +2397,20 @@
     return '<span class="badge">' + esc(s) + '</span>';
   }
 
-  window.examStaffLoadVerify = async function (prefix) {
+  window.examStaffLoadVerify = async function (prefix, opts) {
+    opts = opts || {};
     var list = document.getElementById(prefix + 'RvList');
-    if (!list) return;
+    if (!list) {
+      console.warn('[exam] RvList missing for', prefix);
+      return;
+    }
     list.innerHTML = '<p style="opacity:.7;padding:16px;font-size:0.95rem;">Loading students…</p>';
     var statusEl = document.getElementById(prefix + 'RvStatus');
     var branchEl = document.getElementById(prefix + 'RvBranch');
-    var q = '/api/exam/attempts?';
-    var st = statusEl ? statusEl.value : 'pending';
+    var kind = opts.kind || 'regular';
+    var q = '/api/exam/attempts?kind=' + encodeURIComponent(kind) + '&';
+    var st = statusEl ? statusEl.value : '';
+    // Default: show all if filter not set; empty string = all
     if (st) q += 'status=' + encodeURIComponent(st) + '&';
     if (branchEl && branchEl.value) q += 'branch=' + encodeURIComponent(branchEl.value) + '&';
     try {
@@ -2355,11 +2422,26 @@
         selectedReg: prev,
         student_count: data.student_count || byStudent.length,
         pending_count: data.pending_count || 0,
+        kind: kind,
       };
       if (!byStudent.length) {
+        var stLabel = st === 'pending' ? 'pending/draft' : st || 'any status';
         list.innerHTML =
-          '<div style="padding:28px;text-align:center;opacity:.75;font-size:0.95rem;">' +
-          'No student result entries for this filter.</div>';
+          '<div style="padding:28px;text-align:center;font-size:0.95rem;max-width:520px;margin:0 auto;line-height:1.5;">' +
+          '<div style="font-weight:800;margin-bottom:8px;">No ' +
+          esc(kind) +
+          ' result rows for filter: <em>' +
+          esc(stLabel) +
+          '</em></div>' +
+          '<div style="opacity:.8;">Tip: switch status to <strong>All statuses</strong> to see already verified entries, ' +
+          'or ask students to <strong>Submit for verification</strong> (not only Save draft).</div>' +
+          '<button type="button" class="btn ol" style="margin-top:14px;" onclick="var s=document.getElementById(\'' +
+          prefix +
+          'RvStatus\'); if(s){s.value=\'\';} window.examStaffLoadVerify(\'' +
+          prefix +
+          '\',{kind:\'' +
+          kind +
+          '\'})">Show all statuses</button></div>';
         return;
       }
       // Prefer previously selected student if still present; else first with pending
@@ -3220,7 +3302,8 @@
       if (!t || !t.closest) return;
       var rel = t.closest('[data-exam-reload-rv]');
       if (rel) {
-        window.examStaffLoadVerify(rel.getAttribute('data-exam-reload-rv'));
+        var kind = rel.getAttribute('data-exam-kind') || 'regular';
+        window.examStaffLoadVerify(rel.getAttribute('data-exam-reload-rv'), { kind: kind });
         return;
       }
       var rfd = t.closest('[data-exam-reload-fd]');
@@ -3278,6 +3361,22 @@
         secId === 'facExamModule'
       ) {
         ensureExamStaffPanels();
+        if (secId === 'adResultVerify') {
+          setTimeout(function () {
+            var btn = document.querySelector(
+              '#adResultVerify [data-exam-tab="adExResultsVerify"]',
+            );
+            if (btn) btn.click();
+            else window.examStaffLoadVerify('adEx', { kind: 'regular' });
+          }, 80);
+        }
+        if (secId === 'adExamFee') {
+          setTimeout(function () {
+            var btn = document.querySelector('#adExamFee [data-exam-tab="adExFeeDesk"]');
+            if (btn) btn.click();
+            else window.examStaffLoadFees && window.examStaffLoadFees('adEx');
+          }, 80);
+        }
       }
       if (secId === 'adACM' || secId === 'facACM' || secId === 'facCash' || secId === 'adOpsCategory') {
         ensureStandaloneAdmFeeDesk();
