@@ -1491,6 +1491,62 @@
     return el || document.getElementById(panelId);
   }
 
+  /**
+   * Keep exactly one Export Excel control in the fee-desk toolbar.
+   * Older sessions may have a plain "Export Excel" button without data-exam-fee-export,
+   * while migrate logic used to inject a second one — collapse duplicates.
+   */
+  function ensureExamFeeExportButton(prefix, kind) {
+    var deskId = kind === 'makeup' ? prefix + 'MakeupFeeDesk' : prefix + 'FeeDesk';
+    var desk = document.getElementById(deskId);
+    if (!desk) return;
+    var bar =
+      desk.querySelector('div[style*="flex"]') ||
+      desk.querySelector('div[style*="display:flex"]');
+    if (!bar) return;
+
+    var exportBtns = [];
+    bar.querySelectorAll('button').forEach(function (btn) {
+      var label = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      var on = String(btn.getAttribute('onclick') || '');
+      var isExport =
+        btn.getAttribute('data-exam-fee-export') ||
+        label.indexOf('export excel') === 0 ||
+        on.indexOf('examFeeExportExcel') >= 0;
+      if (isExport) exportBtns.push(btn);
+    });
+
+    if (exportBtns.length) {
+      // Keep the first; drop extras
+      var keep = exportBtns[0];
+      keep.setAttribute('data-exam-fee-export', kind);
+      keep.className = 'btn go';
+      keep.type = 'button';
+      keep.textContent = 'Export Excel';
+      keep.onclick = function () {
+        window.examFeeExportExcel && window.examFeeExportExcel(prefix, kind);
+      };
+      keep.setAttribute(
+        'onclick',
+        "window.examFeeExportExcel&&window.examFeeExportExcel('" + prefix + "','" + kind + "')"
+      );
+      for (var i = 1; i < exportBtns.length; i++) {
+        if (exportBtns[i].parentNode) exportBtns[i].parentNode.removeChild(exportBtns[i]);
+      }
+      return;
+    }
+
+    var exBtn = document.createElement('button');
+    exBtn.type = 'button';
+    exBtn.className = 'btn go';
+    exBtn.setAttribute('data-exam-fee-export', kind);
+    exBtn.textContent = 'Export Excel';
+    exBtn.onclick = function () {
+      window.examFeeExportExcel && window.examFeeExportExcel(prefix, kind);
+    };
+    bar.appendChild(exBtn);
+  }
+
   /** Exam Module keeps PDC/lookup only — strip fee/result staff chrome. */
   function stripStaffChromeFromExamModule(root, prefix) {
     if (!root) return;
@@ -1618,7 +1674,8 @@
             '<button type="button" class="btn ol" data-exam-reload-fd="' +
             prefix +
             '">Load students</button>' +
-            '<button type="button" class="btn go" onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
+            '<button type="button" class="btn go" data-exam-fee-export="regular" ' +
+            'onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
             prefix +
             "','regular')\">Export Excel</button></div>" +
             '<div id="' +
@@ -1627,19 +1684,7 @@
           root.appendChild(f);
         } else {
           adoptPanel(root, prefix + 'FeeDesk');
-          // Ensure Export button exists on older panels
-          var fdBar = document.querySelector('#' + prefix + 'FeeDesk div[style*="flex"]');
-          if (fdBar && !fdBar.querySelector('[data-exam-fee-export]')) {
-            var exBtn = document.createElement('button');
-            exBtn.type = 'button';
-            exBtn.className = 'btn go';
-            exBtn.setAttribute('data-exam-fee-export', 'regular');
-            exBtn.textContent = 'Export Excel';
-            exBtn.onclick = function () {
-              window.examFeeExportExcel && window.examFeeExportExcel(prefix, 'regular');
-            };
-            fdBar.appendChild(exBtn);
-          }
+          ensureExamFeeExportButton(prefix, 'regular');
         }
 
         if (!document.getElementById(prefix + 'FeeSchedule')) {
@@ -1827,24 +1872,14 @@
             '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
             '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
             prefix + "')\">Load students</button>" +
-            '<button type="button" class="btn go" onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
+            '<button type="button" class="btn go" data-exam-fee-export="makeup" ' +
+            'onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
             prefix + "','makeup')\">Export Excel</button></div>" +
             '<div id="' + prefix + 'MkFdList" style="padding:10px;overflow-x:auto;"></div>';
           root.appendChild(mkFd);
         } else {
           adoptPanel(root, prefix + 'MakeupFeeDesk');
-          var mkBarEx = document.querySelector('#' + prefix + 'MakeupFeeDesk div[style*="flex"]');
-          if (mkBarEx && !mkBarEx.querySelector('[data-exam-fee-export]')) {
-            var mEx = document.createElement('button');
-            mEx.type = 'button';
-            mEx.className = 'btn go';
-            mEx.setAttribute('data-exam-fee-export', 'makeup');
-            mEx.textContent = 'Export Excel';
-            mEx.onclick = function () {
-              window.examFeeExportExcel && window.examFeeExportExcel(prefix, 'makeup');
-            };
-            mkBarEx.appendChild(mEx);
-          }
+          ensureExamFeeExportButton(prefix, 'makeup');
         }
 
         if (!document.getElementById(prefix + 'MakeupFeeSched')) {
@@ -2922,17 +2957,10 @@
         list.innerHTML =
           '<p style="opacity:.75;line-height:1.5;">No fee records yet for this filter.<br>' +
           '<span style="font-size:0.85rem;">Students submit K2 challans under <strong>Fees → Regular exam fees</strong>. ' +
-          'You can still use <strong>Export Excel</strong> after records exist.</span></p>';
+          'Use the toolbar <strong>Export Excel</strong> after records exist.</span></p>';
         return;
       }
       var html =
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
-        '<button type="button" class="btn go" style="padding:6px 12px;font-size:0.8rem;" ' +
-        "onclick=\"window.examFeeExportExcel&&window.examFeeExportExcel('" +
-        prefix +
-        "','regular')\">Export Excel (" +
-        payments.length +
-        ')</button></div>' +
         '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
         '<th>Reg / Name</th><th>Branch</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
       payments.forEach(function (p) {
@@ -3241,17 +3269,10 @@
         list.innerHTML =
           '<p style="opacity:.75;line-height:1.5;">No makeup fee records' +
           (data.cycle ? ' for ' + esc(data.cycle.month_label) : ' (declare an open cycle first)') +
-          '.<br><span style="font-size:0.85rem;">Use <strong>Export Excel</strong> after students submit makeup K2 challans.</span></p>';
+          '.<br><span style="font-size:0.85rem;">Use the toolbar <strong>Export Excel</strong> after students submit makeup K2 challans.</span></p>';
         return;
       }
       var html =
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
-        '<button type="button" class="btn go" style="padding:6px 12px;font-size:0.8rem;" ' +
-        "onclick=\"window.examFeeExportExcel&&window.examFeeExportExcel('" +
-        prefix +
-        "','makeup')\">Export Excel (" +
-        payments.length +
-        ')</button></div>' +
         '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
         '<th>Reg / Name</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
       payments.forEach(function (p) {
