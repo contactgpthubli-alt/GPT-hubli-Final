@@ -1,7 +1,7 @@
 -- =============================================================
 -- GPT Hubli Management System — Seed Data (production)
 -- Run AFTER 001_schema.sql:  psql "$DATABASE_URL" -f scripts/002_seed.sql
--- Seeds the root admin, optional demo accounts, and committees.
+-- Seeds the root admin, a single student demo account, and committees.
 --
 -- Root admin login (any of these identifiers):
 --   email:       akshay@gpthubli.ac.in
@@ -46,11 +46,29 @@ ON CONFLICT (email) DO UPDATE SET
   force_password_change = EXCLUDED.force_password_change,
   is_demo = EXCLUDED.is_demo;
 
--- ---------- Students (academic records) ----------
--- No invented CGPA/attendance. Metrics are filled by Exam Cell / Faculty
--- through the app (or bulk import). Dashboard shows "—" until then.
--- Demo student login links to reg_no GP2023CSE041 below.
-INSERT INTO students (reg_no, name, dept, year, cgpa, att, father, extra)
+-- ---------- Demo student only (module testing) ----------
+-- Password: demo1234  (bcryptjs cost 10)
+-- Login: demo.student@gpthubli.ac.in  /  DEMOSTUDENT  /  GP2023CSE041
+-- Remove every other is_demo account on re-seed.
+DELETE FROM sessions
+ WHERE user_id IN (
+   SELECT id FROM users
+    WHERE is_demo = TRUE
+      AND lower(email) <> lower('demo.student@gpthubli.ac.in')
+ );
+DELETE FROM users
+ WHERE is_demo = TRUE
+   AND lower(email) <> lower('demo.student@gpthubli.ac.in');
+-- Also drop legacy multi-role demo emails if somehow not flagged is_demo
+DELETE FROM sessions
+ WHERE user_id IN (
+   SELECT id FROM users
+    WHERE email ~* '^demo\.(admin|faculty|principal|hod|registrar|acm|exam|est|library|placement|nss|yrc|alumni|sports|welfare|cash|accounts|stores|sa)@'
+ );
+DELETE FROM users
+ WHERE email ~* '^demo\.(admin|faculty|principal|hod|registrar|acm|exam|est|library|placement|nss|yrc|alumni|sports|welfare|cash|accounts|stores|sa)@';
+
+INSERT INTO students (reg_no, name, dept, year, cgpa, att, father, extra, current_study_year, academic_status)
 VALUES
   (
     'GP2023CSE041',
@@ -60,45 +78,38 @@ VALUES
     NULL,
     NULL,
     NULL,
-    '{}'::jsonb
+    '{}'::jsonb,
+    2,
+    'active'
   )
 ON CONFLICT (reg_no) DO UPDATE SET
   name = EXCLUDED.name,
   dept = EXCLUDED.dept,
-  year = EXCLUDED.year;
+  year = EXCLUDED.year,
+  current_study_year = COALESCE(students.current_study_year, EXCLUDED.current_study_year),
+  academic_status = COALESCE(students.academic_status, EXCLUDED.academic_status);
 -- Note: cgpa/att are intentionally not overwritten on re-seed so real entered values are preserved.
 
--- ---------- Demo accounts (quick-login bar; password: demo1234) ----------
--- bcryptjs hash of: demo1234  (cost 10)
--- Enabled only when NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true
--- These are for local/dev walkthroughs only — not production end-users.
-INSERT INTO users (email, password_hash, role, display_name, reg_no, status, force_password_change, is_demo)
-VALUES
-  ('demo.admin@gpthubli.ac.in',     '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'admin',      'Demo Admin',      NULL,           'approved', FALSE, TRUE),
-  ('demo.student@gpthubli.ac.in',   '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'student',    'Demo Student',    'GP2023CSE041', 'approved', FALSE, TRUE),
-  ('demo.faculty@gpthubli.ac.in',   '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'faculty',    'Demo Faculty',    NULL,           'approved', FALSE, TRUE),
-  ('demo.principal@gpthubli.ac.in', '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'principal',  'Demo Principal',  NULL,           'approved', FALSE, TRUE),
-  ('demo.hod@gpthubli.ac.in',       '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'hod',        'Demo HOD',        NULL,           'approved', FALSE, TRUE),
-  ('demo.registrar@gpthubli.ac.in', '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'registrar',  'Demo Registrar',  NULL,           'approved', FALSE, TRUE),
-  ('demo.acm@gpthubli.ac.in',       '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'acm',        'Demo ACM',        NULL,           'approved', FALSE, TRUE),
-  ('demo.exam@gpthubli.ac.in',      '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'exam',       'Demo Exam Cell',  NULL,           'approved', FALSE, TRUE),
-  ('demo.est@gpthubli.ac.in',       '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'est',        'Demo EST',        NULL,           'approved', FALSE, TRUE),
-  ('demo.library@gpthubli.ac.in',   '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'library',    'Demo Library',    NULL,           'approved', FALSE, TRUE),
-  ('demo.placement@gpthubli.ac.in', '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'placement',  'Demo Placement',  NULL,           'approved', FALSE, TRUE),
-  ('demo.nss@gpthubli.ac.in',       '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'nss',        'Demo NSS',        NULL,           'approved', FALSE, TRUE),
-  ('demo.yrc@gpthubli.ac.in',       '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'yrc',        'Demo YRC',        NULL,           'approved', FALSE, TRUE),
-  ('demo.alumni@gpthubli.ac.in',    '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'alumni',     'Demo Alumni',     NULL,           'approved', FALSE, TRUE),
-  ('demo.sports@gpthubli.ac.in',    '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'sports',     'Demo Sports',     NULL,           'approved', FALSE, TRUE),
-  ('demo.welfare@gpthubli.ac.in',   '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'welfare',    'Demo Welfare',    NULL,           'approved', FALSE, TRUE),
-  ('demo.cash@gpthubli.ac.in',      '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'cash',       'Demo Cash',       NULL,           'approved', FALSE, TRUE),
-  ('demo.accounts@gpthubli.ac.in',  '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'accounts',   'Demo Accounts',   NULL,           'approved', FALSE, TRUE),
-  ('demo.stores@gpthubli.ac.in',    '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'stores',     'Demo Stores',     NULL,           'approved', FALSE, TRUE),
-  ('demo.sa@gpthubli.ac.in',        '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK', 'studentassoc','Demo Student Assoc.', NULL,       'approved', FALSE, TRUE)
+INSERT INTO users (email, password_hash, role, display_name, reg_no, branch, status, force_password_change, is_demo)
+VALUES (
+  'demo.student@gpthubli.ac.in',
+  '$2b$10$c9/vg8icepeN9BEWT0CjN.ZMM6wr55rSVro5ApBRcUyMW581eAixK',
+  'student',
+  'Demo Student',
+  'GP2023CSE041',
+  'computer',
+  'approved',
+  FALSE,
+  TRUE
+)
 ON CONFLICT (email) DO UPDATE SET
   password_hash = EXCLUDED.password_hash,
   role = EXCLUDED.role,
   display_name = EXCLUDED.display_name,
   reg_no = EXCLUDED.reg_no,
+  branch = EXCLUDED.branch,
   status = EXCLUDED.status,
   force_password_change = EXCLUDED.force_password_change,
-  is_demo = EXCLUDED.is_demo;
+  is_demo = EXCLUDED.is_demo,
+  deleted_at = NULL,
+  prev_status = NULL;

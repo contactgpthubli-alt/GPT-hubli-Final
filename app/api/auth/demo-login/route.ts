@@ -1,9 +1,10 @@
 import { query } from "@/lib/db"
-import { createSession, badRequest } from "@/lib/auth"
+import { createSession } from "@/lib/auth"
 
 /**
- * Instant session for seeded demo accounts (is_demo = TRUE).
+ * Instant session for the single seeded student demo account (is_demo = TRUE).
  * Disabled unless NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true.
+ * Only the student role is supported — multi-role demos were removed.
  */
 export async function POST(req: Request) {
   if (process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN !== "true") {
@@ -12,20 +13,31 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => null)
-    const role = body?.role ? String(body.role) : ""
-    if (!role) return badRequest("Role is required")
+    const role = body?.role ? String(body.role) : "student"
+    if (role !== "student") {
+      return Response.json(
+        { error: "Only the student demo account is available" },
+        { status: 404 },
+      )
+    }
 
     const { rows } = await query(
       `SELECT id, email, role, display_name, reg_no, force_password_change, is_demo
          FROM users
-        WHERE is_demo = TRUE AND role = $1 AND status = 'approved'
+        WHERE is_demo = TRUE
+          AND role = 'student'
+          AND status = 'approved'
+          AND deleted_at IS NULL
+        ORDER BY id
         LIMIT 1`,
-      [role],
     )
 
     const user = rows[0]
     if (!user) {
-      return Response.json({ error: "Demo user for this role not found" }, { status: 404 })
+      return Response.json(
+        { error: "Student demo account not found. Run scripts/seed-demo-student.mjs" },
+        { status: 404 },
+      )
     }
 
     await createSession(user.id)

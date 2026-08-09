@@ -13,7 +13,7 @@
  * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
  * exam/ops/analysis/tc/acm/print are deferred until authenticated).
  */
-var GPT_PERF_V = "20260809feeXls1"
+var GPT_PERF_V = "20260809demoStu"
 var _gpthModsPromise = null
 function gpthLoadScript(src) {
   return new Promise(function (resolve) {
@@ -3128,7 +3128,13 @@ function __initGptBridge() {
 
   window.demoLogin = async function (role) {
     if ((window.__GPT_CONFIG || {}).demoLoginEnabled === false) { alert('Demo login is disabled.'); return; }
-    var res = await api.post('/api/auth/demo-login', { role: serverRole(role) });
+    // Only the student demo account remains; other role demos were removed.
+    var r = serverRole(role);
+    if (r !== 'student') {
+      alert('Only the student demo account is available.\nLogin: demo.student@gpthubli.ac.in / demo1234');
+      return;
+    }
+    var res = await api.post('/api/auth/demo-login', { role: 'student' });
     if (!res || !res.user) return;
     openDashboardFor(res.user);
     await afterAuth(res.user);

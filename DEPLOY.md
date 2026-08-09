@@ -176,11 +176,14 @@ Nothing else should be open. Postgres (5432) and Next.js (3000) stay internal.
   - Username: `akshay` (or display name `Akshay`)
   - Password: `Zaq1Zaq2$123`
   - Change this password after first login if the account is shared.
-- Demo accounts (`demo.*@gpthubli.ac.in`, password `demo1234`) are seeded for the
-  quick-login bar. Enable them with `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (rebuild
-  after changing). With the default / `false`, the bar is hidden and
-  `/api/auth/demo-login` returns 403. To remove demo accounts:
-  `DELETE FROM users WHERE is_demo = TRUE;`
+- Only one demo account is kept (student module testing):
+  - Email / username: `demo.student@gpthubli.ac.in` (also `GP2023CSE041`)
+  - Password: `demo1234`
+  - Refresh / recreate: `node scripts/seed-demo-student.mjs`
+  - Optional quick-login (`/api/auth/demo-login`) is student-only and needs
+    `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (rebuild after changing). Default is
+    off; use the normal Student login form instead.
+  - Remove the demo student: `DELETE FROM users WHERE is_demo = TRUE;`
 - If login fails after an old seed (pgcrypto hashes), re-run seed to refresh
   bcryptjs-compatible hashes: `pnpm db:init` or re-apply `scripts/002_seed.sql`.
 - Backups: `pg_dump -U gpthubli gpthubli_db > backup_$(date +%F).sql` (cron it daily).
@@ -195,7 +198,7 @@ Nothing else should be open. Postgres (5432) and Next.js (3000) stay internal.
 | `ECONNREFUSED` on DB | `sudo systemctl status postgresql`; check `DATABASE_URL` |
 | Login returns 401 with right password | Re-run `scripts/002_seed.sql` (root admin password hash is upserted) |
 | Login returns “service unavailable” | Missing/invalid `DATABASE_URL`; check app logs |
-| Demo quick-login fails | Set `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true`, rebuild, ensure demo users seeded |
+| Demo student login fails | Run `node scripts/seed-demo-student.mjs`; password is `demo1234`. Quick-login needs `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (student only) |
 | Cookies not persisting | You're on HTTP with `NODE_ENV=production` — set up HTTPS |
 | App dies after reboot | Re-run `pm2 startup` + `pm2 save` |
 | 502 from nginx | App not running: `pm2 logs gpthubli` |
