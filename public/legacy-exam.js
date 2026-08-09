@@ -1617,12 +1617,30 @@
             '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
             '<button type="button" class="btn ol" data-exam-reload-fd="' +
             prefix +
-            '">Load students</button></div>' +
+            '">Load students</button>' +
+            '<button type="button" class="btn go" onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
+            prefix +
+            "','regular')\">Export Excel</button></div>" +
             '<div id="' +
             prefix +
             'FdList" style="padding:10px;overflow-x:auto;"></div>';
           root.appendChild(f);
-        } else adoptPanel(root, prefix + 'FeeDesk');
+        } else {
+          adoptPanel(root, prefix + 'FeeDesk');
+          // Ensure Export button exists on older panels
+          var fdBar = document.querySelector('#' + prefix + 'FeeDesk div[style*="flex"]');
+          if (fdBar && !fdBar.querySelector('[data-exam-fee-export]')) {
+            var exBtn = document.createElement('button');
+            exBtn.type = 'button';
+            exBtn.className = 'btn go';
+            exBtn.setAttribute('data-exam-fee-export', 'regular');
+            exBtn.textContent = 'Export Excel';
+            exBtn.onclick = function () {
+              window.examFeeExportExcel && window.examFeeExportExcel(prefix, 'regular');
+            };
+            fdBar.appendChild(exBtn);
+          }
+        }
 
         if (!document.getElementById(prefix + 'FeeSchedule')) {
           var s = document.createElement('div');
@@ -1808,10 +1826,26 @@
             '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
             '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
             '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
-            prefix + "')\">Load students</button></div>" +
+            prefix + "')\">Load students</button>" +
+            '<button type="button" class="btn go" onclick="window.examFeeExportExcel&&window.examFeeExportExcel(\'' +
+            prefix + "','makeup')\">Export Excel</button></div>" +
             '<div id="' + prefix + 'MkFdList" style="padding:10px;overflow-x:auto;"></div>';
           root.appendChild(mkFd);
-        } else adoptPanel(root, prefix + 'MakeupFeeDesk');
+        } else {
+          adoptPanel(root, prefix + 'MakeupFeeDesk');
+          var mkBarEx = document.querySelector('#' + prefix + 'MakeupFeeDesk div[style*="flex"]');
+          if (mkBarEx && !mkBarEx.querySelector('[data-exam-fee-export]')) {
+            var mEx = document.createElement('button');
+            mEx.type = 'button';
+            mEx.className = 'btn go';
+            mEx.setAttribute('data-exam-fee-export', 'makeup');
+            mEx.textContent = 'Export Excel';
+            mEx.onclick = function () {
+              window.examFeeExportExcel && window.examFeeExportExcel(prefix, 'makeup');
+            };
+            mkBarEx.appendChild(mEx);
+          }
+        }
 
         if (!document.getElementById(prefix + 'MakeupFeeSched')) {
           var mkFs = document.createElement('div');
@@ -2755,6 +2789,122 @@
       .catch(function (err) { alert(err.message); });
   };
 
+  window._examFeeExportCache = window._examFeeExportCache || {};
+
+  function examFeeCsvCell(v) {
+    var s = v == null ? '' : String(v);
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function examFeeDownloadCsv(filename, headers, rows) {
+    var lines = [headers.map(examFeeCsvCell).join(',')];
+    rows.forEach(function (row) {
+      lines.push(row.map(examFeeCsvCell).join(','));
+    });
+    var bom = '\ufeff';
+    var blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
+  }
+
+  function examFeePaymentsToRows(payments, kind) {
+    var rows = [];
+    (payments || []).forEach(function (p) {
+      var challans = p.challans || [];
+      var chStr = challans
+        .map(function (c) {
+          return (c.receipt_no || '') + ' Rs ' + (c.amount != null ? c.amount : '');
+        })
+        .join(' | ');
+      rows.push([
+        kind || 'regular',
+        p.reg_no || '',
+        p.name || '',
+        p.branch || '',
+        p.entry_type || '',
+        p.status || '',
+        p.computed_total != null ? p.computed_total : '',
+        p.fine_amount != null ? p.fine_amount : '',
+        p.challan_total != null ? p.challan_total : '',
+        chStr,
+        p.student_note || '',
+        p.staff_note || '',
+        p.submitted_at ? String(p.submitted_at).slice(0, 19) : '',
+        p.paid_marked_at ? String(p.paid_marked_at).slice(0, 19) : '',
+        p.paid_marked_by_name || '',
+        p.paid_marked_by_role || '',
+        p.updated_at ? String(p.updated_at).slice(0, 19) : '',
+      ]);
+    });
+    return rows;
+  }
+
+  var EXAM_FEE_EXPORT_HEADERS = [
+    'Kind',
+    'Reg No',
+    'Name',
+    'Branch',
+    'Entry type',
+    'Status',
+    'Computed total (Rs)',
+    'Fine (Rs)',
+    'Challan total (Rs)',
+    'Challans',
+    'Student note',
+    'Staff note',
+    'Submitted at',
+    'Paid marked at',
+    'Paid marked by',
+    'Paid marked by role',
+    'Updated at',
+  ];
+
+  window.examFeeExportExcel = async function (prefix, kind) {
+    kind = kind || 'regular';
+    var cacheKey = prefix + ':' + kind;
+    var payments = (window._examFeeExportCache[cacheKey] || {}).payments;
+    try {
+      if (!payments || !payments.length) {
+        // Fetch with current filters if cache empty
+        if (kind === 'makeup') {
+          var stM = (document.getElementById(prefix + 'MkFdStatus') || {}).value || '';
+          var qM = '/api/exam/makeup/fees?';
+          if (stM) qM += 'status=' + encodeURIComponent(stM) + '&';
+          var dataM = await api(qM);
+          payments = dataM.payments || [];
+          window._examFeeExportCache[cacheKey] = { payments: payments, at: Date.now() };
+        } else {
+          var st = (document.getElementById(prefix + 'FdStatus') || {}).value || '';
+          var br = (document.getElementById(prefix + 'FdBranch') || {}).value || '';
+          var q = '/api/exam/fees?';
+          if (st) q += 'status=' + encodeURIComponent(st) + '&';
+          if (br) q += 'branch=' + encodeURIComponent(br) + '&';
+          var data = await api(q);
+          payments = data.payments || [];
+          window._examFeeExportCache[cacheKey] = { payments: payments, at: Date.now() };
+        }
+      }
+      if (!payments.length) {
+        alert('No fee records to export for this filter. Students must submit K2 challans first.');
+        return;
+      }
+      var stamp = new Date().toISOString().slice(0, 10);
+      var fname =
+        (kind === 'makeup' ? 'makeup-exam-fees-' : 'regular-exam-fees-') + stamp + '.csv';
+      examFeeDownloadCsv(fname, EXAM_FEE_EXPORT_HEADERS, examFeePaymentsToRows(payments, kind));
+    } catch (e) {
+      alert(e.message || 'Export failed');
+    }
+  };
+
   window.examStaffLoadFees = async function (prefix) {
     var list = document.getElementById(prefix + 'FdList');
     if (!list) return;
@@ -2767,11 +2917,23 @@
     try {
       var data = await api(q);
       var payments = data.payments || [];
+      window._examFeeExportCache[prefix + ':regular'] = { payments: payments, at: Date.now() };
       if (!payments.length) {
-        list.innerHTML = '<p style="opacity:.7;">No fee records yet.</p>';
+        list.innerHTML =
+          '<p style="opacity:.75;line-height:1.5;">No fee records yet for this filter.<br>' +
+          '<span style="font-size:0.85rem;">Students submit K2 challans under <strong>Fees → Regular exam fees</strong>. ' +
+          'You can still use <strong>Export Excel</strong> after records exist.</span></p>';
         return;
       }
-      var html = '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+      var html =
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
+        '<button type="button" class="btn go" style="padding:6px 12px;font-size:0.8rem;" ' +
+        "onclick=\"window.examFeeExportExcel&&window.examFeeExportExcel('" +
+        prefix +
+        "','regular')\">Export Excel (" +
+        payments.length +
+        ')</button></div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
         '<th>Reg / Name</th><th>Branch</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
       payments.forEach(function (p) {
         var ch = (p.challans || []).map(function (c) {
@@ -3074,14 +3236,22 @@
       if (st) q += 'status=' + encodeURIComponent(st) + '&';
       var data = await api(q);
       var payments = data.payments || [];
+      window._examFeeExportCache[prefix + ':makeup'] = { payments: payments, at: Date.now() };
       if (!payments.length) {
         list.innerHTML =
-          '<p style="opacity:.7;">No makeup fee records' +
+          '<p style="opacity:.75;line-height:1.5;">No makeup fee records' +
           (data.cycle ? ' for ' + esc(data.cycle.month_label) : ' (declare an open cycle first)') +
-          '.</p>';
+          '.<br><span style="font-size:0.85rem;">Use <strong>Export Excel</strong> after students submit makeup K2 challans.</span></p>';
         return;
       }
       var html =
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
+        '<button type="button" class="btn go" style="padding:6px 12px;font-size:0.8rem;" ' +
+        "onclick=\"window.examFeeExportExcel&&window.examFeeExportExcel('" +
+        prefix +
+        "','makeup')\">Export Excel (" +
+        payments.length +
+        ')</button></div>' +
         '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
         '<th>Reg / Name</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
       payments.forEach(function (p) {
