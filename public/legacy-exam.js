@@ -1861,22 +1861,32 @@
               b.classList.remove('act');
             });
             btn.classList.add('act');
-            // Hide all staff panels under this root
-            root.querySelectorAll('[id^="' + prefix + '"]').forEach(function (p) {
-              if (p.tagName === 'DIV' && p.id && p.id.indexOf(prefix) === 0) {
-                // only known staff panels
-                if (
-                  /ResultsVerify|FeeDesk|FeeSchedule|RegularCycle|MakeupCycle|MakeupVerify|MakeupFeeDesk|MakeupFeeSched|ResultAnalysis/.test(
-                    p.id,
-                  )
-                ) {
-                  p.style.display = 'none';
-                }
-              }
+            // Hide only top-level staff panels (exact ids). Do NOT match child nodes
+            // like adExResultAnalysis_sem_tbl — that was blanking Result Analysis.
+            var staffPanelIds = [
+              prefix + 'ResultsVerify',
+              prefix + 'FeeDesk',
+              prefix + 'FeeSchedule',
+              prefix + 'RegularCycle',
+              prefix + 'MakeupCycle',
+              prefix + 'MakeupVerify',
+              prefix + 'MakeupFeeDesk',
+              prefix + 'MakeupFeeSched',
+              prefix + 'ResultAnalysis',
+            ];
+            staffPanelIds.forEach(function (pid) {
+              var p = document.getElementById(pid);
+              if (p && root.contains(p)) p.style.display = 'none';
             });
             var target = document.getElementById(id);
             if (target) {
               target.style.display = '';
+              // Clear accidental display:none on descendants (from older buggy hide)
+              target.querySelectorAll('[style*="display"]').forEach(function (el) {
+                if (el.style && el.style.display === 'none' && el.id && el.id.indexOf(id + '_') === 0) {
+                  el.style.display = '';
+                }
+              });
               try {
                 target.classList.remove('gpth-sec-enter');
                 void target.offsetWidth;
