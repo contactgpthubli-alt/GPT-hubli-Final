@@ -103,16 +103,18 @@ async function main() {
   )
   delUsers.rows.forEach((r) => console.log("  deleted", r.role, r.email))
 
-  // Student academic row
+  // Student academic row — force active so module testing is not blocked by detention locks
   await client.query(
-    `INSERT INTO students (reg_no, name, dept, year, cgpa, att, father, extra, current_study_year, academic_status)
-     VALUES ($1, $2, $3, $4, NULL, NULL, NULL, '{}'::jsonb, 2, 'active')
+    `INSERT INTO students (reg_no, name, dept, year, cgpa, att, father, extra, current_study_year, academic_status, progress_locked, needs_admission_year_review)
+     VALUES ($1, $2, $3, $4, NULL, NULL, NULL, '{}'::jsonb, 2, 'active', FALSE, FALSE)
      ON CONFLICT (reg_no) DO UPDATE SET
        name = EXCLUDED.name,
        dept = EXCLUDED.dept,
        year = EXCLUDED.year,
-       current_study_year = COALESCE(students.current_study_year, EXCLUDED.current_study_year),
-       academic_status = COALESCE(students.academic_status, EXCLUDED.academic_status)`,
+       current_study_year = 2,
+       academic_status = 'active',
+       progress_locked = FALSE,
+       needs_admission_year_review = FALSE`,
     [DEMO.reg_no, DEMO.display_name, DEMO.dept, DEMO.year],
   )
 
