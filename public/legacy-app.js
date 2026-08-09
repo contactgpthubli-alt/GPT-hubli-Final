@@ -175,7 +175,7 @@ function showSec(secId, linkEl) {
   const titles = {
     adHome:'Dashboard', adApprovals:'Pending Approvals', adStudents:'Student Database',
     adStudentData:'Student Data (Branch / Year)',
-    adForms:'Form Manager', adACM:'ACM — Certificate Module', adExam:'Exam Module', adExams:'Exams Module',
+    adForms:'Form Manager', adACM:'ACM — Certificate Module', adExam:'Exam Module', adExamFee:'Exam Fee', adResultVerify:'Result Verification', adExams:'Exams Module',
     adActivities:'Institute Activities', adStaff:'Staff Management', adUsers:'User Management',
     adLibrary:'Library — E-Book Repository', adRolesPerms:'Roles & Permissions',
     adUserApprovals:'Account Approval Queue', adSettings:'Settings',
@@ -186,7 +186,7 @@ function showSec(secId, linkEl) {
     facHome:'Faculty Dashboard', facApprovals:'Department Approvals', facStuProfile:'Student Profile',
     facAttendance:'Attendance Management', facStuInfo:'Student Info Collection',
     facACM:'ACM Module', facStudentData:'Student Data (Branch / Year)',
-    adExam:'Exam Module',
+    adExam:'Exam Module', adExamFee:'Exam Fee', adResultVerify:'Result Verification',
     facExamModule:'Exam Module', facOffice:'Office Modules', facEST:'EST Module', facCash:'Cash / Fees Search',
     facSearch:'Student Search', facStaff:'Staff & Invigilation', facActivities:'Institute Activities',
     facTimetable:'Timetable Upload', facResModule:'Result Management', facResults:'Result Management',

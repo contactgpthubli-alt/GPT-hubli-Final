@@ -1483,336 +1483,389 @@
     });
   }
 
+  /** Move a panel node into host if it exists elsewhere. */
+  function adoptPanel(host, panelId) {
+    if (!host) return null;
+    var el = document.getElementById(panelId);
+    if (el && el.parentNode !== host) host.appendChild(el);
+    return el || document.getElementById(panelId);
+  }
+
+  /** Exam Module keeps PDC/lookup only — strip fee/result staff chrome. */
+  function stripStaffChromeFromExamModule(root, prefix) {
+    if (!root) return;
+    root.querySelectorAll('.exam-staff-tabs').forEach(function (bar) {
+      if (bar.parentNode) bar.parentNode.removeChild(bar);
+    });
+    // Move staff panels out of Exam Module so they can live on Exam Fee / Result Verification
+    ;[
+      'ResultsVerify',
+      'RegularCycle',
+      'FeeDesk',
+      'FeeSchedule',
+      'MakeupCycle',
+      'MakeupVerify',
+      'MakeupFeeDesk',
+      'MakeupFeeSched',
+      'ResultAnalysis',
+      'AdmFeeDesk',
+    ].forEach(function (suf) {
+      var el = document.getElementById(prefix + suf);
+      if (el && root.contains(el)) {
+        // detach; re-home later
+        el.parentNode.removeChild(el);
+      }
+    });
+    stripExamPathwaysUi(root, prefix);
+    stripExamAdmissionFeeDesk(root, prefix);
+  }
+
   function ensureExamStaffPanels() {
     ensureStandaloneAdmFeeDesk();
-    // Inject into adExam and facExamModule
-    ;[
-      { root: 'adExam', prefix: 'adEx' },
-      { root: 'facExamModule', prefix: 'facEx' },
-    ].forEach(function (cfg) {
+    try {
+      if (typeof window.ensureExamAdminDesk === 'function') window.ensureExamAdminDesk();
+    } catch (eEns) { /* ignore */ }
+
+    // Clean original Exam Module shells
+    stripStaffChromeFromExamModule(document.getElementById('adExam'), 'adEx');
+    stripStaffChromeFromExamModule(document.getElementById('facExamModule'), 'facEx');
+
+    /**
+     * Three shells:
+     *  - adExamFee / facExamFee: fee verification (+ declare/schedule tools)
+     *  - adResultVerify / facResultVerify: result verification + analysis
+     *  - Exam Module: left clean (PDC etc.)
+     */
+    var shells = [
+      {
+        root: 'adExamFee',
+        prefix: 'adEx',
+        kind: 'fee',
+        barHtml:
+          '<button type="button" class="btn go" data-exam-tab="adExFeeDesk">Regular exam fee verification</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExMakeupFeeDesk">Makeup exam fee verification</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExFeeSchedule">Regular fee schedule</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExMakeupFeeSched">Makeup fee schedule</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExRegularCycle">Regular exam declare</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExMakeupCycle">Makeup declare</button>',
+      },
+      {
+        root: 'adResultVerify',
+        prefix: 'adEx',
+        kind: 'result',
+        barHtml:
+          '<button type="button" class="btn pr" data-exam-tab="adExResultsVerify">Regular exam results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExMakeupVerify">Makeup results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExResultAnalysis">Result Analysis</button>',
+      },
+      // HOD / faculty: keep result verification on facExamModule (no separate fee menu required)
+      {
+        root: 'facExamModule',
+        prefix: 'facEx',
+        kind: 'result',
+        barHtml:
+          '<button type="button" class="btn pr" data-exam-tab="facExResultsVerify">Regular exam results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="facExMakeupVerify">Makeup results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="facExResultAnalysis">Result Analysis</button>',
+      },
+    ];
+
+    shells.forEach(function (cfg) {
       var root = document.getElementById(cfg.root);
       if (!root) return;
+      var prefix = cfg.prefix;
 
-      // Always remove Pathways from Exam shell (HOD keeps own menu)
-      stripExamPathwaysUi(root, cfg.prefix);
-      stripExamAdmissionFeeDesk(root, cfg.prefix);
-
-      if (!document.getElementById(cfg.prefix + 'ResultsVerify')) {
-        var bar = document.createElement('div');
+      // Tab bar for this shell
+      var bar = root.querySelector('.exam-staff-tabs[data-shell="' + cfg.root + '"]');
+      if (!bar) {
+        bar = document.createElement('div');
         bar.className = 'exam-staff-tabs';
-        bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);';
-        bar.innerHTML =
-          '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">Regular exam results</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'RegularCycle">Regular exam declare</button>' +
-          '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">Regular fees desk</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Regular fee schedule</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupCycle">Makeup declare</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupVerify">Makeup results</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupFeeDesk">Makeup fees desk</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupFeeSched">Makeup fee schedule</button>';
-        root.insertBefore(bar, root.firstChild);
-
-        var v = document.createElement('div');
-        v.id = cfg.prefix + 'ResultsVerify';
-        v.style.display = 'none';
-        v.innerHTML =
-          '<div class="info-box"><strong>Regular exam results</strong> — Verify student self-entry (pass/fail/grade). ' +
-          'HOD = own branch; Exam / Principal / Admin = all. Verified rows lock for students.</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
-          '<select id="' + cfg.prefix + 'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
-          '<option value="">All branches</option>' +
-          '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
-          '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
-          '<select id="' + cfg.prefix + 'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
-          '<option value="pending">Pending only</option><option value="">All statuses</option>' +
-          '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
-          '<button type="button" class="btn ol" data-exam-reload-rv="' + cfg.prefix + '" style="padding:10px 14px;">Reload students</button>' +
-          '</div><div id="' + cfg.prefix + 'RvList" style="padding:8px 10px 16px;"></div>';
-        root.appendChild(v);
-
-        var f = document.createElement('div');
-        f.id = cfg.prefix + 'FeeDesk';
-        f.style.display = 'none';
-        f.innerHTML =
-          '<div class="info-box"><strong>Regular fees desk</strong> — no K2 API. Students enter challan number(s); ' +
-          'you verify offline and tick <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
-          'Fine comes from <strong>Regular fee schedule</strong>. (Admission fees are under ACM Module.)</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<select id="' + cfg.prefix + 'FdBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="">All branches</option>' +
-          '<option value="civil">Civil</option><option value="computer">CSE</option>' +
-          '<option value="electron">ECE</option><option value="mech">ME</option></select>' +
-          '<select id="' + cfg.prefix + 'FdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
-          '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
-          '<button type="button" class="btn ol" data-exam-reload-fd="' + cfg.prefix + '">Load</button></div>' +
-          '<div id="' + cfg.prefix + 'FdList" style="padding:10px;overflow-x:auto;"></div>';
-        root.appendChild(f);
+        bar.setAttribute('data-shell', cfg.root);
+        bar.style.cssText =
+          'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);margin-bottom:8px;';
+        bar.innerHTML = cfg.barHtml;
+        // After info-box if present
+        var info = root.querySelector('.info-box');
+        if (info && info.nextSibling) root.insertBefore(bar, info.nextSibling);
+        else root.insertBefore(bar, root.firstChild);
+      } else {
+        // Refresh labels
+        bar.innerHTML = cfg.barHtml;
       }
 
-      // Always refresh tab labels (old deploys)
-      renameExamStaffTabLabels(root, cfg.prefix);
-      stripExamAdmissionFeeDesk(root, cfg.prefix);
+      // Ensure panels exist (create if missing, then adopt into this shell)
+      if (cfg.kind === 'fee' || cfg.kind === 'both') {
+        if (!document.getElementById(prefix + 'FeeDesk')) {
+          var f = document.createElement('div');
+          f.id = prefix + 'FeeDesk';
+          f.style.display = 'none';
+          f.innerHTML =
+            '<div class="info-box"><strong>Regular exam fee verification</strong> — Students pay via K2 and submit challan numbers. ' +
+            'Verify offline and mark <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
+            'Fine from Regular fee schedule. Admission fees are under ACM Module.</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<select id="' +
+            prefix +
+            'FdBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="">All branches</option>' +
+            '<option value="civil">Civil</option><option value="computer">CSE</option>' +
+            '<option value="electron">ECE</option><option value="mech">ME</option></select>' +
+            '<select id="' +
+            prefix +
+            'FdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
+            '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+            '<button type="button" class="btn ol" data-exam-reload-fd="' +
+            prefix +
+            '">Load students</button></div>' +
+            '<div id="' +
+            prefix +
+            'FdList" style="padding:10px;overflow-x:auto;"></div>';
+          root.appendChild(f);
+        } else adoptPanel(root, prefix + 'FeeDesk');
 
-      // Regular exam declare panel
-      if (!document.getElementById(cfg.prefix + 'RegularCycle')) {
-        var barReg = root.querySelector('.exam-staff-tabs');
-        if (barReg && !barReg.querySelector('[data-exam-tab="' + cfg.prefix + 'RegularCycle"]')) {
-          var rbtn = document.createElement('button');
-          rbtn.type = 'button';
-          rbtn.className = 'btn ol';
-          rbtn.setAttribute('data-exam-tab', cfg.prefix + 'RegularCycle');
-          rbtn.textContent = 'Regular exam declare';
-          // Insert after Regular exam results button if present
-          var afterRv = barReg.querySelector('[data-exam-tab="' + cfg.prefix + 'ResultsVerify"]');
-          if (afterRv && afterRv.nextSibling) barReg.insertBefore(rbtn, afterRv.nextSibling);
-          else barReg.appendChild(rbtn);
-        }
-        var regCycle = document.createElement('div');
-        regCycle.id = cfg.prefix + 'RegularCycle';
-        regCycle.style.display = 'none';
-        regCycle.innerHTML =
-          '<div class="info-box"><strong>Regular exam declare</strong> — Declare the regular exam month/session ' +
-          '(e.g. April / May 2026, Nov / Dec 2026). Separate from <em>Makeup declare</em>. ' +
-          'Use with Regular fees desk and Regular fee schedule.</div>' +
-          '<div class="card" style="padding:14px;margin:10px;">' +
-          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
-          '<div class="fg" style="margin:0;"><label>Month label</label>' +
-          '<input id="' + cfg.prefix + 'RgMonth" type="text" placeholder="April / May 2026" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div class="fg" style="margin:0;"><label>Session name</label>' +
-          '<input id="' + cfg.prefix + 'RgSession" type="text" placeholder="Regular Apr-May 2026" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div class="fg" style="margin:0;"><label>Exam cycle key</label>' +
-          '<input id="' + cfg.prefix + 'RgCycleKey" type="text" value="current" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '</div>' +
-          '<div class="fg" style="margin-top:10px;"><label>Note (optional)</label>' +
-          '<input id="' + cfg.prefix + 'RgNote" type="text" placeholder="Even semester regular exams…" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button type="button" class="btn pr" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
-          cfg.prefix +
-          '\',\'draft\')">Save draft</button>' +
-          '<button type="button" class="btn go" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
-          cfg.prefix +
-          '\',\'open\')">Declare &amp; Open</button>' +
-          '<button type="button" class="btn ol" onclick="window.regularCycleLoad&&window.regularCycleLoad(\'' +
-          cfg.prefix +
-          '\')">Refresh list</button>' +
-          '</div>' +
-          '<div id="' + cfg.prefix + 'RgCycleList" style="margin-top:14px;"></div></div>';
-        root.appendChild(regCycle);
+        if (!document.getElementById(prefix + 'FeeSchedule')) {
+          var s = document.createElement('div');
+          s.id = prefix + 'FeeSchedule';
+          s.style.display = 'none';
+          s.innerHTML =
+            '<div class="info-box"><strong>Regular fee schedule</strong> — Fine date windows for regular exams only. Makeup has its own schedule.</div>' +
+            '<div class="card" style="padding:14px;margin:10px;">' +
+            '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">' +
+            '<div><label style="font-size:0.72rem;font-weight:700;">Exam cycle</label><br>' +
+            '<input id="' +
+            prefix +
+            'FsCycle" type="text" value="current" ' +
+            'style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);width:140px;" /></div>' +
+            '<button type="button" class="btn ol" onclick="window.examFeeScheduleLoad&&window.examFeeScheduleLoad(\'' +
+            prefix +
+            '\')">Load</button>' +
+            '<button type="button" class="btn pr" onclick="window.examFeeScheduleSave&&window.examFeeScheduleSave(\'' +
+            prefix +
+            '\')">Save schedule</button></div>' +
+            '<div id="' +
+            prefix +
+            'FsResolved" style="font-size:0.85rem;margin-bottom:10px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"></div>' +
+            '<div id="' +
+            prefix +
+            'FsRows"></div>' +
+            '<button type="button" class="btn ol" style="margin-top:10px;" onclick="window.examFeeScheduleAddRow&&window.examFeeScheduleAddRow(\'' +
+            prefix +
+            '\')">+ Add date window</button></div>';
+          root.appendChild(s);
+        } else adoptPanel(root, prefix + 'FeeSchedule');
       }
 
-      // Makeup panels (declare / verify / fees / schedule)
-      if (!document.getElementById(cfg.prefix + 'MakeupCycle')) {
-        var mkBar = root.querySelector('.exam-staff-tabs');
-        if (mkBar) {
-          ;[
-            ['MakeupCycle', 'Makeup declare'],
-            ['MakeupVerify', 'Makeup results'],
-            ['MakeupFeeDesk', 'Makeup fees desk'],
-            ['MakeupFeeSched', 'Makeup fee schedule'],
-          ].forEach(function (pair) {
-            if (mkBar.querySelector('[data-exam-tab="' + cfg.prefix + pair[0] + '"]')) return;
-            var b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'btn ol';
-            b.setAttribute('data-exam-tab', cfg.prefix + pair[0]);
-            b.textContent = pair[1];
-            mkBar.appendChild(b);
-          });
-        }
-        var mkCycle = document.createElement('div');
-        mkCycle.id = cfg.prefix + 'MakeupCycle';
-        mkCycle.style.display = 'none';
-        mkCycle.innerHTML =
-          '<div class="info-box"><strong>Declare makeup exam month</strong> — e.g. July / August 2026. ' +
-          'Students then use Results → Makeup and Fees → Makeup. Only one cycle Open at a time. ' +
-          'Fee per failed subject is separate from regular exam fees.</div>' +
-          '<div class="card" style="padding:14px;margin:10px;">' +
-          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
-          '<div class="fg" style="margin:0;"><label>Month label</label>' +
-          '<input id="' + cfg.prefix + 'MkMonth" type="text" placeholder="July / August 2026" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div class="fg" style="margin:0;"><label>Session name (on results)</label>' +
-          '<input id="' + cfg.prefix + 'MkSession" type="text" placeholder="Makeup Jul-Aug 2026" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div class="fg" style="margin:0;"><label>Fee ₹ / failed subject</label>' +
-          '<input id="' + cfg.prefix + 'MkFeeSub" type="number" value="250" min="0" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div class="fg" style="margin:0;"><label>Base fee ₹ (optional)</label>' +
-          '<input id="' + cfg.prefix + 'MkFeeBase" type="number" value="0" min="0" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '</div>' +
-          '<div class="fg" style="margin-top:10px;"><label>Note to students (optional)</label>' +
-          '<input id="' + cfg.prefix + 'MkNote" type="text" placeholder="After even-sem results…" ' +
-          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
-          '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button type="button" class="btn pr" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
-          cfg.prefix +
-          '\',\'draft\')">Save draft</button>' +
-          '<button type="button" class="btn go" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
-          cfg.prefix +
-          '\',\'open\')">Declare &amp; Open</button>' +
-          '<button type="button" class="btn ol" onclick="window.makeupCycleLoad&&window.makeupCycleLoad(\'' +
-          cfg.prefix +
-          '\')">Refresh list</button>' +
-          '</div>' +
-          '<div id="' + cfg.prefix + 'MkCycleList" style="margin-top:14px;"></div></div>';
-        root.appendChild(mkCycle);
-
-        var mkV = document.createElement('div');
-        mkV.id = cfg.prefix + 'MakeupVerify';
-        mkV.style.display = 'none';
-        mkV.innerHTML =
-          '<div class="info-box"><strong>Makeup result verification</strong> — Pending makeup attempts from students. ' +
-          'HOD = own branch; Exam / Principal / Admin = all.</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<select id="' + cfg.prefix + 'MkVStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="pending">Pending</option><option value="">All</option>' +
-          '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
-          '<button type="button" class="btn ol" onclick="window.makeupStaffLoadVerify&&window.makeupStaffLoadVerify(\'' +
-          cfg.prefix +
-          '\')">Load</button></div>' +
-          '<div id="' + cfg.prefix + 'MkVList" style="padding:10px;overflow-x:auto;"></div>';
-        root.appendChild(mkV);
-
-        var mkFd = document.createElement('div');
-        mkFd.id = cfg.prefix + 'MakeupFeeDesk';
-        mkFd.style.display = 'none';
-        mkFd.innerHTML =
-          '<div class="info-box"><strong>Makeup fees desk</strong> — Separate from regular exam fees. Same K2 receipts; mark Paid after offline verify.</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<select id="' + cfg.prefix + 'MkFdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
-          '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
-          '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
-          cfg.prefix +
-          '\')">Load</button></div>' +
-          '<div id="' + cfg.prefix + 'MkFdList" style="padding:10px;overflow-x:auto;"></div>';
-        root.appendChild(mkFd);
-
-        var mkFs = document.createElement('div');
-        mkFs.id = cfg.prefix + 'MakeupFeeSched';
-        mkFs.style.display = 'none';
-        mkFs.innerHTML =
-          '<div class="info-box"><strong>Makeup fine schedule</strong> — Optional date windows for makeup fines (not regular exam fines). Uses the open makeup cycle.</div>' +
-          '<div class="card" style="padding:14px;margin:10px;">' +
-          '<button type="button" class="btn ol" onclick="window.makeupFeeSchedLoad&&window.makeupFeeSchedLoad(\'' +
-          cfg.prefix +
-          '\')">Load</button> ' +
-          '<button type="button" class="btn pr" onclick="window.makeupFeeSchedSave&&window.makeupFeeSchedSave(\'' +
-          cfg.prefix +
-          '\')">Save</button> ' +
-          '<button type="button" class="btn ol" onclick="window.makeupFeeSchedAddRow&&window.makeupFeeSchedAddRow(\'' +
-          cfg.prefix +
-          '\')">+ Window</button>' +
-          '<div id="' + cfg.prefix + 'MkFsInfo" style="margin:10px 0;font-size:0.85rem;"></div>' +
-          '<div id="' + cfg.prefix + 'MkFsRows"></div></div>';
-        root.appendChild(mkFs);
+      if (cfg.kind === 'result' || cfg.kind === 'both') {
+        if (!document.getElementById(prefix + 'ResultsVerify')) {
+          var v = document.createElement('div');
+          v.id = prefix + 'ResultsVerify';
+          v.style.display = 'none';
+          v.innerHTML =
+            '<div class="info-box"><strong>Regular exam results verification</strong> — Verify student self-entry (pass/fail/grade) after they upload. ' +
+            'HOD = own branch; Exam / Principal / Admin = all. Verified rows lock.</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+            '<select id="' +
+            prefix +
+            'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+            '<option value="">All branches</option>' +
+            '<option value="CE">Civil</option><option value="CSE">CSE</option>' +
+            '<option value="ECE">ECE</option><option value="ME">ME</option></select>' +
+            '<select id="' +
+            prefix +
+            'RvStatus" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
+            '<option value="pending">Pending only</option><option value="">All statuses</option>' +
+            '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+            '<button type="button" class="btn ol" data-exam-reload-rv="' +
+            prefix +
+            '" style="padding:10px 14px;">Reload students</button>' +
+            '</div><div id="' +
+            prefix +
+            'RvList" style="padding:8px 10px 16px;"></div>';
+          root.appendChild(v);
+        } else adoptPanel(root, prefix + 'ResultsVerify');
       }
 
-      // Fee schedule panel (always ensure; may be missing on older shells)
-      if (!document.getElementById(cfg.prefix + 'FeeSchedule')) {
-        var bar2 =
-          root.querySelector('.exam-staff-tabs') ||
-          (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
-        if (bar2 && !bar2.querySelector('[data-exam-tab="' + cfg.prefix + 'FeeSchedule"]')) {
-          var sbtn = document.createElement('button');
-          sbtn.type = 'button';
-          sbtn.className = 'btn ol';
-          sbtn.setAttribute('data-exam-tab', cfg.prefix + 'FeeSchedule');
-          sbtn.textContent = 'Regular fee schedule';
-          bar2.appendChild(sbtn);
-        }
-        var s = document.createElement('div');
-        s.id = cfg.prefix + 'FeeSchedule';
-        s.style.display = 'none';
-        s.innerHTML =
-          '<div class="info-box"><strong>Regular fee schedule</strong> — Set date windows without fine and with fine for <em>regular</em> exams. ' +
-          'Example: until 02-08-2026 fine Rs 0; from 03-08-2026 to 13-08-2026 fine Rs 50. ' +
-          'Students see this on <strong>Fees → Regular exam fees</strong> (not Makeup). Makeup has its own fee schedule tab.</div>' +
-          '<div class="card" style="padding:14px;margin:10px;">' +
-          '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">' +
-          '<div><label style="font-size:0.72rem;font-weight:700;">Exam cycle</label><br>' +
-          '<input id="' + cfg.prefix + 'FsCycle" type="text" value="current" ' +
-          'style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);width:140px;" /></div>' +
-          '<button type="button" class="btn ol" onclick="window.examFeeScheduleLoad&&window.examFeeScheduleLoad(\'' +
-          cfg.prefix +
-          '\')">Load</button>' +
-          '<button type="button" class="btn pr" onclick="window.examFeeScheduleSave&&window.examFeeScheduleSave(\'' +
-          cfg.prefix +
-          '\')">Save schedule</button>' +
-          '</div>' +
-          '<div id="' + cfg.prefix + 'FsResolved" style="font-size:0.85rem;margin-bottom:10px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);"></div>' +
-          '<div id="' + cfg.prefix + 'FsRows"></div>' +
-          '<button type="button" class="btn ol" style="margin-top:10px;" onclick="window.examFeeScheduleAddRow&&window.examFeeScheduleAddRow(\'' +
-          cfg.prefix +
-          '\')">+ Add date window</button>' +
-          '</div>';
-        root.appendChild(s);
+      // Always re-home panels for this shell kind
+      if (cfg.kind === 'fee') {
+        ;['FeeDesk', 'FeeSchedule', 'RegularCycle', 'MakeupCycle', 'MakeupFeeDesk', 'MakeupFeeSched'].forEach(
+          function (suf) {
+            adoptPanel(root, prefix + suf);
+          },
+        );
+      }
+      if (cfg.kind === 'result') {
+        ;['ResultsVerify', 'MakeupVerify', 'ResultAnalysis'].forEach(function (suf) {
+          adoptPanel(root, prefix + suf);
+        });
       }
 
-      // Wire tab clicks (rebind every ensure)
-      var barWire =
-        root.querySelector('.exam-staff-tabs') ||
-        (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
+      stripExamAdmissionFeeDesk(root, prefix);
+
+      // Fee shell: declare + makeup fee panels
+      if (cfg.kind === 'fee') {
+        if (!document.getElementById(prefix + 'RegularCycle')) {
+          var regCycle = document.createElement('div');
+          regCycle.id = prefix + 'RegularCycle';
+          regCycle.style.display = 'none';
+          regCycle.innerHTML =
+            '<div class="info-box"><strong>Regular exam declare</strong> — Month/session for regular sitting (e.g. April / May 2026).</div>' +
+            '<div class="card" style="padding:14px;margin:10px;">' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
+            '<div class="fg" style="margin:0;"><label>Month label</label>' +
+            '<input id="' + prefix + 'RgMonth" type="text" placeholder="April / May 2026" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div class="fg" style="margin:0;"><label>Session name</label>' +
+            '<input id="' + prefix + 'RgSession" type="text" placeholder="Regular Apr-May 2026" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div class="fg" style="margin:0;"><label>Exam cycle key</label>' +
+            '<input id="' + prefix + 'RgCycleKey" type="text" value="current" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div></div>' +
+            '<div class="fg" style="margin-top:10px;"><label>Note (optional)</label>' +
+            '<input id="' + prefix + 'RgNote" type="text" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button type="button" class="btn pr" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
+            prefix + "','draft')\">Save draft</button>" +
+            '<button type="button" class="btn go" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
+            prefix + "','open')\">Declare &amp; Open</button>" +
+            '<button type="button" class="btn ol" onclick="window.regularCycleLoad&&window.regularCycleLoad(\'' +
+            prefix + "')\">Refresh list</button></div>" +
+            '<div id="' + prefix + 'RgCycleList" style="margin-top:14px;"></div></div>';
+          root.appendChild(regCycle);
+        } else adoptPanel(root, prefix + 'RegularCycle');
+
+        if (!document.getElementById(prefix + 'MakeupCycle')) {
+          var mkCycle = document.createElement('div');
+          mkCycle.id = prefix + 'MakeupCycle';
+          mkCycle.style.display = 'none';
+          mkCycle.innerHTML =
+            '<div class="info-box"><strong>Makeup declare</strong> — e.g. July / August 2026. Fee per failed subject separate from regular.</div>' +
+            '<div class="card" style="padding:14px;margin:10px;">' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
+            '<div class="fg" style="margin:0;"><label>Month label</label>' +
+            '<input id="' + prefix + 'MkMonth" type="text" placeholder="July / August 2026" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div class="fg" style="margin:0;"><label>Session name</label>' +
+            '<input id="' + prefix + 'MkSession" type="text" placeholder="Makeup Jul-Aug 2026" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div class="fg" style="margin:0;"><label>Fee ₹ / failed subject</label>' +
+            '<input id="' + prefix + 'MkFeeSub" type="number" value="250" min="0" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div class="fg" style="margin:0;"><label>Base fee ₹</label>' +
+            '<input id="' + prefix + 'MkFeeBase" type="number" value="0" min="0" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div></div>' +
+            '<div class="fg" style="margin-top:10px;"><label>Note</label>' +
+            '<input id="' + prefix + 'MkNote" type="text" ' +
+            'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+            '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button type="button" class="btn pr" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
+            prefix + "','draft')\">Save draft</button>" +
+            '<button type="button" class="btn go" onclick="window.makeupCycleCreate&&window.makeupCycleCreate(\'' +
+            prefix + "','open')\">Declare &amp; Open</button>" +
+            '<button type="button" class="btn ol" onclick="window.makeupCycleLoad&&window.makeupCycleLoad(\'' +
+            prefix + "')\">Refresh</button></div>" +
+            '<div id="' + prefix + 'MkCycleList" style="margin-top:14px;"></div></div>';
+          root.appendChild(mkCycle);
+        } else adoptPanel(root, prefix + 'MakeupCycle');
+
+        if (!document.getElementById(prefix + 'MakeupFeeDesk')) {
+          var mkFd = document.createElement('div');
+          mkFd.id = prefix + 'MakeupFeeDesk';
+          mkFd.style.display = 'none';
+          mkFd.innerHTML =
+            '<div class="info-box"><strong>Makeup exam fee verification</strong> — Separate from regular. Same K2; mark Paid after offline verify.</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<select id="' + prefix + 'MkFdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
+            '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+            '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
+            prefix + "')\">Load students</button></div>" +
+            '<div id="' + prefix + 'MkFdList" style="padding:10px;overflow-x:auto;"></div>';
+          root.appendChild(mkFd);
+        } else adoptPanel(root, prefix + 'MakeupFeeDesk');
+
+        if (!document.getElementById(prefix + 'MakeupFeeSched')) {
+          var mkFs = document.createElement('div');
+          mkFs.id = prefix + 'MakeupFeeSched';
+          mkFs.style.display = 'none';
+          mkFs.innerHTML =
+            '<div class="info-box"><strong>Makeup fee schedule</strong> — Fine windows for makeup only.</div>' +
+            '<div class="card" style="padding:14px;margin:10px;">' +
+            '<button type="button" class="btn ol" onclick="window.makeupFeeSchedLoad&&window.makeupFeeSchedLoad(\'' +
+            prefix + "')\">Load</button> " +
+            '<button type="button" class="btn pr" onclick="window.makeupFeeSchedSave&&window.makeupFeeSchedSave(\'' +
+            prefix + "')\">Save</button> " +
+            '<button type="button" class="btn ol" onclick="window.makeupFeeSchedAddRow&&window.makeupFeeSchedAddRow(\'' +
+            prefix + "')\">+ Window</button>" +
+            '<div id="' + prefix + 'MkFsInfo" style="margin:10px 0;font-size:0.85rem;"></div>' +
+            '<div id="' + prefix + 'MkFsRows"></div></div>';
+          root.appendChild(mkFs);
+        } else adoptPanel(root, prefix + 'MakeupFeeSched');
+      }
+
+      // Result shell: makeup results verify
+      if (cfg.kind === 'result') {
+        if (!document.getElementById(prefix + 'MakeupVerify')) {
+          var mkV = document.createElement('div');
+          mkV.id = prefix + 'MakeupVerify';
+          mkV.style.display = 'none';
+          mkV.innerHTML =
+            '<div class="info-box"><strong>Makeup results verification</strong> — Pending makeup attempts. HOD = branch; Exam = all.</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<select id="' + prefix + 'MkVStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="pending">Pending</option><option value="">All</option>' +
+            '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+            '<button type="button" class="btn ol" onclick="window.makeupStaffLoadVerify&&window.makeupStaffLoadVerify(\'' +
+            prefix + "')\">Load</button></div>" +
+            '<div id="' + prefix + 'MkVList" style="padding:10px;overflow-x:auto;"></div>';
+          root.appendChild(mkV);
+        } else adoptPanel(root, prefix + 'MakeupVerify');
+      }
+
+      // Wire tab clicks for this shell only
+      var barWire = root.querySelector('.exam-staff-tabs[data-shell="' + cfg.root + '"]');
       if (barWire) {
         barWire.querySelectorAll('[data-exam-tab]').forEach(function (btn) {
           btn.onclick = function () {
             var id = btn.getAttribute('data-exam-tab') || '';
-            // Highlight active sub-tab with smooth style (.act)
             barWire.querySelectorAll('[data-exam-tab]').forEach(function (b) {
               b.classList.remove('act');
             });
             btn.classList.add('act');
-            var vEl = document.getElementById(cfg.prefix + 'ResultsVerify');
-            var fEl = document.getElementById(cfg.prefix + 'FeeDesk');
-            var sEl = document.getElementById(cfg.prefix + 'FeeSchedule');
-            var rgC = document.getElementById(cfg.prefix + 'RegularCycle');
-            var pEl = document.getElementById(cfg.prefix + 'Pathways');
-            function showPanel(el, on) {
-              if (!el) return;
-              el.style.display = on ? '' : 'none';
-              if (on) {
-                try {
-                  el.classList.remove('gpth-sec-enter');
-                  void el.offsetWidth;
-                  el.classList.add('gpth-sec-enter');
-                  window.clearTimeout(el._gpthAnimT);
-                  el._gpthAnimT = window.setTimeout(function () {
-                    el.classList.remove('gpth-sec-enter');
-                  }, 400);
-                } catch (eA) { /* ignore */ }
+            // Hide all staff panels under this root
+            root.querySelectorAll('[id^="' + prefix + '"]').forEach(function (p) {
+              if (p.tagName === 'DIV' && p.id && p.id.indexOf(prefix) === 0) {
+                // only known staff panels
+                if (
+                  /ResultsVerify|FeeDesk|FeeSchedule|RegularCycle|MakeupCycle|MakeupVerify|MakeupFeeDesk|MakeupFeeSched|ResultAnalysis/.test(
+                    p.id,
+                  )
+                ) {
+                  p.style.display = 'none';
+                }
               }
+            });
+            var target = document.getElementById(id);
+            if (target) {
+              target.style.display = '';
+              try {
+                target.classList.remove('gpth-sec-enter');
+                void target.offsetWidth;
+                target.classList.add('gpth-sec-enter');
+              } catch (eA) { /* ignore */ }
             }
-            var mkC = document.getElementById(cfg.prefix + 'MakeupCycle');
-            var mkV = document.getElementById(cfg.prefix + 'MakeupVerify');
-            var mkFd = document.getElementById(cfg.prefix + 'MakeupFeeDesk');
-            var mkFs = document.getElementById(cfg.prefix + 'MakeupFeeSched');
-            showPanel(vEl, id.indexOf('ResultsVerify') >= 0);
-            showPanel(rgC, id.indexOf('RegularCycle') >= 0);
-            // FeeDesk must not match MakeupFeeDesk
-            showPanel(fEl, id.indexOf('FeeDesk') >= 0 && id.indexOf('MakeupFeeDesk') < 0);
-            showPanel(
-              sEl,
-              id.indexOf('FeeSchedule') >= 0 && id.indexOf('MakeupFeeSched') < 0,
-            );
-            showPanel(mkC, id.indexOf('MakeupCycle') >= 0);
-            showPanel(mkV, id.indexOf('MakeupVerify') >= 0);
-            showPanel(mkFd, id.indexOf('MakeupFeeDesk') >= 0);
-            showPanel(mkFs, id.indexOf('MakeupFeeSched') >= 0);
-            if (pEl) pEl.style.display = 'none';
-            if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(cfg.prefix);
-            else if (id.indexOf('RegularCycle') >= 0) window.regularCycleLoad(cfg.prefix);
-            else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(cfg.prefix);
-            else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(cfg.prefix);
-            else if (id.indexOf('MakeupFeeSched') >= 0) window.makeupFeeSchedLoad(cfg.prefix);
-            else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(cfg.prefix);
-            else if (id.indexOf('MakeupCycle') >= 0) window.makeupCycleLoad(cfg.prefix);
-            else if (id.indexOf('MakeupVerify') >= 0) window.makeupStaffLoadVerify(cfg.prefix);
+            if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(prefix);
+            else if (id.indexOf('RegularCycle') >= 0) window.regularCycleLoad(prefix);
+            else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(prefix);
+            else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(prefix);
+            else if (id.indexOf('MakeupFeeSched') >= 0) window.makeupFeeSchedLoad(prefix);
+            else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(prefix);
+            else if (id.indexOf('MakeupCycle') >= 0) window.makeupCycleLoad(prefix);
+            else if (id.indexOf('MakeupVerify') >= 0) window.makeupStaffLoadVerify(prefix);
+            else if (id.indexOf('ResultAnalysis') >= 0 && window.resAnalysisLoad) {
+              window.resAnalysisLoad(id);
+            }
           };
         });
       }
@@ -3218,7 +3271,12 @@
         window.admFeeReload && window.admFeeReload();
         window.makeupFeesReload && window.makeupFeesReload();
       }
-      if (secId === 'adExam' || secId === 'facExamModule') {
+      if (
+        secId === 'adExam' ||
+        secId === 'adExamFee' ||
+        secId === 'adResultVerify' ||
+        secId === 'facExamModule'
+      ) {
         ensureExamStaffPanels();
       }
       if (secId === 'adACM' || secId === 'facACM' || secId === 'facCash' || secId === 'adOpsCategory') {

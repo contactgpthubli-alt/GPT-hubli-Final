@@ -478,46 +478,34 @@
     };
   }
 
-  /** Also inject into adExam / facExamModule staff bars (legacy-exam.js style). */
+  /** Result Analysis lives under Result Verification menu (not Exam Module). */
   function ensureStaffExamAnalysis() {
     ;[
-      { root: 'adExam', prefix: 'adEx' },
+      { root: 'adResultVerify', prefix: 'adEx' },
       { root: 'facExamModule', prefix: 'facEx' },
     ].forEach(function (cfg) {
       var root = document.getElementById(cfg.root);
       if (!root) return;
       var id = cfg.prefix + 'ResultAnalysis';
-      if (document.getElementById(id)) return;
-      var bar = root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement;
-      if (!bar) {
-        // create mini bar if missing
-        bar = document.createElement('div');
-        bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);';
-        root.insertBefore(bar, root.firstChild);
+      if (!document.getElementById(id)) {
+        var panel = document.createElement('div');
+        panel.id = id;
+        panel.style.display = 'none';
+        panel.innerHTML = panelHtml(id);
+        root.appendChild(panel);
+      } else if (document.getElementById(id).parentNode !== root) {
+        root.appendChild(document.getElementById(id));
       }
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn ol';
-      btn.setAttribute('data-exam-tab', id);
-      btn.textContent = '📈 Result Analysis';
-      bar.appendChild(btn);
-      var panel = document.createElement('div');
-      panel.id = id;
-      panel.style.display = 'none';
-      panel.innerHTML = panelHtml(id);
-      root.appendChild(panel);
-      btn.onclick = function () {
-        root.querySelectorAll('[id^="' + cfg.prefix + '"]').forEach(function (p) {
-          if (p.id && p.id.indexOf(cfg.prefix) === 0 && p.tagName === 'DIV') {
-            // hide sibling analysis / verify panels
-          }
-        });
-        ;[cfg.prefix + 'ResultsVerify', cfg.prefix + 'FeeDesk', cfg.prefix + 'Pathways', id].forEach(function (pid) {
-          var el = document.getElementById(pid);
-          if (el) el.style.display = pid === id ? '' : 'none';
-        });
-        window.resAnalysisLoad && window.resAnalysisLoad(id);
-      };
+      // Tab button is owned by legacy-exam ensureExamStaffPanels Result Verification bar
+      var bar = root.querySelector('.exam-staff-tabs');
+      if (bar && !bar.querySelector('[data-exam-tab="' + id + '"]')) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn ol';
+        btn.setAttribute('data-exam-tab', id);
+        btn.textContent = 'Result Analysis';
+        bar.appendChild(btn);
+      }
     });
   }
 

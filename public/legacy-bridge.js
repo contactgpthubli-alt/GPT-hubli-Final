@@ -13,7 +13,7 @@
  * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
  * exam/ops/analysis/tc/acm/print are deferred until authenticated).
  */
-var GPT_PERF_V = "20260809examTabs2"
+var GPT_PERF_V = "20260809menus3"
 var _gpthModsPromise = null
 function gpthLoadScript(src) {
   return new Promise(function (resolve) {
@@ -1965,7 +1965,13 @@ function __initGptBridge() {
         window.renderAcmModule();
       }
       // Exam Cell desk
-      if ((secId === 'adExam' || secId === 'facExamModule') && typeof window.renderExamModule === 'function') {
+      if (
+        (secId === 'adExam' ||
+          secId === 'adExamFee' ||
+          secId === 'adResultVerify' ||
+          secId === 'facExamModule') &&
+        typeof window.renderExamModule === 'function'
+      ) {
         try { ensureExamAdminDesk(); } catch (e) { /* ignore */ }
         window.renderExamModule();
       }
@@ -2298,6 +2304,32 @@ function __initGptBridge() {
       else menu.appendChild(nav);
     }
 
+    // Exam Fee menu (fee verification only — separate from Exam Module)
+    if (!document.getElementById('adExamFeeNav')) {
+      var afterExam = document.getElementById('adExamNav');
+      var feeNav = document.createElement('div');
+      feeNav.className = 'sl';
+      feeNav.id = 'adExamFeeNav';
+      feeNav.setAttribute('onclick', "showSec('adExamFee',this)");
+      feeNav.innerHTML = '<span class="sli">💳</span>Exam Fee';
+      if (afterExam && afterExam.nextSibling) afterExam.parentNode.insertBefore(feeNav, afterExam.nextSibling);
+      else if (afterExam) afterExam.parentNode.appendChild(feeNav);
+      else menu.appendChild(feeNav);
+    }
+
+    // Result Verification menu (results verify + analysis)
+    if (!document.getElementById('adResultVerifyNav')) {
+      var afterFee = document.getElementById('adExamFeeNav') || document.getElementById('adExamNav');
+      var rvNav = document.createElement('div');
+      rvNav.className = 'sl';
+      rvNav.id = 'adResultVerifyNav';
+      rvNav.setAttribute('onclick', "showSec('adResultVerify',this)");
+      rvNav.innerHTML = '<span class="sli">✅</span>Result Verification';
+      if (afterFee && afterFee.nextSibling) afterFee.parentNode.insertBefore(rvNav, afterFee.nextSibling);
+      else if (afterFee) afterFee.parentNode.appendChild(rvNav);
+      else menu.appendChild(rvNav);
+    }
+
     if (!document.getElementById('adExam')) {
       var panel = document.createElement('div');
       panel.id = 'adExam';
@@ -2305,6 +2337,29 @@ function __initGptBridge() {
       panel.setAttribute('data-exam-root', '1');
       panel.innerHTML = examModuleMarkup('ad');
       content.appendChild(panel);
+    }
+
+    if (!document.getElementById('adExamFee')) {
+      var feePanel = document.createElement('div');
+      feePanel.id = 'adExamFee';
+      feePanel.style.display = 'none';
+      feePanel.setAttribute('data-exam-fee-root', '1');
+      feePanel.innerHTML =
+        '<div class="info-box" style="margin-bottom:12px;"><strong>Exam Fee</strong> — Verify student K2 fee payments. ' +
+        '<strong>Regular exam fee verification</strong> and <strong>Makeup exam fee verification</strong> are separate. ' +
+        'Declare cycles and fine schedules live here too.</div>';
+      content.appendChild(feePanel);
+    }
+
+    if (!document.getElementById('adResultVerify')) {
+      var rvPanel = document.createElement('div');
+      rvPanel.id = 'adResultVerify';
+      rvPanel.style.display = 'none';
+      rvPanel.setAttribute('data-result-verify-root', '1');
+      rvPanel.innerHTML =
+        '<div class="info-box" style="margin-bottom:12px;"><strong>Result Verification</strong> — Verify student-uploaded regular and makeup results. ' +
+        'Result Analysis is also here.</div>';
+      content.appendChild(rvPanel);
     }
 
     // Enhance faculty Exam Module with Lookup + Print if missing
@@ -2423,6 +2478,8 @@ function __initGptBridge() {
       adStudents: 1,
       adStudentData: 1,
       adExam: 1,
+      adExamFee: 1,
+      adResultVerify: 1,
       // Student Management hub + related ops (same as image 107)
       adOpsCategory: 1,
       adOpsTransfer: 1,
@@ -2433,6 +2490,8 @@ function __initGptBridge() {
       adOpsXferNav: 1,
       adOpsLiveNav: 1,
       adExamNav: 1,
+      adExamFeeNav: 1,
+      adResultVerifyNav: 1,
     };
     root.querySelectorAll('.sb .sl').forEach(function (sl) {
       var oc = sl.getAttribute('onclick') || '';
@@ -2517,7 +2576,7 @@ function __initGptBridge() {
     if (typeof window.renderStudentDataBrowser === 'function') {
       try { window.renderStudentDataBrowser('adStudentData'); } catch (e) { /* ignore */ }
     }
-    console.log('[bridge] Exam scoped admin shell (Approvals · Students · Student Data · Exam · SM · Branch · Live)');
+    console.log('[bridge] Exam scoped admin shell (Approvals · Students · Student Data · Exam Module · Exam Fee · Result Verification · SM · Branch · Live)');
   }
   window.applyExamAdminScope = applyExamAdminScope;
   window.clearExamAdminScope = clearExamAdminScope;
