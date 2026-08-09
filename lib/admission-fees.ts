@@ -6,6 +6,7 @@ import { query } from "@/lib/db"
 
 export type AdmissionFeeStatus = "not_paid" | "pending" | "paid"
 
+/** ACM primary; Cash / Office / Admin also. Exam uses exam fees only (not this desk). */
 export const ADMISSION_FEE_VERIFIERS = [
   "admin",
   "principal",
@@ -14,7 +15,6 @@ export const ADMISSION_FEE_VERIFIERS = [
   "accounts",
   "acm",
   "hod",
-  "exam",
 ] as const
 
 export function canVerifyAdmissionFees(role: string | null | undefined): boolean {

@@ -1414,9 +1414,14 @@
     });
   }
 
-  /** Standalone Admission fees desk for Cash / Office shells (no full Exam module). */
+  /**
+   * Admission fees desk — ACM Module (primary), Cash, Student Management.
+   * Not on Exam Module (Exam handles regular + makeup exam fees only).
+   */
   function ensureStandaloneAdmFeeDesk() {
     ;[
+      { root: 'adACM', prefix: 'acmAf' },
+      { root: 'facACM', prefix: 'facAcmAf' },
       { root: 'facCash', prefix: 'cashAf' },
       { root: 'adOpsCategory', prefix: 'adAf' },
       { root: 'facOpsCategory', prefix: 'facAf' },
@@ -1429,9 +1434,9 @@
       wrap.style.cssText = 'margin:12px 0;';
       wrap.innerHTML =
         '<div class="card" style="padding:14px;border:1.5px solid #93c5fd;background:#eff6ff;">' +
-        '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">Admission fees — Paid / Not paid desk</h3>' +
+        '<h3 style="margin:0 0 8px;font-size:0.95rem;color:var(--navy);">Admission fees desk (ACM)</h3>' +
         '<p style="margin:0 0 10px;font-size:0.8rem;opacity:.85;line-height:1.45;">Students submit proof under <strong>Fees → Admission fees</strong>. ' +
-        'Confirm here so the live status bar updates on the student portal (your name is stamped).</p>' +
+        'ACM / Cash confirm <strong>Paid</strong> or <strong>Not paid</strong> — live on student Fees status bar (your stamp).</p>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' +
         '<select id="' +
         cfg.prefix +
@@ -1444,7 +1449,37 @@
         '<div id="' +
         cfg.prefix +
         'AfList" style="overflow-x:auto;"></div></div>';
+      // ACM module: put desk near top of ACM content
       root.insertBefore(wrap, root.firstChild);
+    });
+  }
+
+  /** Remove Admission fees desk from Exam Module shells (belongs to ACM). */
+  function stripExamAdmissionFeeDesk(root, prefix) {
+    if (!root) return;
+    var btn = root.querySelector('[data-exam-tab="' + prefix + 'AdmFeeDesk"]');
+    if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+    var panel = document.getElementById(prefix + 'AdmFeeDesk');
+    // Only remove if it is inside the exam root (not ACM)
+    if (panel && root.contains(panel) && panel.parentNode) {
+      panel.parentNode.removeChild(panel);
+    }
+  }
+
+  function renameExamStaffTabLabels(root, prefix) {
+    if (!root) return;
+    var map = {};
+    map[prefix + 'ResultsVerify'] = 'Regular exam results';
+    map[prefix + 'FeeDesk'] = 'Regular fees desk';
+    map[prefix + 'FeeSchedule'] = 'Regular fee schedule';
+    map[prefix + 'RegularCycle'] = 'Regular exam declare';
+    map[prefix + 'MakeupCycle'] = 'Makeup declare';
+    map[prefix + 'MakeupVerify'] = 'Makeup results';
+    map[prefix + 'MakeupFeeDesk'] = 'Makeup fees desk';
+    map[prefix + 'MakeupFeeSched'] = 'Makeup fee schedule';
+    Object.keys(map).forEach(function (tabId) {
+      var b = root.querySelector('[data-exam-tab="' + tabId + '"]');
+      if (b) b.textContent = map[tabId];
     });
   }
 
@@ -1460,16 +1495,17 @@
 
       // Always remove Pathways from Exam shell (HOD keeps own menu)
       stripExamPathwaysUi(root, cfg.prefix);
+      stripExamAdmissionFeeDesk(root, cfg.prefix);
 
       if (!document.getElementById(cfg.prefix + 'ResultsVerify')) {
         var bar = document.createElement('div');
         bar.className = 'exam-staff-tabs';
         bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);';
         bar.innerHTML =
-          '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">Result verification</button>' +
-          '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">Exam fees desk</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'AdmFeeDesk">Admission fees desk</button>' +
-          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Fee schedule</button>' +
+          '<button type="button" class="btn pr" data-exam-tab="' + cfg.prefix + 'ResultsVerify">Regular exam results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'RegularCycle">Regular exam declare</button>' +
+          '<button type="button" class="btn go" data-exam-tab="' + cfg.prefix + 'FeeDesk">Regular fees desk</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'FeeSchedule">Regular fee schedule</button>' +
           '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupCycle">Makeup declare</button>' +
           '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupVerify">Makeup results</button>' +
           '<button type="button" class="btn ol" data-exam-tab="' + cfg.prefix + 'MakeupFeeDesk">Makeup fees desk</button>' +
@@ -1480,9 +1516,8 @@
         v.id = cfg.prefix + 'ResultsVerify';
         v.style.display = 'none';
         v.innerHTML =
-          '<div class="info-box"><strong>Result verification (per student)</strong> — ' +
-          'HOD = own branch; Exam / Principal / Admin = all. Open one student, review semester-wise subjects (larger view with name), ' +
-          'then verify/reject. Verified rows lock for students.</div>' +
+          '<div class="info-box"><strong>Regular exam results</strong> — Verify student self-entry (pass/fail/grade). ' +
+          'HOD = own branch; Exam / Principal / Admin = all. Verified rows lock for students.</div>' +
           '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
           '<select id="' + cfg.prefix + 'RvBranch" style="padding:10px;border-radius:8px;border:1.5px solid var(--border);font-size:0.9rem;">' +
           '<option value="">All branches</option>' +
@@ -1499,9 +1534,9 @@
         f.id = cfg.prefix + 'FeeDesk';
         f.style.display = 'none';
         f.innerHTML =
-          '<div class="info-box">Exam fees desk — <strong>no K2 API</strong>. Students enter challan number(s); ' +
-          'you verify payment offline and tick <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
-          'Multiple challans supported (e.g. Rs 300 + Rs 50). Fine amount comes from <strong>Fee schedule</strong> dates.</div>' +
+          '<div class="info-box"><strong>Regular fees desk</strong> — no K2 API. Students enter challan number(s); ' +
+          'you verify offline and tick <strong>Paid</strong> / <strong>Partial</strong> / <strong>Due</strong>. ' +
+          'Fine comes from <strong>Regular fee schedule</strong>. (Admission fees are under ACM Module.)</div>' +
           '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
           '<select id="' + cfg.prefix + 'FdBranch" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
           '<option value="">All branches</option>' +
@@ -1513,20 +1548,61 @@
           '<button type="button" class="btn ol" data-exam-reload-fd="' + cfg.prefix + '">Load</button></div>' +
           '<div id="' + cfg.prefix + 'FdList" style="padding:10px;overflow-x:auto;"></div>';
         root.appendChild(f);
+      }
 
-        var af = document.createElement('div');
-        af.id = cfg.prefix + 'AdmFeeDesk';
-        af.style.display = 'none';
-        af.innerHTML =
-          '<div class="info-box"><strong>Admission fees desk</strong> — Students submit amount + receipt under Fees → Admission fees. ' +
-          'Confirm <strong>Paid</strong> or <strong>Not paid</strong>. Status appears live on the student Fees status bar (with your name stamp).</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<select id="' + cfg.prefix + 'AfStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="pending">Pending only</option><option value="">All</option>' +
-          '<option value="paid">Paid</option><option value="not_paid">Not paid</option></select>' +
-          '<button type="button" class="btn ol" data-exam-reload-af="' + cfg.prefix + '">Load</button></div>' +
-          '<div id="' + cfg.prefix + 'AfList" style="padding:10px;overflow-x:auto;"></div>';
-        root.appendChild(af);
+      // Always refresh tab labels (old deploys)
+      renameExamStaffTabLabels(root, cfg.prefix);
+      stripExamAdmissionFeeDesk(root, cfg.prefix);
+
+      // Regular exam declare panel
+      if (!document.getElementById(cfg.prefix + 'RegularCycle')) {
+        var barReg = root.querySelector('.exam-staff-tabs');
+        if (barReg && !barReg.querySelector('[data-exam-tab="' + cfg.prefix + 'RegularCycle"]')) {
+          var rbtn = document.createElement('button');
+          rbtn.type = 'button';
+          rbtn.className = 'btn ol';
+          rbtn.setAttribute('data-exam-tab', cfg.prefix + 'RegularCycle');
+          rbtn.textContent = 'Regular exam declare';
+          // Insert after Regular exam results button if present
+          var afterRv = barReg.querySelector('[data-exam-tab="' + cfg.prefix + 'ResultsVerify"]');
+          if (afterRv && afterRv.nextSibling) barReg.insertBefore(rbtn, afterRv.nextSibling);
+          else barReg.appendChild(rbtn);
+        }
+        var regCycle = document.createElement('div');
+        regCycle.id = cfg.prefix + 'RegularCycle';
+        regCycle.style.display = 'none';
+        regCycle.innerHTML =
+          '<div class="info-box"><strong>Regular exam declare</strong> — Declare the regular exam month/session ' +
+          '(e.g. April / May 2026, Nov / Dec 2026). Separate from <em>Makeup declare</em>. ' +
+          'Use with Regular fees desk and Regular fee schedule.</div>' +
+          '<div class="card" style="padding:14px;margin:10px;">' +
+          '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">' +
+          '<div class="fg" style="margin:0;"><label>Month label</label>' +
+          '<input id="' + cfg.prefix + 'RgMonth" type="text" placeholder="April / May 2026" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div class="fg" style="margin:0;"><label>Session name</label>' +
+          '<input id="' + cfg.prefix + 'RgSession" type="text" placeholder="Regular Apr-May 2026" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div class="fg" style="margin:0;"><label>Exam cycle key</label>' +
+          '<input id="' + cfg.prefix + 'RgCycleKey" type="text" value="current" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '</div>' +
+          '<div class="fg" style="margin-top:10px;"><label>Note (optional)</label>' +
+          '<input id="' + cfg.prefix + 'RgNote" type="text" placeholder="Even semester regular exams…" ' +
+          'style="width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+          '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button type="button" class="btn pr" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
+          cfg.prefix +
+          '\',\'draft\')">Save draft</button>' +
+          '<button type="button" class="btn go" onclick="window.regularCycleCreate&&window.regularCycleCreate(\'' +
+          cfg.prefix +
+          '\',\'open\')">Declare &amp; Open</button>' +
+          '<button type="button" class="btn ol" onclick="window.regularCycleLoad&&window.regularCycleLoad(\'' +
+          cfg.prefix +
+          '\')">Refresh list</button>' +
+          '</div>' +
+          '<div id="' + cfg.prefix + 'RgCycleList" style="margin-top:14px;"></div></div>';
+        root.appendChild(regCycle);
       }
 
       // Makeup panels (declare / verify / fees / schedule)
@@ -1638,33 +1714,6 @@
         root.appendChild(mkFs);
       }
 
-      // Ensure Admission fees desk tab exists on older shells
-      if (!document.getElementById(cfg.prefix + 'AdmFeeDesk')) {
-        var barAf =
-          root.querySelector('.exam-staff-tabs') ||
-          (root.querySelector('[data-exam-tab]') && root.querySelector('[data-exam-tab]').parentElement);
-        if (barAf && !barAf.querySelector('[data-exam-tab="' + cfg.prefix + 'AdmFeeDesk"]')) {
-          var afbtn = document.createElement('button');
-          afbtn.type = 'button';
-          afbtn.className = 'btn ol';
-          afbtn.setAttribute('data-exam-tab', cfg.prefix + 'AdmFeeDesk');
-          afbtn.textContent = 'Admission fees desk';
-          barAf.appendChild(afbtn);
-        }
-        var af2 = document.createElement('div');
-        af2.id = cfg.prefix + 'AdmFeeDesk';
-        af2.style.display = 'none';
-        af2.innerHTML =
-          '<div class="info-box"><strong>Admission fees desk</strong> — Confirm Paid / Not paid. Shows live on student Fees bar.</div>' +
-          '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<select id="' + cfg.prefix + 'AfStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
-          '<option value="pending">Pending only</option><option value="">All</option>' +
-          '<option value="paid">Paid</option><option value="not_paid">Not paid</option></select>' +
-          '<button type="button" class="btn ol" data-exam-reload-af="' + cfg.prefix + '">Load</button></div>' +
-          '<div id="' + cfg.prefix + 'AfList" style="padding:10px;overflow-x:auto;"></div>';
-        root.appendChild(af2);
-      }
-
       // Fee schedule panel (always ensure; may be missing on older shells)
       if (!document.getElementById(cfg.prefix + 'FeeSchedule')) {
         var bar2 =
@@ -1675,16 +1724,16 @@
           sbtn.type = 'button';
           sbtn.className = 'btn ol';
           sbtn.setAttribute('data-exam-tab', cfg.prefix + 'FeeSchedule');
-          sbtn.textContent = 'Fee schedule';
+          sbtn.textContent = 'Regular fee schedule';
           bar2.appendChild(sbtn);
         }
         var s = document.createElement('div');
         s.id = cfg.prefix + 'FeeSchedule';
         s.style.display = 'none';
         s.innerHTML =
-          '<div class="info-box"><strong>Exam fee fine schedule</strong> — Set date windows without fine and with fine. ' +
-          'Example: until 02-08-2026 fine Rs 0; from 03-08-2026 to 13-08-2026 fine Rs 50. Use <strong>+</strong> to add more windows. ' +
-          'Students see this fine automatically on their Exam Fees panel (they cannot edit fine).</div>' +
+          '<div class="info-box"><strong>Regular fee schedule</strong> — Set date windows without fine and with fine for <em>regular</em> exams. ' +
+          'Example: until 02-08-2026 fine Rs 0; from 03-08-2026 to 13-08-2026 fine Rs 50. ' +
+          'Students see this on <strong>Fees → Regular exam fees</strong> (not Makeup). Makeup has its own fee schedule tab.</div>' +
           '<div class="card" style="padding:14px;margin:10px;">' +
           '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">' +
           '<div><label style="font-size:0.72rem;font-weight:700;">Exam cycle</label><br>' +
@@ -1721,8 +1770,8 @@
             btn.classList.add('act');
             var vEl = document.getElementById(cfg.prefix + 'ResultsVerify');
             var fEl = document.getElementById(cfg.prefix + 'FeeDesk');
-            var afEl = document.getElementById(cfg.prefix + 'AdmFeeDesk');
             var sEl = document.getElementById(cfg.prefix + 'FeeSchedule');
+            var rgC = document.getElementById(cfg.prefix + 'RegularCycle');
             var pEl = document.getElementById(cfg.prefix + 'Pathways');
             function showPanel(el, on) {
               if (!el) return;
@@ -1744,14 +1793,9 @@
             var mkFd = document.getElementById(cfg.prefix + 'MakeupFeeDesk');
             var mkFs = document.getElementById(cfg.prefix + 'MakeupFeeSched');
             showPanel(vEl, id.indexOf('ResultsVerify') >= 0);
-            // FeeDesk must not match AdmFeeDesk / MakeupFeeDesk
-            showPanel(
-              fEl,
-              id.indexOf('FeeDesk') >= 0 &&
-                id.indexOf('AdmFeeDesk') < 0 &&
-                id.indexOf('MakeupFeeDesk') < 0,
-            );
-            showPanel(afEl, id.indexOf('AdmFeeDesk') >= 0);
+            showPanel(rgC, id.indexOf('RegularCycle') >= 0);
+            // FeeDesk must not match MakeupFeeDesk
+            showPanel(fEl, id.indexOf('FeeDesk') >= 0 && id.indexOf('MakeupFeeDesk') < 0);
             showPanel(
               sEl,
               id.indexOf('FeeSchedule') >= 0 && id.indexOf('MakeupFeeSched') < 0,
@@ -1762,21 +1806,13 @@
             showPanel(mkFs, id.indexOf('MakeupFeeSched') >= 0);
             if (pEl) pEl.style.display = 'none';
             if (id.indexOf('ResultsVerify') >= 0) window.examStaffLoadVerify(cfg.prefix);
-            else if (id.indexOf('AdmFeeDesk') >= 0) window.admFeeStaffLoad(cfg.prefix);
+            else if (id.indexOf('RegularCycle') >= 0) window.regularCycleLoad(cfg.prefix);
             else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(cfg.prefix);
             else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(cfg.prefix);
             else if (id.indexOf('MakeupFeeSched') >= 0) window.makeupFeeSchedLoad(cfg.prefix);
             else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(cfg.prefix);
             else if (id.indexOf('MakeupCycle') >= 0) window.makeupCycleLoad(cfg.prefix);
             else if (id.indexOf('MakeupVerify') >= 0) window.makeupStaffLoadVerify(cfg.prefix);
-          };
-        });
-        // Wire Load buttons for admission fee desk
-        root.querySelectorAll('[data-exam-reload-af]').forEach(function (btn) {
-          if (btn._admBound) return;
-          btn._admBound = true;
-          btn.onclick = function () {
-            window.admFeeStaffLoad(btn.getAttribute('data-exam-reload-af'));
           };
         });
       }
@@ -2621,6 +2657,98 @@
     }
   };
 
+  /* ---------- Regular exam declare ---------- */
+  window.regularCycleLoad = async function (prefix) {
+    var list = document.getElementById(prefix + 'RgCycleList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    try {
+      var data = await api('/api/exam/regular-cycles');
+      var cycles = data.cycles || [];
+      if (!cycles.length) {
+        list.innerHTML = '<p style="opacity:.7;">No regular exam cycles yet. Declare a month above.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+        '<th>Month</th><th>Session</th><th>Cycle key</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+      cycles.forEach(function (c) {
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(c.month_label) +
+          '</strong></td><td style="padding:6px;">' +
+          esc(c.session_name) +
+          '</td><td style="padding:6px;">' +
+          esc(c.exam_cycle) +
+          '</td><td style="padding:6px;"><strong>' +
+          esc(c.status) +
+          '</strong>' +
+          (c.declared_by_name
+            ? '<div style="font-size:0.7rem;">' + esc(c.declared_by_name) + '</div>'
+            : '') +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          (c.status !== 'open'
+            ? '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.regularCycleSetStatus(' +
+              c.id +
+              ',\'open\',\'' +
+              prefix +
+              '\')">Open</button> '
+            : '') +
+          (c.status === 'open'
+            ? '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b45309;color:#fff;" onclick="window.regularCycleSetStatus(' +
+              c.id +
+              ',\'closed\',\'' +
+              prefix +
+              '\')">Close</button>'
+            : '') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.regularCycleCreate = async function (prefix, status) {
+    var month = ((document.getElementById(prefix + 'RgMonth') || {}).value || '').trim();
+    var session = ((document.getElementById(prefix + 'RgSession') || {}).value || '').trim();
+    var cycleKey = ((document.getElementById(prefix + 'RgCycleKey') || {}).value || 'current').trim();
+    var note = ((document.getElementById(prefix + 'RgNote') || {}).value || '').trim();
+    if (!month) {
+      alert('Enter month label (e.g. April / May 2026)');
+      return;
+    }
+    try {
+      await api('/api/exam/regular-cycles', {
+        method: 'POST',
+        body: {
+          month_label: month,
+          session_name: session || undefined,
+          exam_cycle: cycleKey || 'current',
+          note: note || null,
+          status: status || 'draft',
+        },
+      });
+      alert(status === 'open' ? 'Regular exam declared and opened.' : 'Draft saved.');
+      window.regularCycleLoad(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.regularCycleSetStatus = async function (id, status, prefix) {
+    try {
+      await api('/api/exam/regular-cycles', {
+        method: 'PATCH',
+        body: { id: id, status: status },
+      });
+      window.regularCycleLoad(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
   /* ---------- Makeup staff helpers ---------- */
   window.makeupCycleLoad = async function (prefix) {
     var list = document.getElementById(prefix + 'MkCycleList');
@@ -3011,7 +3139,7 @@
           ? 'Marked Paid — student Fees status bar will show Paid (with your stamp).'
           : 'Marked Not paid — student Fees status bar will show Not paid.',
       );
-      ;['adEx', 'facEx', 'cashAf', 'adAf', 'facAf'].forEach(function (p) {
+      ;['acmAf', 'facAcmAf', 'cashAf', 'adAf', 'facAf', 'adEx', 'facEx'].forEach(function (p) {
         if (document.getElementById(p + 'AfList')) window.admFeeStaffLoad(p);
       });
     } catch (e) {
@@ -3092,6 +3220,9 @@
       }
       if (secId === 'adExam' || secId === 'facExamModule') {
         ensureExamStaffPanels();
+      }
+      if (secId === 'adACM' || secId === 'facACM' || secId === 'facCash' || secId === 'adOpsCategory') {
+        ensureStandaloneAdmFeeDesk();
       }
     };
   }
