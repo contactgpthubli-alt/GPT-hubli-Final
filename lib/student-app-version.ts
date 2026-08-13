@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.6.0"
+export const STUDENT_APP_VERSION = "1.6.1"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.6.1",
+    date: "2026-08-09",
+    title: "App update push — Fees + account fixes live",
+    items: [
+      "Ship shell APK v1.6.0 (versionCode 8) aligned with live student portal.",
+      "Fees: Regular exam, Makeup, Admission + K2 challan submit under More → Fees.",
+      "Create Account: diploma Register Number only (no email field).",
+      "More → Update / refresh app to load the newest web build instantly.",
+    ],
+  },
   {
     version: "1.6.0",
     date: "2026-08-09",

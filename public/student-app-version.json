@@ -1,5 +1,6 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "minShell": "1.5.1",
-  "message": "Fees (Regular / Makeup / Admission + K2) now in the student app. Use More → Update / refresh app. No APK reinstall needed for web features."
+  "recommendedShell": "1.6.0",
+  "message": "Update available: Fees + Create Account fixes. Use More → Update / refresh app. Optional new APK shell v1.6.0 (versionCode 8)."
 }
