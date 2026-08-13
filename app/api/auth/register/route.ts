@@ -1,6 +1,12 @@
 import { query } from "@/lib/db"
 import { hashPassword, badRequest } from "@/lib/auth"
 import { isOfficialBranch, normalizeBranch } from "@/lib/branches"
+import {
+  isValidStudentRegNo,
+  looksLikeEmail,
+  normalizeStudentRegNo,
+  studentSyntheticEmail,
+} from "@/lib/student-reg-no"
 
 const ALLOWED_ROLES = [
   "student",
@@ -31,8 +37,8 @@ const DEFAULT_PASSWORD = "TemporaryPassword123!"
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
-  if (!body?.email || !body?.name) {
-    return badRequest("Name and email are required")
+  if (!body?.name) {
+    return badRequest("Name is required")
   }
   const usedDefaultPassword = !body.password
   const password = String(body.password || DEFAULT_PASSWORD)
@@ -62,9 +68,26 @@ export async function POST(req: Request) {
         ? usernameRaw
         : null
 
+  let email =
+    body.email != null && String(body.email).trim()
+      ? String(body.email).trim().toLowerCase()
+      : ""
+
   if (role === "student") {
     if (!regNo) return badRequest("Register Number is required for students")
-    regNo = regNo.toUpperCase()
+    if (looksLikeEmail(regNo)) {
+      return badRequest(
+        "Register Number cannot be an email address. Enter your diploma register number (e.g. 171CS25001).",
+      )
+    }
+    if (!isValidStudentRegNo(regNo)) {
+      return badRequest(
+        "Enter a valid Register Number (e.g. 171CS25001). Letters and digits only — not an email.",
+      )
+    }
+    regNo = normalizeStudentRegNo(regNo)
+    // Students no longer provide email on Create Account — synthetic unique email for the users table.
+    email = studentSyntheticEmail(regNo)
     if (!branch || !isOfficialBranch(branch)) {
       return badRequest(
         "Please select a valid Branch: Civil Engineering, Computer Science and Engineering, Electronics and Communication Engineering, or Mechanical Engineering",
@@ -85,6 +108,7 @@ export async function POST(req: Request) {
     }
   } else {
     // Faculty / staff / principal / admin / office roles
+    if (!email) return badRequest("Name and email are required")
     if (!regNo) {
       return badRequest(
         "Username is required for staff accounts (this will be your login id, e.g. ACMGPTH).",
@@ -111,12 +135,22 @@ export async function POST(req: Request) {
     }
   }
 
+  if (!email) return badRequest("Name and email are required")
+
   const existing = await query(
     `SELECT 1 FROM users WHERE lower(email) = lower($1) AND deleted_at IS NULL`,
-    [body.email],
+    [email],
   )
   if (existing.rowCount > 0) {
-    return Response.json({ error: "An account with this email already exists" }, { status: 409 })
+    return Response.json(
+      {
+        error:
+          role === "student"
+            ? "An account with this Register Number already exists. Please sign in instead."
+            : "An account with this email already exists",
+      },
+      { status: 409 },
+    )
   }
 
   const passwordHash = await hashPassword(password)
@@ -127,7 +161,7 @@ export async function POST(req: Request) {
      VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)
      RETURNING id, email, role, display_name, reg_no, status`,
     [
-      body.email,
+      email,
       passwordHash,
       role,
       body.name,

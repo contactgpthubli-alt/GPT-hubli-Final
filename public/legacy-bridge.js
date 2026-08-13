@@ -13,7 +13,7 @@
  * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
  * exam/ops/analysis/tc/acm/print are deferred until authenticated).
  */
-var GPT_PERF_V = "20260809demoStu"
+var GPT_PERF_V = "20260809stuReg"
 var _gpthModsPromise = null
 function gpthLoadScript(src) {
   return new Promise(function (resolve) {
@@ -3501,14 +3501,38 @@ function __initGptBridge() {
     if (branchSel) branch = (branchSel.value || branchSel.options[branchSel.selectedIndex] && branchSel.options[branchSel.selectedIndex].text || '').trim();
     if (branch === 'Select Branch / Department' || branch.indexOf('Select') === 0) branch = '';
 
-    if (!name || !email) { alert('Please fill in your full name and email address.'); return; }
+    /** Diploma-style reg no: 171CS25001 (not an email). */
+    function isValidStudentRegClient(v) {
+      var raw = String(v || '').trim();
+      if (!raw) return false;
+      if (raw.indexOf('@') >= 0) return false;
+      if (/[^A-Za-z0-9]/.test(raw)) return false;
+      var u = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (u.length < 9 || u.length > 14) return false;
+      return /^\d{3}[A-Z]{2,4}\d{5,6}$/.test(u);
+    }
+
+    if (!name) { alert('Please enter your full name.'); return; }
+    if (type !== 'Student' && !email) { alert('Please fill in your full name and email address.'); return; }
     if (pwCount >= 1 && !pass) { alert('Please set a password.'); return; }
     if (pwCount >= 2 && pass !== passConfirm) { alert('Passwords do not match.'); return; }
     if (pass && pass.length < 8) { alert('Password must be at least 8 characters.'); return; }
-    if (type === 'Student' && !regNo) { alert('Please enter your Register Number.'); return; }
-    if (type === 'Student' && !branch) {
-      alert('Please select your Branch (Civil / Computer Science and Engineering / Electronics and Communication / Mechanical).');
-      return;
+    if (type === 'Student') {
+      if (!regNo) { alert('Please enter your Register Number (e.g. 171CS25001).'); return; }
+      if (regNo.indexOf('@') >= 0 || !isValidStudentRegClient(regNo)) {
+        alert(
+          'Register Number must be your diploma register number (e.g. 171CS25001).\n' +
+          'Do not enter an email address in this field.'
+        );
+        return;
+      }
+      regNo = regNo.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!branch) {
+        alert('Please select your Branch (Civil / Computer Science and Engineering / Electronics and Communication / Mechanical).');
+        return;
+      }
+      // Server synthesizes a unique email from register number — do not send free-text email.
+      email = '';
     }
     if (type === 'Faculty') {
       if (!username) {
@@ -3531,13 +3555,13 @@ function __initGptBridge() {
 
     var payload = {
       name: name,
-      email: email,
       role: role,
       regNo: regNo || undefined,
       username: username || undefined,
       branch: branch || undefined,
       mobile: mobile || undefined,
     };
+    if (email) payload.email = email;
     if (pass) payload.password = pass; // Faculty form has no password field -> server assigns a temporary password
     var res = await api.post('/api/auth/register', payload);
     if (!res) return;
@@ -3545,15 +3569,20 @@ function __initGptBridge() {
     if (res.status && String(res.status).toLowerCase() !== 'pending') {
       console.warn('[bridge] register returned unexpected status', res.status);
     }
+    var idLine =
+      type === 'Student'
+        ? '\nRegister Number: ' + regNo
+        : (username ? '\nUsername: ' + username : '') + (email ? '\nEmail: ' + email : '');
     alert(
       '📋 ' + type + ' account request submitted!\n\n' +
       'Role: ' + role +
-      (username ? '\nUsername: ' + username : '') +
-      '\nEmail: ' + email +
+      idLine +
       '\n\n⏳ STATUS: PENDING ROOT ADMIN APPROVAL\n\n' +
       'Login will NOT work until Root Admin approves this account under:\n' +
       'Admin → Account Approvals (or User Management).\n\n' +
-      'After approval, login with Username (or email) + your password.' +
+      (type === 'Student'
+        ? 'After approval, login with your Register Number + password.'
+        : 'After approval, login with Username (or email) + your password.') +
       (pass ? '' : '\n\nA temporary password will be assigned after approval. Please change it on first login.')
     );
     box.querySelectorAll('input').forEach(function (inp) { inp.value = ''; });
