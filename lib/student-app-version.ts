@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.5.4"
+export const STUDENT_APP_VERSION = "1.6.0"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,17 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.6.0",
+    date: "2026-08-09",
+    title: "Fees on Android + stricter Create Account",
+    items: [
+      "More → Fees: Regular exam fees, Makeup fees, Admission fees with live status.",
+      "K2 challan guide + multi-receipt submit (same as web portal).",
+      "Create Account: email removed; diploma Register Number only (e.g. 171CS25001).",
+      "Use More → Update / refresh app to load this build without reinstalling the APK.",
+    ],
+  },
   {
     version: "1.5.4",
     date: "2026-07-26",

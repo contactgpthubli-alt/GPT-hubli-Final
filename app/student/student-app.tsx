@@ -19,6 +19,8 @@ import {
   isNativeAndroid,
   showNativeNotification,
 } from "@/lib/native-android"
+import { isValidStudentRegNo, normalizeStudentRegNo } from "@/lib/student-reg-no"
+import { StudentFeesPanel } from "./student-fees-panel"
 import "./student.css"
 
 type Tab = "home" | "profile" | "results" | "forms" | "more"
@@ -35,6 +37,7 @@ type MoreView =
   | "whatsNew"
   | "notifications"
   | "timetable"
+  | "fees"
 
 type PortalMode = "student" | "parent"
 
@@ -461,11 +464,10 @@ export default function StudentApp() {
   const [loginBusy, setLoginBusy] = useState(false)
   const [loginErr, setLoginErr] = useState("")
 
-  // Create account
+  // Create account (no email — register number only, same as web portal)
   const [regName, setRegName] = useState("")
   const [regNo, setRegNo] = useState("")
   const [regBranch, setRegBranch] = useState(BRANCH_OPTIONS[0])
-  const [regEmail, setRegEmail] = useState("")
   const [regPw, setRegPw] = useState("")
   const [regPw2, setRegPw2] = useState("")
   const [regBusy, setRegBusy] = useState(false)
@@ -1162,22 +1164,20 @@ export default function StudentApp() {
     setRegErr("")
     setRegOk("")
     const name = regName.trim()
-    const reg = regNo.trim().toUpperCase()
-    const email = regEmail.trim().toLowerCase()
+    const regRaw = regNo.trim()
     if (!name || name.length < 2) {
       setRegErr("Enter your full name.")
       return
     }
-    if (!reg || reg.length < 6) {
-      setRegErr("Enter a valid Register Number.")
+    if (!isValidStudentRegNo(regRaw)) {
+      setRegErr(
+        "Enter a valid diploma Register Number (e.g. 171CS25001). Do not enter an email address.",
+      )
       return
     }
+    const reg = normalizeStudentRegNo(regRaw)
     if (!regBranch) {
       setRegErr("Select your branch.")
-      return
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setRegErr("Enter a valid email address.")
       return
     }
     if (regPw.length < 8) {
@@ -1193,7 +1193,6 @@ export default function StudentApp() {
       method: "POST",
       body: JSON.stringify({
         name,
-        email,
         password: regPw,
         role: "student",
         regNo: reg,
@@ -1207,7 +1206,7 @@ export default function StudentApp() {
     }
     setRegOk(
       res.data?.message ||
-        "Account created. An admin must approve your account before you can sign in.",
+        "Account created. An admin must approve your account before you can sign in. Login with Register Number + password.",
     )
     setRegPw("")
     setRegPw2("")
@@ -1871,16 +1870,16 @@ export default function StudentApp() {
               </p>
               {loginErr ? <div className="stu-msg stu-msg-err">{loginErr}</div> : null}
               <div className="stu-field">
-                <label>Register No. / Email</label>
+                <label>Register Number</label>
                 <input
                   name="gpth_stu_id"
                   autoComplete="off"
-                  autoCapitalize="none"
+                  autoCapitalize="characters"
                   spellCheck={false}
                   data-lpignore="true"
                   data-1p-ignore="true"
                   data-form-type="other"
-                  placeholder="e.g. 171CS15003"
+                  placeholder="e.g. 171CS25001"
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
                 />
@@ -1929,10 +1928,14 @@ export default function StudentApp() {
                 <label>Register Number *</label>
                 <input
                   autoComplete="off"
-                  placeholder="e.g. 171CS15003"
+                  autoCapitalize="characters"
+                  placeholder="e.g. 171CS25001"
                   value={regNo}
                   onChange={(e) => setRegNo(e.target.value.toUpperCase())}
                 />
+                <div style={{ fontSize: "0.72rem", color: "var(--stu-muted)", marginTop: 4 }}>
+                  Diploma register number only — not an email address.
+                </div>
               </div>
               <div className="stu-field">
                 <label>Branch *</label>
@@ -1943,16 +1946,6 @@ export default function StudentApp() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="stu-field">
-                <label>Email *</label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                />
               </div>
               <div className="stu-field">
                 <label>Password * (min 8)</label>
@@ -1983,7 +1976,7 @@ export default function StudentApp() {
                   style={{ marginTop: 10 }}
                   onClick={() => {
                     switchAuthMode("login")
-                    setLoginId(regEmail || regNo)
+                    setLoginId(regNo)
                   }}
                 >
                   Go to sign in
@@ -2591,6 +2584,17 @@ export default function StudentApp() {
                 type="button"
                 onClick={() => {
                   setTab("more")
+                  setMoreView("fees")
+                }}
+              >
+                <span className="ico">💳</span>
+                <span className="t">Fees</span>
+                <span className="d">Exam · Makeup · Admission · K2</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("more")
                   setMoreView("grievances")
                 }}
               >
@@ -2849,6 +2853,10 @@ export default function StudentApp() {
         {tab === "results" && (
           <div className="stu-card">
             <h3>Semester results</h3>
+            <p style={{ fontSize: "0.8rem", color: "var(--stu-muted)", marginTop: 0, lineHeight: 1.45 }}>
+              Official published ledger. To enter regular / makeup subject marks for verification, use the main web
+              portal Results desk when Exam opens entry.
+            </p>
             {!results.length ? (
               <div className="stu-empty">No results published yet.</div>
             ) : (
@@ -3129,6 +3137,13 @@ export default function StudentApp() {
                     <span className="d">{notices.length} recent</span>
                   </button>
                 </>
+              ) : null}
+              {!isParentMode ? (
+              <button type="button" onClick={() => setMoreView("fees")}>
+                <span className="ico">💳</span>
+                <span className="t">Fees</span>
+                <span className="d">Regular exam · Makeup · Admission · K2</span>
+              </button>
               ) : null}
               {!isParentMode ? (
               <button type="button" onClick={() => setMoreView("certRequest")}>
@@ -3640,6 +3655,15 @@ export default function StudentApp() {
               </>
             )}
           </div>
+        )}
+
+        {tab === "more" && moreView === "fees" && (
+          <StudentFeesPanel
+            api={api}
+            flash={flash}
+            readOnly={!!isReadOnlyPortal}
+            onBack={() => setMoreView("menu")}
+          />
         )}
 
         {tab === "more" && moreView === "notices" && (

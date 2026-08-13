@@ -70,3 +70,16 @@ The app still loads the live site (`server.url`), so most features update withou
 2. Must set personal email + new password  
 3. Choose **Student** or **Parent** once (remembered until logout)  
 4. To switch role: **Logout → Login again → choose again**
+
+## Feature updates (no APK rebuild for most)
+
+The APK shell only opens the live site. After deploy, students should use **More → Update / refresh app** (or reinstall only when native plugins change).
+
+| Area | In student app (`/student`) |
+|------|-----------------------------|
+| Profile, forms, certs, grievances, timetable | Yes |
+| Notices, notifications, parent attendance | Yes |
+| **Fees** (regular / makeup / admission + K2) | Yes (v1.6.0+) |
+| Published semester results | Yes (view) |
+| Self-entry of regular/makeup subject marks | Web portal Results desk (main site) |
+| Staff modules | Main portal only |
