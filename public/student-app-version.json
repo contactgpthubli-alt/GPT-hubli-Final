@@ -1,6 +1,6 @@
 {
-  "version": "1.6.1",
+  "version": "1.6.2",
   "minShell": "1.5.1",
   "recommendedShell": "1.6.0",
-  "message": "Update available: Fees + Create Account fixes. Use More → Update / refresh app. Optional new APK shell v1.6.0 (versionCode 8)."
+  "message": "Update available: if Exam Cell rejects a wrong fee challan, Fees shows what is wrong so you can resubmit. Use More → Update / refresh app."
 }

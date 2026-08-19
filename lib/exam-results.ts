@@ -30,7 +30,13 @@ export const EXAM_FEE_MANAGERS = ["admin", "exam", "principal"] as const
 
 export type AttemptResult = "pass" | "fail" | "absent"
 export type AttemptStatus = "draft" | "pending" | "verified" | "rejected"
-export type FeePaymentStatus = "due" | "challan_submitted" | "paid" | "partial" | "waived"
+export type FeePaymentStatus =
+  | "due"
+  | "challan_submitted"
+  | "paid"
+  | "partial"
+  | "waived"
+  | "rejected"
 
 let schemaReady = false
 

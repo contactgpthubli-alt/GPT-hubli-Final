@@ -1186,12 +1186,24 @@
               esc(p.paid_marked_by_name) +
               '</strong></div>';
           }
+          var rejectBanner =
+            p.status === 'rejected' && p.staff_note
+              ? '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:0.85rem;line-height:1.45;">' +
+                '<strong>Exam Cell removed your makeup submission.</strong><br>What is wrong: ' +
+                esc(p.staff_note) +
+                '<br><span style="opacity:.85;">Please correct and submit makeup challan details again.</span></div>'
+              : p.staff_note && (p.status === 'due' || p.status === 'rejected')
+                ? '<div style="margin-top:8px;font-size:0.82rem;color:#991b1b;">Exam note: ' +
+                  esc(p.staff_note) +
+                  '</div>'
+                : '';
           stEl.innerHTML =
             'Makeup status: <strong>' +
             esc(p.status) +
             '</strong>' +
             (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
-            stampHtml;
+            stampHtml +
+            rejectBanner;
         }
       }
     } catch (e) {
@@ -1465,10 +1477,22 @@
               esc(p.paid_marked_by_name) +
               '</strong></div>';
           }
+          var rejectBanner =
+            p.status === 'rejected' && p.staff_note
+              ? '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:0.85rem;line-height:1.45;">' +
+                '<strong>Exam Cell removed your submission.</strong><br>What is wrong: ' +
+                esc(p.staff_note) +
+                '<br><span style="opacity:.85;">Please correct and submit challan details again below.</span></div>'
+              : p.staff_note && (p.status === 'due' || p.status === 'rejected')
+                ? '<div style="margin-top:8px;font-size:0.82rem;color:#991b1b;">Exam note: ' +
+                  esc(p.staff_note) +
+                  '</div>'
+                : '';
           stEl.innerHTML =
             'Status: <strong>' + esc(p.status) + '</strong>' +
             (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
             stampHtml +
+            rejectBanner +
             (p.challans && p.challans.length
               ? '<div style="margin-top:6px;font-size:0.75rem;">' +
                 p.challans.map(function (c) {
@@ -1781,7 +1805,8 @@
             prefix +
             'FdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
             '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
-            '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+            '<option value="paid">Paid</option><option value="partial">Partial</option>' +
+            '<option value="due">Due</option><option value="rejected">Rejected / deleted</option></select>' +
             '<button type="button" class="btn ol" data-exam-reload-fd="' +
             prefix +
             '">Load students</button>' +
@@ -1980,7 +2005,8 @@
             '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
             '<select id="' + prefix + 'MkFdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
             '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
-            '<option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option></select>' +
+            '<option value="paid">Paid</option><option value="partial">Partial</option>' +
+            '<option value="due">Due</option><option value="rejected">Rejected / deleted</option></select>' +
             '<button type="button" class="btn ol" onclick="window.makeupStaffLoadFees&&window.makeupStaffLoadFees(\'' +
             prefix + "')\">Load students</button>" +
             '<button type="button" class="btn go" data-exam-fee-export="makeup" ' +
@@ -3078,6 +3104,16 @@
         var ch = (p.challans || []).map(function (c) {
           return esc(c.receipt_no) + ' ₹' + c.amount;
         }).join('<br>') || '—';
+        var reasonHtml =
+          p.staff_note && (p.status === 'rejected' || p.status === 'due')
+            ? '<div style="margin-top:4px;font-size:0.72rem;color:#991b1b;max-width:180px;">Why: ' +
+              esc(p.staff_note) +
+              '</div>'
+            : p.staff_note
+              ? '<div style="margin-top:4px;font-size:0.7rem;opacity:.75;max-width:180px;">' +
+                esc(p.staff_note) +
+                '</div>'
+              : '';
         html += '<tr style="border-bottom:1px solid var(--border);">' +
           '<td style="padding:6px;"><strong>' + esc(p.reg_no) + '</strong><div style="opacity:.75;">' +
           esc(p.name) + '</div></td>' +
@@ -3086,14 +3122,26 @@
           (p.challan_total != null ? '<div style="font-size:0.7rem;">Paid-in ₹' + p.challan_total + '</div>' : '') +
           '</td>' +
           '<td style="padding:6px;font-size:0.72rem;">' + ch + '</td>' +
-          '<td style="padding:6px;"><strong>' + esc(p.status) + '</strong></td>' +
+          '<td style="padding:6px;"><strong>' + esc(p.status) + '</strong>' + reasonHtml + '</td>' +
           '<td style="padding:6px;white-space:nowrap;">' +
           '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" ' +
           "onclick='window.examMarkPaid(" + p.id + ",\"paid\")'>Paid</button> " +
           '<button type="button" class="btn ol" style="padding:4px 8px;font-size:0.72rem;" ' +
           "onclick='window.examMarkPaid(" + p.id + ",\"partial\")'>Partial</button> " +
           '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b45309;color:#fff;" ' +
-          "onclick='window.examMarkPaid(" + p.id + ",\"due\")'>Due</button>" +
+          "onclick='window.examMarkPaid(" + p.id + ",\"due\")'>Due</button> " +
+          '<button type="button" class="btn pr" style="padding:4px 8px;font-size:0.72rem;" ' +
+          "onclick='window.examFeeEditSubmission&&window.examFeeEditSubmission(" +
+          p.id +
+          ",\"" +
+          prefix +
+          "\")'>Edit</button> " +
+          '<button type="button" class="btn re" style="padding:4px 8px;font-size:0.72rem;" ' +
+          "onclick='window.examFeeDeleteSubmission&&window.examFeeDeleteSubmission(" +
+          p.id +
+          ",\"" +
+          prefix +
+          "\")'>Delete</button>" +
           '</td></tr>';
       });
       html += '</tbody></table>';
@@ -3393,6 +3441,12 @@
               return esc(c.receipt_no) + ' ₹' + c.amount;
             })
             .join('<br>') || '—';
+        var reasonHtml =
+          p.staff_note && (p.status === 'rejected' || p.status === 'due')
+            ? '<div style="margin-top:4px;font-size:0.72rem;color:#991b1b;max-width:180px;">Why: ' +
+              esc(p.staff_note) +
+              '</div>'
+            : '';
         html +=
           '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
           esc(p.reg_no) +
@@ -3404,7 +3458,9 @@
           ch +
           '</td><td style="padding:6px;"><strong>' +
           esc(p.status) +
-          '</strong></td><td style="padding:6px;white-space:nowrap;">' +
+          '</strong>' +
+          reasonHtml +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
           '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupMarkPaid(' +
           p.id +
           ',\'paid\',\'' +
@@ -3419,7 +3475,17 @@
           p.id +
           ',\'due\',\'' +
           prefix +
-          '\')">Due</button></td></tr>';
+          '\')">Due</button> ' +
+          '<button type="button" class="btn pr" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupFeeEditSubmission&&window.makeupFeeEditSubmission(' +
+          p.id +
+          ',\'' +
+          prefix +
+          '\')">Edit</button> ' +
+          '<button type="button" class="btn re" style="padding:4px 8px;font-size:0.72rem;" onclick="window.makeupFeeDeleteSubmission&&window.makeupFeeDeleteSubmission(' +
+          p.id +
+          ',\'' +
+          prefix +
+          '\')">Delete</button></td></tr>';
       });
       html += '</tbody></table>';
       list.innerHTML = html;
@@ -3604,6 +3670,204 @@
       });
     } catch (e) {
       alert(e.message);
+    }
+  };
+
+  function examFeeFindCachedPayment(kind, id) {
+    var caches = window._examFeeExportCache || {};
+    var keys = Object.keys(caches);
+    for (var i = 0; i < keys.length; i++) {
+      if (kind && keys[i].indexOf(':' + kind) < 0) continue;
+      var payments = (caches[keys[i]] && caches[keys[i]].payments) || [];
+      for (var j = 0; j < payments.length; j++) {
+        if (Number(payments[j].id) === Number(id)) return payments[j];
+      }
+    }
+    return null;
+  }
+
+  function examFeeParseChallanLines(text) {
+    var lines = String(text || '')
+      .split(/\r?\n/)
+      .map(function (l) {
+        return l.trim();
+      })
+      .filter(Boolean);
+    var challans = [];
+    lines.forEach(function (line) {
+      // RECEIPT AMOUNT  or  RECEIPT,AMOUNT  or  RECEIPT:AMOUNT
+      var m = line.match(/^(.+?)[\s,=:]+(\d+(?:\.\d+)?)\s*$/);
+      if (!m) return;
+      var no = m[1].trim();
+      var amt = Number(m[2]);
+      if (no && amt > 0) challans.push({ receipt_no: no, amount: amt });
+    });
+    return challans;
+  }
+
+  /** Exam Cell — edit student challan receipt(s) / amounts */
+  window.examFeeEditSubmission = async function (id, prefix) {
+    var p = examFeeFindCachedPayment('regular', id) || {};
+    var existing = (p.challans || [])
+      .map(function (c) {
+        return c.receipt_no + ' ' + c.amount;
+      })
+      .join('\n');
+    var text = prompt(
+      'Edit K2 challans for ' +
+        (p.reg_no || '#' + id) +
+        '\nOne per line: RECEIPT_NO AMOUNT\nExample:\nCR123456 350\nCR789012 50',
+      existing || '',
+    );
+    if (text == null) return;
+    var challans = examFeeParseChallanLines(text);
+    if (!challans.length) {
+      alert('Enter at least one valid line: RECEIPT_NO AMOUNT');
+      return;
+    }
+    var note =
+      prompt(
+        'Optional note for student (what you corrected). Leave blank to keep previous note.',
+        p.staff_note || '',
+      ) || '';
+    try {
+      var body = {
+        id: Number(id),
+        status: p.status === 'paid' || p.status === 'partial' || p.status === 'rejected'
+          ? 'challan_submitted'
+          : p.status || 'challan_submitted',
+        challans: challans,
+      };
+      if (String(note).trim()) body.note = String(note).trim();
+      var data = await api('/api/exam/fees', { method: 'PATCH', body: body });
+      alert(data.message || 'Challan details updated.');
+      if (prefix) window.examStaffLoadFees(prefix);
+      else
+        ;['adEx', 'facEx'].forEach(function (px) {
+          if (document.getElementById(px + 'FdList')) window.examStaffLoadFees(px);
+        });
+    } catch (e) {
+      alert(e.message || 'Edit failed');
+    }
+  };
+
+  /**
+   * Exam Cell — delete/reject wrong submission.
+   * Must type what is wrong; student sees that reason and can resubmit.
+   */
+  window.examFeeDeleteSubmission = async function (id, prefix) {
+    var p = examFeeFindCachedPayment('regular', id) || {};
+    var reason = prompt(
+      'Delete this fee submission for ' +
+        (p.reg_no || '#' + id) +
+        '?\n\nTell the student what is wrong (REQUIRED).\n' +
+        'Example: Wrong challan number — please re-enter the correct K2 receipt.',
+      '',
+    );
+    if (reason == null) return;
+    reason = String(reason).trim();
+    if (!reason) {
+      alert('You must tell the student what is wrong before deleting.');
+      return;
+    }
+    if (
+      !confirm(
+        'Remove this submission?\n\nStudent will see:\n"' +
+          reason +
+          '"\n\nThey can then enter corrected challan details.',
+      )
+    ) {
+      return;
+    }
+    try {
+      var data = await api('/api/exam/fees', {
+        method: 'DELETE',
+        body: { id: Number(id), reason: reason },
+      });
+      alert(data.message || 'Submission removed. Student can see the reason.');
+      if (prefix) window.examStaffLoadFees(prefix);
+      else
+        ;['adEx', 'facEx'].forEach(function (px) {
+          if (document.getElementById(px + 'FdList')) window.examStaffLoadFees(px);
+        });
+    } catch (e) {
+      alert(e.message || 'Delete failed');
+    }
+  };
+
+  window.makeupFeeEditSubmission = async function (id, prefix) {
+    var p = examFeeFindCachedPayment('makeup', id) || {};
+    var existing = (p.challans || [])
+      .map(function (c) {
+        return c.receipt_no + ' ' + c.amount;
+      })
+      .join('\n');
+    var text = prompt(
+      'Edit makeup K2 challans for ' +
+        (p.reg_no || '#' + id) +
+        '\nOne per line: RECEIPT_NO AMOUNT',
+      existing || '',
+    );
+    if (text == null) return;
+    var challans = examFeeParseChallanLines(text);
+    if (!challans.length) {
+      alert('Enter at least one valid line: RECEIPT_NO AMOUNT');
+      return;
+    }
+    var note =
+      prompt(
+        'Optional note for student (what you corrected). Leave blank to keep previous note.',
+        p.staff_note || '',
+      ) || '';
+    try {
+      var body = {
+        id: Number(id),
+        status: p.status === 'paid' || p.status === 'partial' || p.status === 'rejected'
+          ? 'challan_submitted'
+          : p.status || 'challan_submitted',
+        challans: challans,
+      };
+      if (String(note).trim()) body.note = String(note).trim();
+      var data = await api('/api/exam/makeup/fees', { method: 'PATCH', body: body });
+      alert(data.message || 'Makeup challan details updated.');
+      if (prefix) window.makeupStaffLoadFees(prefix);
+    } catch (e) {
+      alert(e.message || 'Edit failed');
+    }
+  };
+
+  window.makeupFeeDeleteSubmission = async function (id, prefix) {
+    var p = examFeeFindCachedPayment('makeup', id) || {};
+    var reason = prompt(
+      'Delete this makeup fee submission for ' +
+        (p.reg_no || '#' + id) +
+        '?\n\nTell the student what is wrong (REQUIRED).',
+      '',
+    );
+    if (reason == null) return;
+    reason = String(reason).trim();
+    if (!reason) {
+      alert('You must tell the student what is wrong before deleting.');
+      return;
+    }
+    if (
+      !confirm(
+        'Remove this makeup submission?\n\nStudent will see:\n"' +
+          reason +
+          '"\n\nThey can then enter corrected challan details.',
+      )
+    ) {
+      return;
+    }
+    try {
+      var data = await api('/api/exam/makeup/fees', {
+        method: 'DELETE',
+        body: { id: Number(id), reason: reason },
+      });
+      alert(data.message || 'Makeup submission removed.');
+      if (prefix) window.makeupStaffLoadFees(prefix);
+    } catch (e) {
+      alert(e.message || 'Delete failed');
     }
   };
 

@@ -26,6 +26,7 @@ type FeeBundle = {
     challan_total?: number
     challans?: Challan[]
     student_note?: string | null
+    staff_note?: string | null
     paid_marked_by_name?: string | null
     paid_marked_by_role?: string | null
     paid_marked_at?: string | null
@@ -76,6 +77,7 @@ function statusLabel(st?: string) {
   const s = String(st || "not_paid")
   if (s === "challan_submitted") return "Challan submitted"
   if (s === "not_paid") return "Not paid"
+  if (s === "rejected") return "Rejected — fix and resubmit"
   return s.replace(/_/g, " ")
 }
 
@@ -461,6 +463,15 @@ export function StudentFeesPanel({
                 {regular.payment.paid_marked_by_role ? ` (${regular.payment.paid_marked_by_role})` : ""}
               </div>
             ) : null}
+            {regPaySt === "rejected" && regular?.payment?.staff_note ? (
+              <div className="stu-msg stu-msg-err" style={{ marginTop: 10, fontSize: "0.84rem", lineHeight: 1.45 }}>
+                <strong>Exam Cell removed your submission.</strong>
+                <br />
+                What is wrong: {regular.payment.staff_note}
+                <br />
+                Please correct and submit challan details again below.
+              </div>
+            ) : null}
           </div>
           {!readOnly && regPaySt !== "paid" ? (
             <div className="stu-sec-card">
@@ -532,6 +543,15 @@ export function StudentFeesPanel({
                     <span className="v">
                       <span className={statusClass(mkPaySt)}>{statusLabel(mkPaySt)}</span>
                     </span>
+                  </div>
+                ) : null}
+                {mkPaySt === "rejected" && makeup.payment?.staff_note ? (
+                  <div className="stu-msg stu-msg-err" style={{ marginTop: 10, fontSize: "0.84rem", lineHeight: 1.45 }}>
+                    <strong>Exam Cell removed your makeup submission.</strong>
+                    <br />
+                    What is wrong: {makeup.payment.staff_note}
+                    <br />
+                    Please correct and submit makeup challan details again.
                   </div>
                 ) : null}
               </div>

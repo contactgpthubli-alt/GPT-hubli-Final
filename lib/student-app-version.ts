@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.6.1"
+export const STUDENT_APP_VERSION = "1.6.2"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,15 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.6.2",
+    date: "2026-08-19",
+    title: "Exam fee reject reason on Fees",
+    items: [
+      "If Exam Cell deletes a wrong challan submission, Fees shows what is wrong.",
+      "You can correct the receipt/amount and submit again after a rejection.",
+    ],
+  },
   {
     version: "1.6.1",
     date: "2026-08-09",

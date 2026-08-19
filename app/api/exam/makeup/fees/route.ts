@@ -302,6 +302,7 @@ export async function POST(req: Request) {
          status = CASE WHEN $6 THEN status ELSE 'challan_submitted' END,
          challans = $7::jsonb,
          student_note = $8,
+         staff_note = CASE WHEN $6 THEN staff_note ELSE NULL END,
          submitted_at = now(),
          updated_at = now()
        WHERE id = $1
@@ -352,7 +353,7 @@ export async function POST(req: Request) {
   })
 }
 
-/** PATCH — Exam marks makeup fee paid / partial / due */
+/** PATCH — Exam marks makeup fee paid / partial / due / rejected, or edits challans */
 export async function PATCH(req: Request) {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
@@ -364,29 +365,123 @@ export async function PATCH(req: Request) {
   const id = Number(b.id)
   if (!id) return badRequest("id required")
   const status = String(b.status || "").toLowerCase() as FeePaymentStatus
-  if (!["paid", "partial", "due", "challan_submitted", "waived"].includes(status)) {
+  if (!["paid", "partial", "due", "challan_submitted", "waived", "rejected"].includes(status)) {
     return badRequest("Invalid status")
   }
-  const stamp = stampFromSession(
-    user,
-    status === "paid" || status === "partial" ? "paid" : "updated",
+  const action =
+    status === "paid" || status === "partial"
+      ? "paid"
+      : status === "rejected"
+        ? "rejected"
+        : Array.isArray(b.challans)
+          ? "edited"
+          : "updated"
+  const stamp = stampFromSession(user, action)
+  const staffNoteRaw =
+    b.staff_note != null
+      ? stripEmoji(String(b.staff_note)).slice(0, 400)
+      : b.note != null
+        ? stripEmoji(String(b.note)).slice(0, 400)
+        : null
+
+  const { rows: cur } = await query(
+    `SELECT * FROM exam_fee_payments WHERE id = $1 AND fee_kind = 'makeup'`,
+    [id],
   )
-  const staffNote =
-    b.staff_note != null ? stripEmoji(String(b.staff_note)).slice(0, 400) : null
+  if (!cur[0]) return badRequest("Makeup payment not found")
+  if (!(await staffCanAccessReg(user, String(cur[0].reg_no)))) return unauthorized()
+
+  let challansJson = cur[0].challans
+  if (Array.isArray(b.challans)) {
+    challansJson = parseChallans(b.challans)
+  }
 
   const { rows } = await query(
     `UPDATE exam_fee_payments SET
        status = $1,
        staff_note = COALESCE(NULLIF($2,''), staff_note),
-       paid_marked_at = CASE WHEN $1 IN ('paid','partial','waived') THEN now() ELSE paid_marked_at END,
-       paid_marked_by = CASE WHEN $1 IN ('paid','partial','waived') THEN $3 ELSE paid_marked_by END,
-       paid_marked_by_name = CASE WHEN $1 IN ('paid','partial','waived') THEN $4 ELSE paid_marked_by_name END,
-       paid_marked_by_role = CASE WHEN $1 IN ('paid','partial','waived') THEN $5 ELSE paid_marked_by_role END,
+       challans = $3::jsonb,
+       paid_marked_at = now(),
+       paid_marked_by = $4,
+       paid_marked_by_name = $5,
+       paid_marked_by_role = $6,
        updated_at = now()
-     WHERE id = $6 AND fee_kind = 'makeup'
+     WHERE id = $7 AND fee_kind = 'makeup'
      RETURNING *`,
-    [status, staffNote || "", stamp.by_id, stamp.by_name, stamp.by_role, id],
+    [
+      status,
+      staffNoteRaw || "",
+      JSON.stringify(challansJson),
+      stamp.by_id,
+      stamp.by_name,
+      stamp.by_role,
+      id,
+    ],
   )
   if (!rows[0]) return badRequest("Makeup payment not found")
-  return Response.json({ ok: true, payment: rows[0], stamp })
+  return Response.json({
+    ok: true,
+    payment: rows[0],
+    stamp,
+    message:
+      status === "rejected"
+        ? "Submission rejected. Student can see the reason and resubmit."
+        : Array.isArray(b.challans)
+          ? "Makeup challan details updated by Exam Cell."
+          : "Makeup fee status updated.",
+  })
+}
+
+/**
+ * DELETE — Exam Cell removes a wrong makeup fee submission.
+ * Body: { id, reason } — reason required; shown to the student.
+ */
+export async function DELETE(req: Request) {
+  const user = await getCurrentUser()
+  if (!user) return unauthorized()
+  if (!canManageMakeup(user.role)) return unauthorized()
+  await ensureMakeupExamSchema()
+
+  const b = (await req.json().catch(() => null)) as Record<string, unknown> | null
+  if (!b) return badRequest("JSON required")
+  const id = Number(b.id)
+  if (!id) return badRequest("id required")
+
+  const reason = stripEmoji(String(b.reason || b.note || "")).trim().slice(0, 500)
+  if (!reason) {
+    return badRequest("Tell the student what is wrong (reason is required before delete).")
+  }
+
+  const { rows: cur } = await query(
+    `SELECT * FROM exam_fee_payments WHERE id = $1 AND fee_kind = 'makeup'`,
+    [id],
+  )
+  if (!cur[0]) return badRequest("Makeup payment not found")
+  if (!(await staffCanAccessReg(user, String(cur[0].reg_no)))) return unauthorized()
+
+  const stamp = stampFromSession(user, "deleted")
+  await query(
+    `UPDATE exam_fee_payments SET
+       status = 'rejected',
+       staff_note = $1,
+       challans = '[]'::jsonb,
+       paid_marked_at = now(),
+       paid_marked_by = $2,
+       paid_marked_by_name = $3,
+       paid_marked_by_role = $4,
+       updated_at = now()
+     WHERE id = $5 AND fee_kind = 'makeup'`,
+    [reason, stamp.by_id, stamp.by_name, stamp.by_role, id],
+  )
+
+  return Response.json({
+    ok: true,
+    deleted: true,
+    id,
+    status: "rejected",
+    reason,
+    stamp,
+    message:
+      "Makeup submission removed. Student will see why and can enter corrected challan details.",
+  })
 }

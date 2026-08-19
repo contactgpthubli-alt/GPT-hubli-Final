@@ -156,7 +156,8 @@ async function listFees(
       FROM exam_fee_payments p
       JOIN users u ON u.reg_no = p.reg_no AND u.role = 'student' AND u.deleted_at IS NULL
       LEFT JOIN students s ON s.reg_no = p.reg_no
-     WHERE p.exam_cycle = $1`
+     WHERE p.exam_cycle = $1
+       AND COALESCE(p.fee_kind, 'regular') = 'regular'`
   if (statusF) {
     params.push(statusF)
     sql += ` AND p.status = $${params.length}`
@@ -289,6 +290,7 @@ export async function POST(req: Request) {
       `UPDATE exam_fee_payments SET
          entry_type = $1, computed_total = $2, fine_amount = $3, breakup = $4::jsonb,
          challans = $5::jsonb, status = 'challan_submitted', student_note = $6,
+         staff_note = NULL,
          submitted_at = now(), updated_at = now()
        WHERE id = $7`,
       [
@@ -344,8 +346,8 @@ export async function PATCH(req: Request) {
   const id = Number(b.id)
   const reg = String(b.reg_no || "").trim()
   const status = String(b.status || "").toLowerCase()
-  if (!["paid", "due", "partial", "waived", "challan_submitted"].includes(status)) {
-    return badRequest("status must be paid | due | partial | waived | challan_submitted")
+  if (!["paid", "due", "partial", "waived", "challan_submitted", "rejected"].includes(status)) {
+    return badRequest("status must be paid | due | partial | waived | challan_submitted | rejected")
   }
 
   let payId = id
@@ -403,17 +405,26 @@ export async function PATCH(req: Request) {
     challansJson = parseChallans(b.challans)
   }
 
-  const payStamp = stampFromSession(user, status === "paid" || status === "partial" ? "paid" : "updated")
+  const action =
+    status === "paid" || status === "partial"
+      ? "paid"
+      : status === "rejected"
+        ? "rejected"
+        : Array.isArray(b.challans)
+          ? "edited"
+          : "updated"
+  const payStamp = stampFromSession(user, action)
 
+  // Always stamp who last changed (paid / edit / reject / due)
   await query(
     `UPDATE exam_fee_payments SET
        status = $1,
        staff_note = $2,
        challans = $3::jsonb,
-       paid_marked_at = CASE WHEN $1 IN ('paid','partial','waived') THEN now() ELSE paid_marked_at END,
-       paid_marked_by = CASE WHEN $1 IN ('paid','partial','waived') THEN $4 ELSE paid_marked_by END,
-       paid_marked_by_name = CASE WHEN $1 IN ('paid','partial','waived') THEN $5 ELSE paid_marked_by_name END,
-       paid_marked_by_role = CASE WHEN $1 IN ('paid','partial','waived') THEN $6 ELSE paid_marked_by_role END,
+       paid_marked_at = now(),
+       paid_marked_by = $4,
+       paid_marked_by_name = $5,
+       paid_marked_by_role = $6,
        updated_at = now()
      WHERE id = $7`,
     [
@@ -432,6 +443,80 @@ export async function PATCH(req: Request) {
     id: payId,
     status,
     stamp: payStamp,
-    message: "Payment status updated manually (no K2 API).",
+    message:
+      status === "rejected"
+        ? "Submission rejected. Student can see the reason and resubmit."
+        : Array.isArray(b.challans)
+          ? "Challan details updated by Exam Cell."
+          : "Payment status updated manually (no K2 API).",
+  })
+}
+
+/**
+ * DELETE — Exam Cell removes a wrong student fee submission.
+ * Body: { id, reason } — reason is required and shown to the student.
+ * Soft-rejects (status=rejected, challans cleared) so the student can fix and resubmit.
+ */
+export async function DELETE(req: Request) {
+  const user = await requireRole(...EXAM_FEE_MANAGERS)
+  if (!user) return unauthorized()
+  await ensureExamResultsSchema()
+
+  const b = await req.json().catch(() => null)
+  if (!b || typeof b !== "object") return badRequest("JSON required")
+
+  const id = Number(b.id)
+  if (!id || !Number.isFinite(id)) return badRequest("id required")
+
+  const reason = stripEmoji(String(b.reason || b.note || "")).trim().slice(0, 500)
+  if (!reason) {
+    return badRequest("Tell the student what is wrong (reason is required before delete).")
+  }
+
+  const { rows: cur } = await query(`SELECT * FROM exam_fee_payments WHERE id = $1`, [id])
+  if (!cur[0]) return badRequest("Payment record not found")
+  if (!(await staffCanAccessReg(user, String(cur[0].reg_no)))) return unauthorized()
+
+  const stamp = stampFromSession(user, "deleted")
+  const hard = b.hard === true || b.mode === "hard"
+
+  if (hard && user.role === "admin") {
+    await query(`DELETE FROM exam_fee_payments WHERE id = $1`, [id])
+    return Response.json({
+      ok: true,
+      deleted: true,
+      hard: true,
+      id,
+      reason,
+      stamp,
+      message: "Fee submission permanently deleted.",
+    })
+  }
+
+  // Soft delete / reject — keep row, clear challans, store reason for student
+  await query(
+    `UPDATE exam_fee_payments SET
+       status = 'rejected',
+       staff_note = $1,
+       challans = '[]'::jsonb,
+       paid_marked_at = now(),
+       paid_marked_by = $2,
+       paid_marked_by_name = $3,
+       paid_marked_by_role = $4,
+       updated_at = now()
+     WHERE id = $5`,
+    [reason, user.id, user.display_name || user.email, user.role, id],
+  )
+
+  return Response.json({
+    ok: true,
+    deleted: true,
+    hard: false,
+    id,
+    status: "rejected",
+    reason,
+    stamp,
+    message:
+      "Submission removed. Student will see why and can enter corrected challan details.",
   })
 }
