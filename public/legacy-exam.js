@@ -3002,6 +3002,9 @@
         p.name || '',
         p.branch || '',
         p.entry_type || '',
+        p.failed_count != null ? p.failed_count : '',
+        p.regular_sem != null ? p.regular_sem : '',
+        p.fee_lines_summary || '',
         p.status || '',
         p.computed_total != null ? p.computed_total : '',
         p.fine_amount != null ? p.fine_amount : '',
@@ -3025,6 +3028,9 @@
     'Name',
     'Branch',
     'Entry type',
+    'Failed subjects',
+    'Regular sem',
+    'Fee breakup',
     'Status',
     'Computed total (Rs)',
     'Fine (Rs)',
@@ -3099,7 +3105,10 @@
       }
       var html =
         '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
-        '<th>Reg / Name</th><th>Branch</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        '<th>Reg / Name</th><th>Branch</th>' +
+        '<th title="Open fail / absent subjects (not yet passed)">Failed subjects</th>' +
+        '<th title="Running / regular semester for this academic term">Regular sem</th>' +
+        '<th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
       payments.forEach(function (p) {
         var ch = (p.challans || []).map(function (c) {
           return esc(c.receipt_no) + ' ₹' + c.amount;
@@ -3114,10 +3123,30 @@
                 esc(p.staff_note) +
                 '</div>'
               : '';
+        var failedN = p.failed_count != null ? Number(p.failed_count) : null;
+        var regSem = p.regular_sem != null ? Number(p.regular_sem) : null;
+        var failedHtml =
+          failedN == null || !Number.isFinite(failedN)
+            ? '<span style="opacity:.5;">—</span>'
+            : failedN > 0
+              ? '<strong style="color:#b91c1c;">' + failedN + '</strong>'
+              : '<strong style="color:#166534;">0</strong>';
+        var regSemHtml =
+          regSem != null && Number.isFinite(regSem)
+            ? '<strong>Sem ' + regSem + '</strong>'
+            : '<span style="opacity:.5;">—</span>';
+        if (p.fee_lines_summary) {
+          regSemHtml +=
+            '<div style="font-size:0.68rem;opacity:.75;max-width:160px;line-height:1.3;margin-top:2px;">' +
+            esc(p.fee_lines_summary) +
+            '</div>';
+        }
         html += '<tr style="border-bottom:1px solid var(--border);">' +
           '<td style="padding:6px;"><strong>' + esc(p.reg_no) + '</strong><div style="opacity:.75;">' +
           esc(p.name) + '</div></td>' +
           '<td style="padding:6px;font-size:0.72rem;">' + esc(p.branch || '') + '</td>' +
+          '<td style="padding:6px;text-align:center;">' + failedHtml + '</td>' +
+          '<td style="padding:6px;">' + regSemHtml + '</td>' +
           '<td style="padding:6px;">₹ ' + p.computed_total +
           (p.challan_total != null ? '<div style="font-size:0.7rem;">Paid-in ₹' + p.challan_total + '</div>' : '') +
           '</td>' +

@@ -14,12 +14,60 @@ import {
   type AttemptResult,
   type AttemptStatus,
   type ChallanEntry,
+  type FeeBreakupLine,
   EXAM_FEE_MANAGERS,
 } from "@/lib/exam-results"
+import { inferCurrentSemester } from "@/lib/academic-year"
 import { stripEmoji } from "@/lib/no-emoji"
 import { stampFromSession } from "@/lib/signature-stamp"
 import { hodBranchOf } from "@/lib/account-approvals"
 import { branchCodeFromDept } from "@/lib/curriculum-c20"
+
+/** Failed subject count + running regular semester for Exam Fee desk columns. */
+function feeDeskSubjectCols(
+  breakup: unknown,
+  entryType: string | null | undefined,
+  currentStudyYear: number | null | undefined,
+  liveLines?: FeeBreakupLine[],
+): {
+  failed_count: number
+  regular_sem: number | null
+  fee_lines_summary: string
+} {
+  const lines: Array<{ kind?: string; fail_count?: number; semester?: number | null; label?: string }> =
+    Array.isArray(liveLines) && liveLines.length
+      ? liveLines
+      : Array.isArray(breakup)
+        ? (breakup as Array<{ kind?: string; fail_count?: number; semester?: number | null; label?: string }>)
+        : []
+
+  let failed = 0
+  let regularFromLine: number | null = null
+  const bits: string[] = []
+  for (const l of lines) {
+    if (!l) continue
+    const kind = String(l.kind || "")
+    if (kind === "fine") continue
+    const fc = Number(l.fail_count) || 0
+    failed += fc
+    if (kind === "regular" && l.semester != null && Number.isFinite(Number(l.semester))) {
+      regularFromLine = Number(l.semester)
+    }
+    if (l.label) bits.push(String(l.label))
+  }
+  const regular_sem =
+    regularFromLine ??
+    inferCurrentSemester(
+      currentStudyYear != null && Number.isFinite(Number(currentStudyYear))
+        ? Number(currentStudyYear)
+        : null,
+    )
+  return {
+    failed_count: failed,
+    regular_sem,
+    fee_lines_summary: bits.join(" · "),
+  }
+}
 
 function mapAttempt(r: Record<string, unknown>): ExamAttemptRow {
   return {
@@ -177,37 +225,86 @@ async function listFees(
   sql += ` ORDER BY p.updated_at DESC LIMIT 1000`
 
   const { rows } = await query(sql, params)
+
+  // Live failed-count from attempts (breakup alone can be stale)
+  const regs = Array.from(
+    new Set(rows.map((r) => String(r.reg_no || "").trim()).filter(Boolean)),
+  )
+  const attemptsByReg = new Map<string, ExamAttemptRow[]>()
+  if (regs.length) {
+    const { rows: attRows } = await query(
+      `SELECT * FROM student_exam_attempts WHERE reg_no = ANY($1::text[]) ORDER BY id`,
+      [regs],
+    )
+    for (const a of attRows) {
+      const reg = String(a.reg_no)
+      if (!attemptsByReg.has(reg)) attemptsByReg.set(reg, [])
+      attemptsByReg.get(reg)!.push(mapAttempt(a))
+    }
+  }
+
   return Response.json({
-    payments: rows.map((r) => ({
-      id: r.id,
-      reg_no: r.reg_no,
-      name: r.display_name,
-      branch: r.dept || r.user_branch,
-      entry_type: r.entry_type,
-      status: r.status,
-      computed_total: r.computed_total,
-      fine_amount: r.fine_amount,
-      challans: parseChallans(r.challans),
-      challan_total: challanTotal(parseChallans(r.challans)),
-      student_note: r.student_note,
-      staff_note: r.staff_note,
-      submitted_at: r.submitted_at,
-      paid_marked_at: r.paid_marked_at,
-      paid_marked_by_name: r.paid_marked_by_name,
-      paid_marked_by_role: r.paid_marked_by_role ?? null,
-      stamp: r.paid_marked_by_name
-        ? stampFromSession(
-            {
-              id: r.paid_marked_by != null ? Number(r.paid_marked_by) : null,
-              display_name: String(r.paid_marked_by_name),
-              role: r.paid_marked_by_role != null ? String(r.paid_marked_by_role) : null,
-            },
-            r.status === "paid" || r.status === "partial" ? "paid" : "updated",
-            { at: r.paid_marked_at ? String(r.paid_marked_at) : null },
-          )
-        : null,
-      updated_at: r.updated_at,
-    })),
+    payments: rows.map((r) => {
+      const reg = String(r.reg_no)
+      const studyYear =
+        r.current_study_year != null && Number.isFinite(Number(r.current_study_year))
+          ? Number(r.current_study_year)
+          : null
+      const entryType =
+        String(r.entry_type || "regular").toLowerCase() === "lateral" ? "lateral" : "regular"
+      const attempts = attemptsByReg.get(reg) || []
+      let liveLines: FeeBreakupLine[] | undefined
+      if (attempts.length) {
+        try {
+          const fees = computeExamFees({
+            entryType,
+            currentStudyYear: studyYear,
+            currentSemester: inferCurrentSemester(studyYear),
+            effective: effectiveSubjectStatus(attempts),
+            fine: 0,
+            includePending: true,
+          })
+          liveLines = fees.lines
+        } catch {
+          liveLines = undefined
+        }
+      }
+      const cols = feeDeskSubjectCols(r.breakup, entryType, studyYear, liveLines)
+      return {
+        id: r.id,
+        reg_no: r.reg_no,
+        name: r.display_name,
+        branch: r.dept || r.user_branch,
+        entry_type: r.entry_type,
+        current_study_year: studyYear,
+        status: r.status,
+        computed_total: r.computed_total,
+        fine_amount: r.fine_amount,
+        challans: parseChallans(r.challans),
+        challan_total: challanTotal(parseChallans(r.challans)),
+        student_note: r.student_note,
+        staff_note: r.staff_note,
+        submitted_at: r.submitted_at,
+        paid_marked_at: r.paid_marked_at,
+        paid_marked_by_name: r.paid_marked_by_name,
+        paid_marked_by_role: r.paid_marked_by_role ?? null,
+        failed_count: cols.failed_count,
+        regular_sem: cols.regular_sem,
+        fee_lines_summary: cols.fee_lines_summary,
+        stamp: r.paid_marked_by_name
+          ? stampFromSession(
+              {
+                id: r.paid_marked_by != null ? Number(r.paid_marked_by) : null,
+                display_name: String(r.paid_marked_by_name),
+                role: r.paid_marked_by_role != null ? String(r.paid_marked_by_role) : null,
+              },
+              r.status === "paid" || r.status === "partial" ? "paid" : "updated",
+              { at: r.paid_marked_at ? String(r.paid_marked_at) : null },
+            )
+          : null,
+        updated_at: r.updated_at,
+      }
+    }),
     exam_cycle: cycle,
   })
 }
