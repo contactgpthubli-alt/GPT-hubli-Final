@@ -13,7 +13,7 @@
  * First paint only needs legacy-app + this bridge (~0.9MB → ~0.85MB still, but
  * exam/ops/analysis/tc/acm/print are deferred until authenticated).
  */
-var GPT_PERF_V = "20260809stuReg"
+var GPT_PERF_V = "20260813gradeCplus"
 var _gpthModsPromise = null
 function gpthLoadScript(src) {
   return new Promise(function (resolve) {

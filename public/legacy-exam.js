@@ -32,8 +32,8 @@
     return data;
   }
 
-  // C-20 marksheet grades (S / A+ / A …) + common alt labels
-  var GRADES = ['', 'S', 'A+', 'A', 'B+', 'B', 'C', 'D', 'E', 'F', 'O', 'P', 'W', 'X', 'Ab', 'Pass', 'Fail'];
+  // C-20 marksheet grades (S / A+ / A … C+ …) + common alt labels
+  var GRADES = ['', 'S', 'A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'E', 'F', 'O', 'P', 'W', 'X', 'Ab', 'Pass', 'Fail'];
 
   /**
    * Exam sessions roll forever from 2020-21 through current AY + next year.
@@ -583,8 +583,11 @@
       var rows = existing.length ? existing : [{ exam_session: '', result: 'fail', grade: '', status: 'draft' }];
       rows.forEach(function (ex, ri) {
         var locked = ex.status === 'verified';
+        var canRemove = !locked && (rows.length > 1 || !!ex.id);
         html += '<tr class="exam-stu-row" data-code="' + esc(sub.code) + '" data-name="' + esc(sub.name) +
-          '" data-sem="' + sem + '" data-locked="' + (locked ? '1' : '0') + '" style="border-bottom:1px solid var(--border);">' +
+          '" data-sem="' + sem + '" data-locked="' + (locked ? '1' : '0') + '"' +
+          (ex.id ? ' data-id="' + esc(String(ex.id)) + '"' : '') +
+          ' style="border-bottom:1px solid var(--border);">' +
           '<td style="padding:8px 6px;"><strong>' + esc(sub.code) + '</strong><div style="font-size:0.72rem;opacity:.75;">' +
           esc(sub.name) + (sub.pathway ? ' · ' + esc(sub.pathway) : '') +
           (sub.is_audit ? ' · audit' : '') + '</div>' +
@@ -618,14 +621,50 @@
         html += '</select></td>' +
           '<td style="padding:6px;white-space:nowrap;">' +
           (!locked
-            ? '<button type="button" class="btn ol" style="padding:4px 8px;font-size:0.72rem;" onclick="window.examStuAddAttempt&&window.examStuAddAttempt(this)">+ Attempt</button>'
+            ? '<button type="button" class="btn ol" style="padding:4px 8px;font-size:0.72rem;margin:0 2px;" onclick="window.examStuAddAttempt&&window.examStuAddAttempt(this)">+ Attempt</button>'
+            : '') +
+          (canRemove
+            ? '<button type="button" class="btn re" style="padding:4px 8px;font-size:0.72rem;margin:0 2px;" title="Remove this attempt row" onclick="window.examStuRemoveAttempt&&window.examStuRemoveAttempt(this)">Delete</button>'
             : '') +
           '</td></tr>';
       });
     });
     html += '</tbody></table>' +
-      '<p style="font-size:0.72rem;opacity:.7;margin-top:10px;">Tip: Failed in Dec/Nov session and passed later? Add another <strong>+ Attempt</strong> with the pass session.</p>';
+      '<p style="font-size:0.72rem;opacity:.7;margin-top:10px;">Tip: Failed in Nov/Dec and passed later? Use <strong>+ Attempt</strong>. Accidental row? Use <strong>Delete</strong>.</p>';
     host.innerHTML = html;
+    window.examStuRefreshRemoveButtons && window.examStuRefreshRemoveButtons();
+  };
+
+  window.examStuRefreshRemoveButtons = function () {
+    var host = document.getElementById('examStuFormHost');
+    if (!host) return;
+    var rows = host.querySelectorAll('tr.exam-stu-row');
+    var counts = {};
+    rows.forEach(function (tr) {
+      var code = tr.getAttribute('data-code') || '';
+      counts[code] = (counts[code] || 0) + 1;
+    });
+    rows.forEach(function (tr) {
+      if (tr.getAttribute('data-locked') === '1') return;
+      var code = tr.getAttribute('data-code') || '';
+      var id = tr.getAttribute('data-id');
+      var show = (counts[code] || 0) > 1 || !!id;
+      var btn = tr.querySelector('button[onclick*="examStuRemoveAttempt"]');
+      if (show && !btn) {
+        var cell = tr.querySelector('td:last-child');
+        if (!cell) return;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn re';
+        b.style.cssText = 'padding:4px 8px;font-size:0.72rem;margin:0 2px;';
+        b.title = 'Remove this attempt row';
+        b.textContent = 'Delete';
+        b.setAttribute('onclick', 'window.examStuRemoveAttempt&&window.examStuRemoveAttempt(this)');
+        cell.appendChild(b);
+      } else if (!show && btn && btn.parentNode) {
+        btn.parentNode.removeChild(btn);
+      }
+    });
   };
 
   window.examStuAddAttempt = function (btn) {
@@ -633,12 +672,84 @@
     if (!tr) return;
     var clone = tr.cloneNode(true);
     clone.setAttribute('data-locked', '0');
+    clone.removeAttribute('data-id');
     clone.querySelectorAll('select').forEach(function (s) { s.disabled = false; });
     var sess = clone.querySelector('.exam-sess');
     if (sess) sess.selectedIndex = 0;
-    var badge = clone.querySelector('.badge');
-    if (badge) badge.remove();
+    var res = clone.querySelector('.exam-res');
+    if (res) res.value = 'fail';
+    var grade = clone.querySelector('.exam-grade');
+    if (grade) grade.value = '';
+    clone.querySelectorAll('.badge').forEach(function (badge) { badge.remove(); });
+    // Ensure Delete exists on the new row
+    var cell = clone.querySelector('td:last-child');
+    if (cell && !cell.querySelector('button[onclick*="examStuRemoveAttempt"]')) {
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn re';
+      del.style.cssText = 'padding:4px 8px;font-size:0.72rem;margin:0 2px;';
+      del.title = 'Remove this attempt row';
+      del.textContent = 'Delete';
+      del.setAttribute('onclick', 'window.examStuRemoveAttempt&&window.examStuRemoveAttempt(this)');
+      cell.appendChild(del);
+    }
     tr.parentNode.insertBefore(clone, tr.nextSibling);
+    window.examStuRefreshRemoveButtons && window.examStuRefreshRemoveButtons();
+  };
+
+  window.examStuRemoveAttempt = async function (btn) {
+    var tr = btn && btn.closest ? btn.closest('tr') : null;
+    if (!tr || tr.getAttribute('data-locked') === '1') return;
+    var code = tr.getAttribute('data-code') || '';
+    var id = tr.getAttribute('data-id');
+    var host = document.getElementById('examStuFormHost');
+    var same = host
+      ? host.querySelectorAll('tr.exam-stu-row[data-code="' + code.replace(/"/g, '') + '"]')
+      : [];
+    if (same.length <= 1 && !id) {
+      // Last empty template row — just reset fields
+      var sess = tr.querySelector('.exam-sess');
+      if (sess) sess.selectedIndex = 0;
+      var res = tr.querySelector('.exam-res');
+      if (res) res.value = 'fail';
+      var grade = tr.querySelector('.exam-grade');
+      if (grade) grade.value = '';
+      return;
+    }
+    if (!confirm('Remove this attempt row' + (id ? ' (also delete saved draft/pending from database)' : '') + '?')) {
+      return;
+    }
+    if (id) {
+      try {
+        await api('/api/exam/attempts', {
+          method: 'DELETE',
+          body: { id: Number(id) },
+        });
+      } catch (e) {
+        alert(e.message || 'Could not delete attempt');
+        return;
+      }
+    }
+    if (same.length <= 1) {
+      // Keep subject visible with a blank row
+      tr.removeAttribute('data-id');
+      var sess2 = tr.querySelector('.exam-sess');
+      if (sess2) sess2.selectedIndex = 0;
+      var res2 = tr.querySelector('.exam-res');
+      if (res2) res2.value = 'fail';
+      var grade2 = tr.querySelector('.exam-grade');
+      if (grade2) grade2.value = '';
+      tr.querySelectorAll('.badge').forEach(function (b) { b.remove(); });
+      var delBtn = tr.querySelector('button[onclick*="examStuRemoveAttempt"]');
+      if (delBtn && delBtn.parentNode) delBtn.parentNode.removeChild(delBtn);
+    } else if (tr.parentNode) {
+      tr.parentNode.removeChild(tr);
+    }
+    window.examStuRefreshRemoveButtons && window.examStuRefreshRemoveButtons();
+    // Refresh list panel if present
+    if (id && window.examStuReload) {
+      try { window.examStuReload(); } catch (e2) { /* ignore */ }
+    }
   };
 
   window.examStuCollect = function () {

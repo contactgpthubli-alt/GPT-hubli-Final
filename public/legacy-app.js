@@ -1641,7 +1641,7 @@ function addSubjectRow() {
     <input type="number" class="ar-credits" placeholder="Cr." min="1" max="6" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;" />
     <select class="ar-grade" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
       <option value="O">O</option><option value="A+">A+</option><option value="A">A</option>
-      <option value="B+">B+</option><option value="B">B</option><option value="C">C</option>
+      <option value="B+">B+</option><option value="B">B</option><option value="C+">C+</option><option value="C">C</option>
       <option value="P">P</option><option value="F">F</option><option value="Ab">Ab</option>
     </select>
     <button onclick="this.parentElement.remove()" style="padding:8px 10px;background:var(--red-light);color:var(--red);border:1.5px solid var(--red);border-radius:7px;cursor:pointer;font-size:0.75rem;">✕</button>`;
@@ -1922,7 +1922,7 @@ function loadEditResult() {
         <td><input type="number" value="${s.external}" style="width:55px;border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:0.78rem;" /></td>
         <td><input type="number" value="${s.credits}" style="width:45px;border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:0.78rem;" /></td>
         <td><select style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:0.78rem;">
-          ${['O','A+','A','B+','B','C','P','F','Ab'].map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('')}
+          ${['O','A+','A','B+','B','C+','C','P','F','Ab'].map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('')}
         </select></td>
       </tr>`).join('') +
       `</tbody></table></div>`;

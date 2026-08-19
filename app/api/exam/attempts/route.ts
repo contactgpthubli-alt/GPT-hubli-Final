@@ -517,3 +517,78 @@ export async function PATCH(req: Request) {
     results,
   })
 }
+
+/**
+ * Student (or staff) delete a non-verified attempt row.
+ * Body: { id } or { ids: number[] }
+ * Verified rows cannot be deleted (Admin must unlock first).
+ */
+export async function DELETE(req: Request) {
+  const user = await getCurrentUser()
+  if (!user) return unauthorized()
+  await ensureExamResultsSchema()
+
+  const b = await req.json().catch(() => null)
+  if (!b || typeof b !== "object") return badRequest("JSON required")
+
+  const ids: number[] = Array.isArray(b.ids)
+    ? b.ids.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n) && n > 0)
+    : b.id
+      ? [Number(b.id)]
+      : []
+  if (!ids.length) return badRequest("id or ids[] required")
+
+  const deleted: number[] = []
+  const errors: string[] = []
+  const regs = new Set<string>()
+
+  for (const id of ids) {
+    const { rows } = await query(
+      `SELECT id, reg_no, status, subject_code, exam_session FROM student_exam_attempts WHERE id = $1`,
+      [id],
+    )
+    const row = rows[0]
+    if (!row) {
+      errors.push(`#${id}: not found`)
+      continue
+    }
+    const reg = String(row.reg_no)
+    if (user.role === "student") {
+      if (!user.reg_no || user.reg_no.toUpperCase() !== reg.toUpperCase()) {
+        errors.push(`#${id}: not your attempt`)
+        continue
+      }
+    } else if ((EXAM_VERIFIERS as readonly string[]).includes(user.role) || user.role === "admin") {
+      if (!(await staffCanAccessReg(user, reg))) {
+        errors.push(`#${id}: access denied`)
+        continue
+      }
+    } else {
+      return unauthorized()
+    }
+    if (String(row.status) === "verified" && user.role !== "admin") {
+      errors.push(
+        `${row.subject_code} (${row.exam_session}): verified — unlock before delete`,
+      )
+      continue
+    }
+    await query(`DELETE FROM student_exam_attempts WHERE id = $1`, [id])
+    deleted.push(id)
+    regs.add(reg)
+  }
+
+  for (const reg of regs) {
+    try {
+      await recomputeAndStoreStudentCgpa(reg)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return Response.json({
+    ok: deleted.length > 0,
+    deleted: deleted.length,
+    ids: deleted,
+    errors,
+  })
+}
