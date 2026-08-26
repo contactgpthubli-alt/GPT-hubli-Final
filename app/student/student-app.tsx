@@ -89,11 +89,12 @@ type ResultRow = {
   session: string
   sgpa: number | null
   result: string
+  edit_request_status?: string | null
   subjects?: Array<{
     name: string
     code: string
-    internal: number
-    external: number
+    internal: number | null
+    external: number | null
     credits: number
     grade: string
   }>
@@ -267,18 +268,20 @@ const DEFAULT_SCHEMA: SchemaSection[] = [
 
 async function api<T = unknown>(
   path: string,
-  opts?: RequestInit,
+  opts?: Omit<RequestInit, "body"> & { body?: unknown },
 ): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
+    const { body, ...requestOptions } = opts || {}
     const res = await fetch(path, {
       credentials: "same-origin",
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        ...(opts?.body ? { "Content-Type": "application/json" } : {}),
+        ...(body ? { "Content-Type": "application/json" } : {}),
         ...(opts?.headers || {}),
       },
-      ...opts,
+      ...requestOptions,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
     const data = (await res.json().catch(() => null)) as T & { error?: string }
     if (!res.ok) {
@@ -487,6 +490,10 @@ export default function StudentApp() {
 
   const [student, setStudent] = useState<Student | null>(null)
   const [results, setResults] = useState<ResultRow[]>([])
+  const [resultEditId, setResultEditId] = useState<number | null>(null)
+  const [resultEditDraft, setResultEditDraft] = useState<ResultRow | null>(null)
+  const [resultEditBusy, setResultEditBusy] = useState(false)
+  const [resultEditMessage, setResultEditMessage] = useState("")
   const [forms, setForms] = useState<FormRow[]>([])
   const [certs, setCerts] = useState<CertRow[]>([])
   const [acmCerts, setAcmCerts] = useState<AcmCert[]>([])
@@ -884,6 +891,25 @@ export default function StudentApp() {
       cancelled = true
     }
   }, [])
+
+  async function submitResultEditRequest() {
+    if (!resultEditDraft || resultEditId == null) return
+    setResultEditBusy(true)
+    setResultEditMessage("")
+    const response = await api("/api/result-edit-requests", {
+      method: "POST",
+      body: { result_id: resultEditId, proposed: resultEditDraft },
+    })
+    setResultEditBusy(false)
+    if (!response.ok) {
+      setResultEditMessage(response.error || "Could not submit result edit request")
+      return
+    }
+    setResultEditMessage("Edit request sent to HOD for approval.")
+    setResultEditId(null)
+    setResultEditDraft(null)
+    setResults((current) => current.map((item) => item.id === resultEditId ? { ...item, edit_request_status: "pending" } : item))
+  }
 
   useEffect(() => {
     if (user && !requiresSetup) loadDashboard()
@@ -2874,6 +2900,46 @@ export default function StudentApp() {
                       <span className={`stu-badge ${statusBadge(r.result)}`}>{r.result || "—"}</span>
                     </div>
                   </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+                    {r.edit_request_status === "pending" ? (
+                      <span className="stu-badge pending">Edit request pending HOD approval</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="stu-btn stu-btn-ghost"
+                        onClick={() => {
+                          setResultEditId(r.id)
+                          setResultEditDraft(JSON.parse(JSON.stringify(r)))
+                          setResultEditMessage("")
+                        }}
+                      >
+                        Request result correction
+                      </button>
+                    )}
+                    {resultEditMessage && resultEditId === null ? <span style={{ fontSize: "0.78rem" }}>{resultEditMessage}</span> : null}
+                  </div>
+                  {resultEditId === r.id && resultEditDraft ? (
+                    <div style={{ marginTop: 10, padding: 12, border: "1px solid var(--stu-border)", borderRadius: 8 }}>
+                      <strong>Proposed correction</strong>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                        <label>SGPA<input value={String(resultEditDraft.sgpa ?? "")} onChange={(e) => setResultEditDraft({ ...resultEditDraft, sgpa: e.target.value === "" ? null : Number(e.target.value) })} /></label>
+                        <label>Result<input value={resultEditDraft.result || ""} onChange={(e) => setResultEditDraft({ ...resultEditDraft, result: e.target.value })} /></label>
+                      </div>
+                      {resultEditDraft.subjects?.map((subject, index) => (
+                        <div key={subject.code || index} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+                          <span style={{ alignSelf: "center" }}>{subject.code} {subject.name}</span>
+                          <input aria-label={`${subject.code} internal`} value={String(subject.internal ?? "")} onChange={(e) => { const subjects = [...(resultEditDraft.subjects || [])]; subjects[index] = { ...subjects[index], internal: e.target.value === "" ? null : Number(e.target.value) }; setResultEditDraft({ ...resultEditDraft, subjects }) }} />
+                          <input aria-label={`${subject.code} external`} value={String(subject.external ?? "")} onChange={(e) => { const subjects = [...(resultEditDraft.subjects || [])]; subjects[index] = { ...subjects[index], external: e.target.value === "" ? null : Number(e.target.value) }; setResultEditDraft({ ...resultEditDraft, subjects }) }} />
+                          <input aria-label={`${subject.code} grade`} value={subject.grade || ""} onChange={(e) => { const subjects = [...(resultEditDraft.subjects || [])]; subjects[index] = { ...subjects[index], grade: e.target.value }; setResultEditDraft({ ...resultEditDraft, subjects }) }} />
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                        <button type="button" className="stu-btn stu-btn-primary" disabled={resultEditBusy} onClick={submitResultEditRequest}>{resultEditBusy ? "Sending…" : "Send to HOD"}</button>
+                        <button type="button" className="stu-btn stu-btn-ghost" onClick={() => { setResultEditId(null); setResultEditDraft(null) }}>Cancel</button>
+                        {resultEditMessage ? <span style={{ fontSize: "0.78rem", alignSelf: "center" }}>{resultEditMessage}</span> : null}
+                      </div>
+                    </div>
+                  ) : null}
                   {Array.isArray(r.subjects) && r.subjects.length > 0 ? (
                     <div className="stu-table-wrap" style={{ marginTop: 8 }}>
                       <table className="stu-table">

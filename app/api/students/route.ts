@@ -10,6 +10,7 @@ import {
   rowToSnapshot,
 } from "@/lib/student-academic"
 import { parseStudyYear, parseAcademicStatus } from "@/lib/academic-year"
+import { stampFromSession } from "@/lib/signature-stamp"
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
@@ -18,7 +19,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 /** How complete is the My Profile data for admin listing. */
 function profileCompleteness(extra: Record<string, unknown>, hasStudentRow: boolean): "not_updated" | "partial" | "updated" {
-  const keys = Object.keys(extra).filter((k) => k !== "profile_edit_locked")
+  const keys = Object.keys(extra).filter((k) => k !== "profile_edit_locked" && k !== "profile_lock_stamp")
   if (!hasStudentRow && keys.length === 0) return "not_updated"
   // Meaningful profile: several filled fields beyond empty strings
   const filled = keys.filter((k) => {
@@ -168,7 +169,9 @@ export async function GET(req: Request) {
          CASE
            WHEN lower(COALESCE(s.extra->>'profile_edit_locked', '')) IN ('true', 't', '1') THEN true
            ELSE false
-         END
+         END,
+         'profile_lock_stamp',
+         COALESCE(s.extra->'profile_lock_stamp', 'null'::jsonb)
        ) AS extra`
     : `COALESCE(
          (SELECT jsonb_object_agg(e.key, e.value)
@@ -301,6 +304,7 @@ export async function GET(req: Request) {
       profile_status,
       pending_profile_requests: r.pending_profile_requests || 0,
       profile_edit_locked: extra.profile_edit_locked === true || extra.profile_edit_locked === "true",
+      profile_lock_stamp: extra.profile_lock_stamp || null,
       extra,
       // Keep full row shape for any older consumers
       has_student_row: hasStudentRow,
@@ -398,7 +402,7 @@ export async function POST(req: Request) {
  * Bulk:   { reg_nos: string[], profile_edit_locked: boolean }
  *         or { action: "bulk_set_lock", reg_nos: string[], profile_edit_locked: boolean }
  */
-async function setProfileEditLock(regNo: string, lockFlag: boolean) {
+async function setProfileEditLock(regNo: string, lockFlag: boolean, actor: Parameters<typeof stampFromSession>[0]) {
   const { rows: urows } = await query(
     `SELECT display_name FROM users
       WHERE reg_no = $1 AND role = 'student'
@@ -417,16 +421,17 @@ async function setProfileEditLock(regNo: string, lockFlag: boolean) {
        $1, $2, 'Not set',
        jsonb_build_object(
          'profile_edit_locked', $3::boolean,
+         'profile_lock_stamp', $4::jsonb,
          'profile_first_filled', CASE WHEN $3::boolean THEN true ELSE false END
        )
      )
      ON CONFLICT (reg_no) DO UPDATE SET
        extra = COALESCE(students.extra, '{}'::jsonb) ||
          CASE
-           WHEN $3::boolean THEN jsonb_build_object('profile_edit_locked', true, 'profile_first_filled', true)
-           ELSE jsonb_build_object('profile_edit_locked', false)
+              WHEN $3::boolean THEN jsonb_build_object('profile_edit_locked', true, 'profile_first_filled', true, 'profile_lock_stamp', $4::jsonb)
+              ELSE jsonb_build_object('profile_edit_locked', false, 'profile_lock_stamp', $4::jsonb)
          END`,
-    [regNo, displayName, lockFlag],
+            [regNo, displayName, lockFlag, JSON.stringify(stampFromSession(actor, lockFlag ? "locked" : "unlocked"))],
   )
   return { reg_no: regNo, profile_edit_locked: lockFlag }
 }
@@ -483,7 +488,7 @@ export async function PATCH(req: Request) {
         results.push({ reg_no: regNo, ok: false, error: gate.error })
         continue
       }
-      results.push({ ok: true, ...(await setProfileEditLock(regNo, lockFlag)) })
+      results.push({ ok: true, ...(await setProfileEditLock(regNo, lockFlag, user)) })
     }
     return Response.json(
       {
@@ -503,7 +508,7 @@ export async function PATCH(req: Request) {
   const gate = await assertCanManageStudentReg(user, regNo)
   if (!gate.ok) return unauthorized(gate.error)
 
-  const result = await setProfileEditLock(regNo, lockFlag)
+  const result = await setProfileEditLock(regNo, lockFlag, user)
   return Response.json(
     { ok: true, ...result },
     { headers: { "Cache-Control": "no-store" } },

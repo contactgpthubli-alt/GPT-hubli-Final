@@ -83,17 +83,19 @@
   function ensureStuResultsPanel() {
     var panel = document.getElementById('stuResults');
     if (!panel) return;
-    // v2 = Regular | Makeup tabs
-    if (panel.getAttribute('data-exam-live') === '2' && document.getElementById('examOfficialHost')) return;
-    panel.setAttribute('data-exam-live', '2');
+    // v3 = Regular | Makeup | Bridge Course tabs
+    if (panel.getAttribute('data-exam-live') === '3' && document.getElementById('examOfficialHost')) return;
+    panel.setAttribute('data-exam-live', '3');
     panel.innerHTML =
       '<div class="info-box"><strong>My Exam Results</strong> — Official ledger when published. ' +
       '<strong>Regular</strong> = normal semester entry. <strong>Makeup</strong> = only after Exam opens a makeup month ' +
-      '(e.g. July / August 2026) for failed even-sem subjects. HOD / Exam verify. Verified rows lock.</div>' +
+      '(e.g. July / August 2026) for failed even-sem subjects. <strong>Bridge Course</strong> = ITI / PUC lateral-entry ' +
+      'gap subjects — always open, add subjects yourself. HOD / Exam verify. Verified rows lock.</div>' +
       '<div id="examStuMeta" style="padding:8px 4px;font-size:0.82rem;opacity:.85;"></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
       '<button type="button" class="btn pr" id="stuResTabReg" onclick="window.stuResShowTab&&window.stuResShowTab(\'regular\')">Regular</button>' +
       '<button type="button" class="btn ol" id="stuResTabMk" onclick="window.stuResShowTab&&window.stuResShowTab(\'makeup\')">Makeup</button>' +
+      '<button type="button" class="btn ol" id="stuResTabBg" onclick="window.stuResShowTab&&window.stuResShowTab(\'bridge\')">Bridge Course</button>' +
       '<span id="stuResMakeupBadge" style="display:none;font-size:0.75rem;font-weight:800;padding:6px 10px;border-radius:999px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;"></span>' +
       '</div>' +
       /* Regular pane */
@@ -139,19 +141,42 @@
       '</div></div>' +
       '<div class="card"><div class="card-hd"><h3>My makeup attempts</h3></div>' +
       '<div id="stuMakeupList" style="padding:12px 16px;overflow-x:auto;"></div></div>' +
+      '</div>' +
+      /* Bridge Course pane */
+      '<div id="stuResPaneBridge" style="display:none;">' +
+      '<div class="info-box" style="margin-bottom:12px;">Bridge Course is for <strong>ITI / PUC lateral-entry</strong> ' +
+      'students covering Year-1-equivalent subjects. Always open — add each subject you take, save, then submit for verification.</div>' +
+      '<div class="card" style="margin-bottom:14px;">' +
+      '<div class="card-hd"><h3>Bridge subjects</h3>' +
+      '<div class="card-acts">' +
+      '<button type="button" class="btn ol" onclick="window.bridgeStuReload&&window.bridgeStuReload()">Refresh</button> ' +
+      '<button type="button" class="btn ol" onclick="window.bridgeStuAddRow&&window.bridgeStuAddRow()">+ Add subject</button> ' +
+      '<button type="button" class="btn pr" onclick="window.bridgeStuSave&&window.bridgeStuSave(false)">Save draft</button> ' +
+      '<button type="button" class="btn go" onclick="window.bridgeStuSave&&window.bridgeStuSave(true)">Submit for verification</button>' +
+      '</div></div>' +
+      '<div style="padding:12px 16px;">' +
+      '<div id="stuBridgeFormHost"><p style="opacity:.7;">Loading…</p></div>' +
+      '</div></div>' +
+      '<div class="card"><div class="card-hd"><h3>My bridge attempts</h3></div>' +
+      '<div id="stuBridgeList" style="padding:12px 16px;overflow-x:auto;"></div></div>' +
       '</div>';
   }
 
   window.stuResShowTab = function (tab) {
     var reg = document.getElementById('stuResPaneRegular');
     var mk = document.getElementById('stuResPaneMakeup');
+    var bg = document.getElementById('stuResPaneBridge');
     var bR = document.getElementById('stuResTabReg');
     var bM = document.getElementById('stuResTabMk');
+    var bB = document.getElementById('stuResTabBg');
     if (reg) reg.style.display = tab === 'regular' ? '' : 'none';
     if (mk) mk.style.display = tab === 'makeup' ? '' : 'none';
+    if (bg) bg.style.display = tab === 'bridge' ? '' : 'none';
     if (bR) bR.className = tab === 'regular' ? 'btn pr' : 'btn ol';
     if (bM) bM.className = tab === 'makeup' ? 'btn pr' : 'btn ol';
+    if (bB) bB.className = tab === 'bridge' ? 'btn pr' : 'btn ol';
     if (tab === 'makeup') window.makeupStuReload && window.makeupStuReload();
+    if (tab === 'bridge') window.bridgeStuReload && window.bridgeStuReload();
   };
 
   window._makeupStuState = { cycle: null, eligible: [], makeup_attempts: [] };
@@ -381,6 +406,191 @@
     }
   };
 
+  window._bridgeStuState = { attempts: [] };
+  window._bridgeNewRows = [];
+
+  window.bridgeStuReload = async function () {
+    ensureStuResultsPanel();
+    var host = document.getElementById('stuBridgeFormHost');
+    var list = document.getElementById('stuBridgeList');
+    try {
+      var data = await api('/api/exam/bridge/attempts');
+      window._bridgeStuState = data;
+      window._bridgeNewRows = [];
+      window.bridgeStuPaintForm();
+      if (list) {
+        var rows = data.attempts || [];
+        if (!rows.length) {
+          list.innerHTML = '<p style="opacity:.7;">No bridge attempts yet.</p>';
+        } else {
+          list.innerHTML =
+            '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><thead><tr>' +
+            '<th style="text-align:left;padding:6px;">Subject</th><th>Sem</th><th>Result</th><th>Grade</th><th>Status</th></tr></thead><tbody>' +
+            rows
+              .map(function (a) {
+                return (
+                  '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+                  esc(a.subject_name) +
+                  '</strong></td><td style="padding:6px;">' +
+                  a.semester +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.result) +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.grade || '—') +
+                  '</td><td style="padding:6px;">' +
+                  esc(a.status) +
+                  (a.verified_by_name
+                    ? '<div style="font-size:0.7rem;opacity:.75;">' + esc(a.verified_by_name) + '</div>'
+                    : '') +
+                  (a.status === 'rejected' && a.reject_note
+                    ? '<div style="font-size:0.7rem;color:#991b1b;">' + esc(a.reject_note) + '</div>'
+                    : '') +
+                  '</td></tr>'
+                );
+              })
+              .join('') +
+            '</tbody></table>';
+        }
+      }
+    } catch (e) {
+      if (host) host.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.bridgeStuAddRow = function () {
+    window._bridgeNewRows.push({
+      tempId: 'n' + Date.now() + Math.random().toString(36).slice(2, 6),
+      subject_name: '',
+      semester: 1,
+      result: 'fail',
+      grade: '',
+    });
+    window.bridgeStuPaintForm();
+  };
+
+  window.bridgeStuRemoveRow = async function (key, isTemp) {
+    if (isTemp) {
+      window._bridgeNewRows = window._bridgeNewRows.filter(function (r) { return r.tempId !== key; });
+      window.bridgeStuPaintForm();
+      return;
+    }
+    if (!confirm('Remove this draft bridge subject?')) return;
+    try {
+      await api('/api/exam/bridge/attempts', { method: 'DELETE', body: { id: Number(key) } });
+      window.bridgeStuReload();
+    } catch (e) {
+      alert(e.message || 'Could not remove row');
+    }
+  };
+
+  window.bridgeStuPaintForm = function () {
+    var host = document.getElementById('stuBridgeFormHost');
+    if (!host) return;
+    var existing = (window._bridgeStuState || {}).attempts || [];
+    var newRows = window._bridgeNewRows || [];
+    if (!existing.length && !newRows.length) {
+      host.innerHTML = '<p style="opacity:.7;">No bridge subjects added yet. Use + Add subject above.</p>';
+      return;
+    }
+    var html =
+      '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr>' +
+      '<th style="text-align:left;padding:6px;">Subject name</th><th>Sem</th><th>Result</th><th>Grade</th><th></th></tr></thead><tbody>';
+    existing.forEach(function (a) {
+      var locked = a.status === 'verified';
+      html +=
+        '<tr class="bridge-stu-row" data-id="' + a.id + '" style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:8px 6px;"><input class="bridge-name" type="text" value="' + esc(a.subject_name) +
+        '" maxlength="160" ' + (locked ? 'disabled' : '') +
+        ' style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);" />' +
+        (locked ? '<span class="badge active">Verified</span>' : '') +
+        (a.status === 'pending' ? '<span class="badge pending">Pending</span>' : '') +
+        (a.status === 'rejected' ? '<span class="badge" style="background:#fee2e2;color:#991b1b;">Rejected</span>' : '') +
+        '</td>' +
+        '<td style="padding:6px;"><select class="bridge-sem" ' + (locked ? 'disabled' : '') +
+        ' style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        [1, 2, 3, 4, 5, 6]
+          .map(function (s) {
+            return '<option value="' + s + '"' + (Number(a.semester) === s ? ' selected' : '') + '>Sem ' + s + '</option>';
+          })
+          .join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><select class="bridge-res" ' + (locked ? 'disabled' : '') +
+        ' style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        ['pass', 'fail', 'absent']
+          .map(function (r) {
+            return '<option value="' + r + '"' + (a.result === r ? ' selected' : '') + '>' + r + '</option>';
+          })
+          .join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><select class="bridge-grade" ' + (locked ? 'disabled' : '') +
+        ' style="padding:6px;border-radius:6px;border:1px solid var(--border);">';
+      GRADES.forEach(function (g) {
+        html += '<option value="' + esc(g) + '"' + (String(a.grade || '') === g ? ' selected' : '') + '>' + (g || '—') + '</option>';
+      });
+      html += '</select></td>' +
+        '<td style="padding:6px;">' +
+        (locked ? '' : '<button type="button" class="btn ol" style="padding:5px 9px;font-size:0.75rem;" onclick="window.bridgeStuRemoveRow&&window.bridgeStuRemoveRow(' + a.id + ',false)">Remove</button>') +
+        '</td></tr>';
+    });
+    newRows.forEach(function (r) {
+      html +=
+        '<tr class="bridge-stu-row" data-temp="' + r.tempId + '" style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:8px 6px;"><input class="bridge-name" type="text" placeholder="e.g. Engineering Drawing" maxlength="160" ' +
+        'style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);" /></td>' +
+        '<td style="padding:6px;"><select class="bridge-sem" style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        [1, 2, 3, 4, 5, 6].map(function (s) { return '<option value="' + s + '">Sem ' + s + '</option>'; }).join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><select class="bridge-res" style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        ['pass', 'fail', 'absent'].map(function (r2) { return '<option value="' + r2 + '"' + (r2 === 'fail' ? ' selected' : '') + '>' + r2 + '</option>'; }).join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><select class="bridge-grade" style="padding:6px;border-radius:6px;border:1px solid var(--border);">' +
+        GRADES.map(function (g) { return '<option value="' + esc(g) + '">' + (g || '—') + '</option>'; }).join('') +
+        '</select></td>' +
+        '<td style="padding:6px;"><button type="button" class="btn ol" style="padding:5px 9px;font-size:0.75rem;" ' +
+        'onclick="window.bridgeStuRemoveRow&&window.bridgeStuRemoveRow(\'' + r.tempId + '\',true)">Remove</button></td></tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  };
+
+  window.bridgeStuSave = async function (submit) {
+    var rows = document.querySelectorAll('#stuBridgeFormHost tr.bridge-stu-row');
+    var attempts = [];
+    rows.forEach(function (tr) {
+      var nameEl = tr.querySelector('.bridge-name');
+      if (!nameEl || nameEl.disabled) return;
+      var subject_name = (nameEl.value || '').trim();
+      if (!subject_name) return;
+      var item = {
+        subject_name: subject_name,
+        semester: Number((tr.querySelector('.bridge-sem') || {}).value || 1),
+        result: (tr.querySelector('.bridge-res') || {}).value || 'fail',
+        grade: (tr.querySelector('.bridge-grade') || {}).value || '',
+      };
+      var id = tr.getAttribute('data-id');
+      if (id) item.id = Number(id);
+      attempts.push(item);
+    });
+    if (!attempts.length) {
+      alert('Add at least one bridge subject with a name.');
+      return;
+    }
+    try {
+      var data = await api('/api/exam/bridge/attempts', {
+        method: 'POST',
+        body: { action: submit ? 'submit' : 'save', attempts: attempts },
+      });
+      if (data.errors && data.errors.length) {
+        alert('Saved with notes:\n' + data.errors.join('\n'));
+      } else {
+        alert(submit ? 'Submitted for HOD / Exam verification.' : 'Draft saved.');
+      }
+      window.bridgeStuReload();
+    } catch (e) {
+      alert(e.message || 'Save failed');
+    }
+  };
+
   window._examStuState = { curriculum: [], attempts: [], student: null, effective: [] };
 
   window.examStuPaintOfficial = function (rows) {
@@ -393,8 +603,10 @@
         'When Exam Section publishes the ledger, grades appear here automatically.</p>';
       return;
     }
+    window._officialResultRows = {};
     var html = '';
     rows.forEach(function (r) {
+      window._officialResultRows[String(r.id)] = r;
       var subs = Array.isArray(r.subjects) ? r.subjects : [];
       html +=
         '<div style="margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">' +
@@ -406,7 +618,11 @@
         (String(r.result || '').toLowerCase() === 'pass' ? 'active' : 'pending') +
         '">' +
         esc(r.result || '—') +
-        '</span></div>';
+        '</span>' +
+        (r.edit_request_status === 'pending'
+          ? '<span class="badge pending">Correction pending HOD approval</span>'
+          : '<button type="button" class="btn ol" style="margin-left:auto;padding:5px 9px;font-size:.75rem;" onclick="window.openOfficialResultEdit&&window.openOfficialResultEdit(' + Number(r.id) + ')">Request correction</button>') +
+        '</div>';
       if (!subs.length) {
         html += '<p style="padding:10px 12px;opacity:.7;">No subject breakdown.</p>';
       } else {
@@ -434,6 +650,61 @@
       html += '</div>';
     });
     host.innerHTML = html;
+  };
+
+  window.openOfficialResultEdit = function (id) {
+    var row = window._officialResultRows && window._officialResultRows[String(id)];
+    if (!row) return;
+    var old = document.getElementById('officialResultEditModal');
+    if (old) old.remove();
+    var subjects = Array.isArray(row.subjects) ? row.subjects : [];
+    var modal = document.createElement('div');
+    modal.id = 'officialResultEditModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99995;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = '<form style="background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3);" data-official-result-form>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h3 style="margin:0;">Request official result correction</h3><button type="button" class="btn ol" data-result-edit-close>Close</button></div>' +
+      '<p style="font-size:.8rem;opacity:.75;margin:0 0 12px;">Sem ' + esc(row.sem) + ' · ' + esc(row.session) + '. Your proposed changes are sent to HOD and are not published until approved.</p>' +
+      '<div style="display:flex;gap:10px;margin-bottom:12px;"><label style="flex:1;">SGPA<input name="sgpa" type="number" step="0.01" value="' + esc(row.sgpa == null ? '' : row.sgpa) + '" style="width:100%;padding:8px;margin-top:4px;"></label>' +
+      '<label style="flex:1;">Result<input name="result" value="' + esc(row.result || '') + '" style="width:100%;padding:8px;margin-top:4px;"></label></div>' +
+      '<div style="display:grid;gap:8px;">' + subjects.map(function (s, i) {
+        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;align-items:center;"><span style="font-size:.78rem;">' + esc(s.code || '') + ' ' + esc(s.name || '') + '</span>' +
+          '<input data-result-subject="' + i + '" data-result-field="internal" type="number" value="' + esc(s.internal == null ? '' : s.internal) + '" aria-label="Internal marks">' +
+          '<input data-result-subject="' + i + '" data-result-field="external" type="number" value="' + esc(s.external == null ? '' : s.external) + '" aria-label="External marks">' +
+          '<input data-result-subject="' + i + '" data-result-field="grade" value="' + esc(s.grade || '') + '" aria-label="Grade"></div>';
+      }).join('') + '</div>' +
+      '<p data-result-edit-error style="color:#b91c1c;font-size:.8rem;min-height:18px;margin:10px 0 0;"></p>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn gr" type="submit">Send to HOD</button><button class="btn ol" type="button" data-result-edit-close>Cancel</button></div></form>';
+    document.body.appendChild(modal);
+    modal.querySelectorAll('[data-result-edit-close]').forEach(function (button) {
+      button.addEventListener('click', function () { modal.remove(); });
+    });
+    modal.querySelector('form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var form = event.currentTarget;
+      var proposed = {
+        sgpa: form.querySelector('[name="sgpa"]').value === '' ? null : Number(form.querySelector('[name="sgpa"]').value),
+        result: form.querySelector('[name="result"]').value,
+        subjects: subjects.map(function (s, i) {
+          var copy = Object.assign({}, s);
+          form.querySelectorAll('[data-result-subject="' + i + '"]').forEach(function (input) {
+            copy[input.getAttribute('data-result-field')] = input.getAttribute('data-result-field') === 'grade'
+              ? input.value
+              : (input.value === '' ? null : Number(input.value));
+          });
+          return copy;
+        }),
+      };
+      var error = form.querySelector('[data-result-edit-error]');
+      error.textContent = 'Sending...';
+      try {
+        await api('/api/result-edit-requests', { method: 'POST', body: { result_id: Number(id), proposed: proposed } });
+        modal.remove();
+        alert('Correction request sent to HOD for approval.');
+        window.examStuReload();
+      } catch (e) {
+        error.textContent = e.message || 'Could not send correction request.';
+      }
+    });
   };
 
   window.examStuReload = async function () {
@@ -926,9 +1197,9 @@
   function ensureStuExamFeesPanel() {
     var panel = document.getElementById('stuExamFees');
     if (!panel) return;
-    // v4 = Regular exam | Makeup exam | Admission
-    if (panel.getAttribute('data-exam-live') === '4') return;
-    panel.setAttribute('data-exam-live', '4');
+    // v5 = Regular exam | Makeup exam | Bridge Course | Admission
+    if (panel.getAttribute('data-exam-live') === '5') return;
+    panel.setAttribute('data-exam-live', '5');
     panel.innerHTML =
       /* Live Admission fee status — always visible when student opens Fees */
       '<div id="admFeeStatusBar" class="card" style="padding:14px 16px;margin-bottom:14px;border:2px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">' +
@@ -946,6 +1217,7 @@
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
       '<button type="button" class="btn pr" id="stuFeeTabExam" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'exam\')">Regular exam fees</button>' +
       '<button type="button" class="btn ol" id="stuFeeTabMakeup" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'makeup\')">Makeup fees</button>' +
+      '<button type="button" class="btn ol" id="stuFeeTabBridge" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'bridge\')">Bridge Course fees</button>' +
       '<button type="button" class="btn ol" id="stuFeeTabAdm" onclick="window.stuFeeShowTab&&window.stuFeeShowTab(\'admission\')">Admission fees</button>' +
       '<span id="stuFeeMakeupBadge" style="display:none;font-size:0.72rem;font-weight:800;padding:6px 10px;border-radius:999px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;"></span>' +
       '</div>' +
@@ -1028,6 +1300,32 @@
       '</div>' +
       '</div>' +
 
+      /* ---- Bridge Course fees pane ---- */
+      '<div id="stuFeePaneBridge" style="display:none;">' +
+      '<div class="info-box" style="margin-bottom:12px;"><strong>Bridge Course fees</strong> — ' +
+      'New subjects: Rs 200 (up to 2 subjects) / Rs 300 (3 or more). ' +
+      'Failed subject re-attempt: Rs 250 (1-2 subjects) / Rs 350 (3 or more). Fixed amounts, not date-based.</div>' +
+      k2WarningCardHtml() +
+      '<div class="card" style="padding:16px;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' +
+      '<button type="button" class="btn ol" onclick="window.bridgeFeesReload&&window.bridgeFeesReload()">Recalculate bridge fee</button>' +
+      '</div>' +
+      '<div id="bridgeFeeBreakup" style="font-size:0.85rem;"></div>' +
+      '<div style="margin-top:10px;font-size:1.05rem;font-weight:800;color:var(--navy);">Bridge total: <span id="bridgeFeeTotal">Rs 0</span></div>' +
+      '<div id="bridgeFeePayStatus" style="margin-top:8px;font-size:0.82rem;"></div>' +
+      '</div>' +
+      '<div class="card" style="padding:16px;">' +
+      '<h3 style="margin:0 0 10px;font-size:0.95rem;color:var(--navy);">K2 Challan receipts (Bridge Course — multiple allowed)</h3>' +
+      '<p style="margin:0 0 10px;font-size:0.82rem;opacity:.8;">Same K2 process as regular. Enter receipt no. and amount.</p>' +
+      '<div id="bridgeChallanList"></div>' +
+      '<button type="button" class="btn ol" style="margin:8px 0;" onclick="window.bridgeAddChallanRow&&window.bridgeAddChallanRow()">+ Add another challan</button>' +
+      '<div class="fg" style="margin-top:8px;"><label>Note to Exam Section (optional)</label>' +
+      '<input id="bridgeFeeNote" type="text" placeholder="Bridge Course payment note" ' +
+      'style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<button type="button" class="btn go" style="margin-top:12px;" onclick="window.bridgeSubmitChallans&&window.bridgeSubmitChallans()">Submit bridge challan details</button>' +
+      '</div>' +
+      '</div>' +
+
       /* ---- Admission fees pane ---- */
       '<div id="stuFeePaneAdm" style="display:none;">' +
       '<div class="info-box"><strong>Admission / year tuition fees</strong> — Enter amount, receipt number and paid date after you pay. ' +
@@ -1062,18 +1360,23 @@
   window.stuFeeShowTab = function (tab) {
     var exam = document.getElementById('stuFeePaneExam');
     var mk = document.getElementById('stuFeePaneMakeup');
+    var bg = document.getElementById('stuFeePaneBridge');
     var adm = document.getElementById('stuFeePaneAdm');
     var bEx = document.getElementById('stuFeeTabExam');
     var bMk = document.getElementById('stuFeeTabMakeup');
+    var bBg = document.getElementById('stuFeeTabBridge');
     var bAd = document.getElementById('stuFeeTabAdm');
     if (exam) exam.style.display = tab === 'exam' ? '' : 'none';
     if (mk) mk.style.display = tab === 'makeup' ? '' : 'none';
+    if (bg) bg.style.display = tab === 'bridge' ? '' : 'none';
     if (adm) adm.style.display = tab === 'admission' ? '' : 'none';
     if (bEx) bEx.className = tab === 'exam' ? 'btn pr' : 'btn ol';
     if (bMk) bMk.className = tab === 'makeup' ? 'btn pr' : 'btn ol';
+    if (bBg) bBg.className = tab === 'bridge' ? 'btn pr' : 'btn ol';
     if (bAd) bAd.className = tab === 'admission' ? 'btn pr' : 'btn ol';
     if (tab === 'admission') window.admFeeReload && window.admFeeReload();
     if (tab === 'makeup') window.makeupFeesReload && window.makeupFeesReload();
+    if (tab === 'bridge') window.bridgeFeesReload && window.bridgeFeesReload();
     if (tab === 'exam') window.examFeesReload && window.examFeesReload();
   };
 
@@ -1231,6 +1534,122 @@
       });
       alert(data.message || 'Makeup challan submitted.');
       window.makeupFeesReload();
+    } catch (e) {
+      alert(e.message || 'Submit failed');
+    }
+  };
+
+  window.bridgeAddChallanRow = function () {
+    var host = document.getElementById('bridgeChallanList');
+    if (!host) return;
+    var n = host.querySelectorAll('.bridge-ch-row').length + 1;
+    var div = document.createElement('div');
+    div.className = 'bridge-ch-row';
+    div.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:end;';
+    div.innerHTML =
+      '<div style="flex:1;min-width:160px;"><label style="font-size:0.72rem;">Challan ' +
+      n +
+      ' receipt no.</label>' +
+      '<input class="bridge-ch-no" type="text" placeholder="K2 receipt number" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);" /></div>' +
+      '<div style="width:120px;"><label style="font-size:0.72rem;">Amount ₹</label>' +
+      '<input class="bridge-ch-amt" type="number" min="0" step="1" placeholder="0" ' +
+      'style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--border);" /></div>';
+    host.appendChild(div);
+  };
+
+  window.bridgeFeesReload = async function () {
+    ensureStuExamFeesPanel();
+    var host = document.getElementById('bridgeChallanList');
+    if (host && !host.querySelector('.bridge-ch-row')) {
+      window.bridgeAddChallanRow();
+      window.bridgeAddChallanRow();
+    }
+    var box = document.getElementById('bridgeFeeBreakup');
+    var tot = document.getElementById('bridgeFeeTotal');
+    var stEl = document.getElementById('bridgeFeePayStatus');
+    try {
+      var data = await api('/api/exam/bridge/fees');
+      var lines = (data.fees && data.fees.lines) || [];
+      if (box) {
+        if (!lines.length) {
+          box.innerHTML = '<p style="opacity:.7;">No bridge fee lines yet — add subjects under Results → Bridge Course first.</p>';
+        } else {
+          box.innerHTML =
+            '<table style="width:100%;border-collapse:collapse;"><tbody>' +
+            lines
+              .map(function (l) {
+                return (
+                  '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;">' +
+                  esc(l.label) +
+                  '</td><td style="padding:6px;text-align:right;font-weight:700;">Rs ' +
+                  l.amount +
+                  '</td></tr>'
+                );
+              })
+              .join('') +
+            '</tbody></table>';
+        }
+      }
+      if (tot) tot.textContent = 'Rs ' + ((data.fees && data.fees.total) || 0);
+      if (stEl) {
+        var p = data.payment;
+        if (!p) stEl.innerHTML = '<span class="badge pending">Not submitted</span>';
+        else {
+          var stampHtml = '';
+          if (p.paid_marked_by_name && window.gpthStamp && p.stamp) {
+            stampHtml = window.gpthStamp.html(p.stamp, 'paid');
+          } else if (p.paid_marked_by_name) {
+            stampHtml =
+              '<div style="margin-top:6px;font-size:0.8rem;">Marked by <strong>' +
+              esc(p.paid_marked_by_name) +
+              '</strong></div>';
+          }
+          var rejectBanner =
+            p.status === 'rejected' && p.staff_note
+              ? '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:0.85rem;line-height:1.45;">' +
+                '<strong>Exam Cell removed your bridge submission.</strong><br>What is wrong: ' +
+                esc(p.staff_note) +
+                '<br><span style="opacity:.85;">Please correct and submit bridge challan details again.</span></div>'
+              : p.staff_note && (p.status === 'due' || p.status === 'rejected')
+                ? '<div style="margin-top:8px;font-size:0.82rem;color:#991b1b;">Exam note: ' +
+                  esc(p.staff_note) +
+                  '</div>'
+                : '';
+          stEl.innerHTML =
+            'Bridge fee status: <strong>' +
+            esc(p.status) +
+            '</strong>' +
+            (p.challan_total != null ? ' · Challan total Rs ' + p.challan_total : '') +
+            stampHtml +
+            rejectBanner;
+        }
+      }
+    } catch (e) {
+      if (box) box.innerHTML = '<span style="color:#991b1b;">' + esc(e.message) + '</span>';
+    }
+  };
+
+  window.bridgeSubmitChallans = async function () {
+    var rows = document.querySelectorAll('#bridgeChallanList .bridge-ch-row');
+    var challans = [];
+    rows.forEach(function (row) {
+      var no = ((row.querySelector('.bridge-ch-no') || {}).value || '').trim();
+      var amt = Number((row.querySelector('.bridge-ch-amt') || {}).value || 0);
+      if (no && amt > 0) challans.push({ receipt_no: no, amount: amt });
+    });
+    if (!challans.length) {
+      alert('Enter at least one K2 receipt number and amount for bridge fees.');
+      return;
+    }
+    var note = ((document.getElementById('bridgeFeeNote') || {}).value || '').trim();
+    try {
+      var data = await api('/api/exam/bridge/fees', {
+        method: 'POST',
+        body: { challans: challans, note: note },
+      });
+      alert(data.message || 'Bridge challan submitted.');
+      window.bridgeFeesReload();
     } catch (e) {
       alert(e.message || 'Submit failed');
     }
@@ -1735,6 +2154,7 @@
         barHtml:
           '<button type="button" class="btn go" data-exam-tab="adExFeeDesk">Regular exam fee verification</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExMakeupFeeDesk">Makeup exam fee verification</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExBridgeFeeDesk">Bridge exam fee verification</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExFeeSchedule">Regular fee schedule</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExMakeupFeeSched">Makeup fee schedule</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExRegularCycle">Regular exam declare</button>' +
@@ -1747,6 +2167,7 @@
         barHtml:
           '<button type="button" class="btn pr" data-exam-tab="adExResultsVerify">Regular exam results</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExMakeupVerify">Makeup results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="adExBridgeVerify">Bridge Course results</button>' +
           '<button type="button" class="btn ol" data-exam-tab="adExResultAnalysis">Result Analysis</button>',
       },
       // HOD / faculty: keep result verification on facExamModule (no separate fee menu required)
@@ -1757,6 +2178,7 @@
         barHtml:
           '<button type="button" class="btn pr" data-exam-tab="facExResultsVerify">Regular exam results</button>' +
           '<button type="button" class="btn ol" data-exam-tab="facExMakeupVerify">Makeup results</button>' +
+          '<button type="button" class="btn ol" data-exam-tab="facExBridgeVerify">Bridge Course results</button>' +
           '<button type="button" class="btn ol" data-exam-tab="facExResultAnalysis">Result Analysis</button>',
       },
     ];
@@ -1915,14 +2337,14 @@
 
       // Always re-home panels for this shell kind
       if (cfg.kind === 'fee') {
-        ;['FeeDesk', 'FeeSchedule', 'RegularCycle', 'MakeupCycle', 'MakeupFeeDesk', 'MakeupFeeSched'].forEach(
+        ;['FeeDesk', 'FeeSchedule', 'RegularCycle', 'MakeupCycle', 'MakeupFeeDesk', 'MakeupFeeSched', 'BridgeFeeDesk'].forEach(
           function (suf) {
             adoptPanel(root, prefix + suf);
           },
         );
       }
       if (cfg.kind === 'result') {
-        ;['ResultsVerify', 'MakeupVerify', 'ResultAnalysis'].forEach(function (suf) {
+        ;['ResultsVerify', 'MakeupVerify', 'BridgeVerify', 'ResultAnalysis'].forEach(function (suf) {
           adoptPanel(root, prefix + suf);
         });
       }
@@ -2019,6 +2441,24 @@
           ensureExamFeeExportButton(prefix, 'makeup');
         }
 
+        if (!document.getElementById(prefix + 'BridgeFeeDesk')) {
+          var bgFd = document.createElement('div');
+          bgFd.id = prefix + 'BridgeFeeDesk';
+          bgFd.style.display = 'none';
+          bgFd.innerHTML =
+            '<div class="info-box"><strong>Bridge Course fee verification</strong> — Fixed tiers, always open (no declare step needed). ' +
+            'New subjects: Rs 200 (≤2) / Rs 300 (3+). Failed re-attempt: Rs 250 (1-2) / Rs 350 (3+).</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<select id="' + prefix + 'BgFdStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="">All</option><option value="challan_submitted">Challan submitted</option>' +
+            '<option value="paid">Paid</option><option value="partial">Partial</option>' +
+            '<option value="due">Due</option><option value="rejected">Rejected / deleted</option></select>' +
+            '<button type="button" class="btn ol" onclick="window.bridgeStaffLoadFees&&window.bridgeStaffLoadFees(\'' +
+            prefix + "')\">Load students</button></div>" +
+            '<div id="' + prefix + 'BgFdList" style="padding:10px;overflow-x:auto;"></div>';
+          root.appendChild(bgFd);
+        } else adoptPanel(root, prefix + 'BridgeFeeDesk');
+
         if (!document.getElementById(prefix + 'MakeupFeeSched')) {
           var mkFs = document.createElement('div');
           mkFs.id = prefix + 'MakeupFeeSched';
@@ -2055,6 +2495,22 @@
             '<div id="' + prefix + 'MkVList" style="padding:10px;overflow-x:auto;"></div>';
           root.appendChild(mkV);
         } else adoptPanel(root, prefix + 'MakeupVerify');
+
+        if (!document.getElementById(prefix + 'BridgeVerify')) {
+          var bgV = document.createElement('div');
+          bgV.id = prefix + 'BridgeVerify';
+          bgV.style.display = 'none';
+          bgV.innerHTML =
+            '<div class="info-box"><strong>Bridge Course results verification</strong> — Pending self-entered bridge subjects. HOD = branch; Exam = all.</div>' +
+            '<div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<select id="' + prefix + 'BgVStatus" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);">' +
+            '<option value="pending">Pending</option><option value="">All</option>' +
+            '<option value="verified">Verified</option><option value="rejected">Rejected</option></select>' +
+            '<button type="button" class="btn ol" onclick="window.bridgeStaffLoadVerify&&window.bridgeStaffLoadVerify(\'' +
+            prefix + "')\">Load</button></div>" +
+            '<div id="' + prefix + 'BgVList" style="padding:10px;overflow-x:auto;"></div>';
+          root.appendChild(bgV);
+        } else adoptPanel(root, prefix + 'BridgeVerify');
       }
 
       // Wire tab clicks for this shell only
@@ -2078,6 +2534,8 @@
               prefix + 'MakeupVerify',
               prefix + 'MakeupFeeDesk',
               prefix + 'MakeupFeeSched',
+              prefix + 'BridgeVerify',
+              prefix + 'BridgeFeeDesk',
               prefix + 'ResultAnalysis',
             ];
             staffPanelIds.forEach(function (pid) {
@@ -2103,11 +2561,13 @@
               window.examStaffLoadVerify(prefix, { kind: 'regular' });
             else if (id.indexOf('RegularCycle') >= 0) window.regularCycleLoad(prefix);
             else if (id.indexOf('MakeupFeeDesk') >= 0) window.makeupStaffLoadFees(prefix);
+            else if (id.indexOf('BridgeFeeDesk') >= 0) window.bridgeStaffLoadFees(prefix);
             else if (id.indexOf('FeeDesk') >= 0) window.examStaffLoadFees(prefix);
             else if (id.indexOf('MakeupFeeSched') >= 0) window.makeupFeeSchedLoad(prefix);
             else if (id.indexOf('FeeSchedule') >= 0) window.examFeeScheduleLoad(prefix);
             else if (id.indexOf('MakeupCycle') >= 0) window.makeupCycleLoad(prefix);
             else if (id.indexOf('MakeupVerify') >= 0) window.makeupStaffLoadVerify(prefix);
+            else if (id.indexOf('BridgeVerify') >= 0) window.bridgeStaffLoadVerify(prefix);
             else if (id.indexOf('ResultAnalysis') >= 0 && window.resAnalysisLoad) {
               window.resAnalysisLoad(id);
             }
@@ -3531,6 +3991,155 @@
       });
       alert('Makeup fee marked ' + status);
       window.makeupStaffLoadFees(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.bridgeStaffLoadVerify = async function (prefix) {
+    var list = document.getElementById(prefix + 'BgVList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    var st = (document.getElementById(prefix + 'BgVStatus') || {}).value || 'pending';
+    try {
+      var q = '/api/exam/bridge/attempts?list=1&status=' + encodeURIComponent(st);
+      var data = await api(q);
+      var rows = data.attempts || [];
+      if (!rows.length) {
+        list.innerHTML = '<p style="opacity:.7;">No bridge attempts for this filter.</p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>Student</th><th>Subject</th><th>Sem</th><th>Result</th><th>Status</th><th></th></tr></thead><tbody>';
+      rows.forEach(function (a) {
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(a.reg_no) +
+          '</strong><div style="opacity:.75;">' +
+          esc(a.student_name || '') +
+          '</div></td><td style="padding:6px;">' +
+          esc(a.subject_name) +
+          '</td><td style="padding:6px;">' +
+          a.semester +
+          '</td><td style="padding:6px;">' +
+          esc(a.result) +
+          ' ' +
+          esc(a.grade || '') +
+          '</td><td style="padding:6px;">' +
+          esc(a.status) +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          (a.status === 'pending'
+            ? '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.bridgeMarkAttempt(' +
+              a.id +
+              ',\'verify\',\'' +
+              prefix +
+              '\')">Verify</button> ' +
+              '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b91c1c;color:#fff;" onclick="window.bridgeMarkAttempt(' +
+              a.id +
+              ',\'reject\',\'' +
+              prefix +
+              '\')">Reject</button>'
+            : '—') +
+          '</td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.bridgeMarkAttempt = async function (id, action, prefix) {
+    var note = action === 'reject' ? prompt('Reject note (optional):') : null;
+    try {
+      await api('/api/exam/bridge/attempts', {
+        method: 'PATCH',
+        body: { id: id, action: action, reject_note: note },
+      });
+      window.bridgeStaffLoadVerify(prefix);
+    } catch (e) {
+      alert(e.message || 'Failed');
+    }
+  };
+
+  window.bridgeStaffLoadFees = async function (prefix) {
+    var list = document.getElementById(prefix + 'BgFdList');
+    if (!list) return;
+    list.innerHTML = '<p style="opacity:.7;">Loading…</p>';
+    var st = (document.getElementById(prefix + 'BgFdStatus') || {}).value || '';
+    try {
+      var q = '/api/exam/bridge/fees?';
+      if (st) q += 'status=' + encodeURIComponent(st) + '&';
+      var data = await api(q);
+      var payments = data.payments || [];
+      if (!payments.length) {
+        list.innerHTML =
+          '<p style="opacity:.75;line-height:1.5;">No bridge fee records for this filter.<br>' +
+          '<span style="font-size:0.85rem;">Students submit K2 challans under <strong>Fees → Bridge Course fees</strong>.</span></p>';
+        return;
+      }
+      var html =
+        '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><thead><tr>' +
+        '<th>Reg / Name</th><th>Computed</th><th>Challans</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+      payments.forEach(function (p) {
+        var ch =
+          (p.challans || [])
+            .map(function (c) {
+              return esc(c.receipt_no) + ' ₹' + c.amount;
+            })
+            .join('<br>') || '—';
+        var reasonHtml =
+          p.staff_note && (p.status === 'rejected' || p.status === 'due')
+            ? '<div style="margin-top:4px;font-size:0.72rem;color:#991b1b;max-width:180px;">Why: ' +
+              esc(p.staff_note) +
+              '</div>'
+            : '';
+        html +=
+          '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px;"><strong>' +
+          esc(p.reg_no) +
+          '</strong><div style="opacity:.75;">' +
+          esc(p.name || '') +
+          '</div></td><td style="padding:6px;">₹ ' +
+          p.computed_total +
+          '</td><td style="padding:6px;font-size:0.72rem;">' +
+          ch +
+          '</td><td style="padding:6px;"><strong>' +
+          esc(p.status) +
+          '</strong>' +
+          reasonHtml +
+          '</td><td style="padding:6px;white-space:nowrap;">' +
+          '<button type="button" class="btn go" style="padding:4px 8px;font-size:0.72rem;" onclick="window.bridgeMarkPaid(' +
+          p.id +
+          ',\'paid\',\'' +
+          prefix +
+          '\')">Paid</button> ' +
+          '<button type="button" class="btn ol" style="padding:4px 8px;font-size:0.72rem;" onclick="window.bridgeMarkPaid(' +
+          p.id +
+          ',\'partial\',\'' +
+          prefix +
+          '\')">Partial</button> ' +
+          '<button type="button" class="btn" style="padding:4px 8px;font-size:0.72rem;background:#b45309;color:#fff;" onclick="window.bridgeMarkPaid(' +
+          p.id +
+          ',\'due\',\'' +
+          prefix +
+          '\')">Due</button></td></tr>';
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      list.innerHTML = '<p style="color:#991b1b;">' + esc(e.message) + '</p>';
+    }
+  };
+
+  window.bridgeMarkPaid = async function (id, status, prefix) {
+    try {
+      await api('/api/exam/bridge/fees', {
+        method: 'PATCH',
+        body: { id: id, status: status },
+      });
+      alert('Bridge fee marked ' + status);
+      window.bridgeStaffLoadFees(prefix);
     } catch (e) {
       alert(e.message || 'Failed');
     }

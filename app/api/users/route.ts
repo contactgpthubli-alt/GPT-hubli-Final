@@ -7,6 +7,9 @@ import {
   clearUserSessions,
 } from "@/lib/auth"
 import { normalizeBranch } from "@/lib/branches"
+import { isOfficialBranch } from "@/lib/branches"
+import { isValidStudentRegNo, normalizeStudentRegNo, studentSyntheticEmail } from "@/lib/student-reg-no"
+import { stampFromSession } from "@/lib/signature-stamp"
 import {
   canApproveTarget,
   hodBranchOf,
@@ -98,6 +101,7 @@ export async function GET(req: Request) {
         u.deleted_at, u.prev_status,
         u.approved_by, u.approved_by_name, u.approved_by_role, u.approved_at,
         u.rejected_by, u.rejected_by_name, u.rejected_by_role, u.rejected_at,
+        u.created_by, u.created_by_name, u.created_by_role, u.created_at_actor,
         s.dept AS student_dept, s.year AS student_year, s.name AS student_name
        FROM users u
        LEFT JOIN students s ON s.reg_no = u.reg_no
@@ -204,6 +208,10 @@ export async function GET(req: Request) {
     rejected_by_name: r.rejected_by_name || null,
     rejected_by_role: r.rejected_by_role || null,
     rejected_at: r.rejected_at || null,
+    created_by: r.created_by != null ? Number(r.created_by) : null,
+    created_by_name: r.created_by_name || null,
+    created_by_role: r.created_by_role || null,
+    created_at_actor: r.created_at_actor || null,
   }))
 
   return Response.json(
@@ -286,6 +294,54 @@ async function mutateUsers(req: Request) {
 
   const isAdmin = actor.role === "admin"
   const canApprove = isAdmin || actor.role === "principal" || actor.role === "hod"
+
+  if (b.action === "create_account") {
+    if (!isAdmin) return unauthorized("Only Root Admin can create accounts")
+    const name = String(b.name || "").trim()
+    const role = String(b.role || "").trim().toLowerCase()
+    const password = String(b.password || "")
+    if (!name) return badRequest("Name is required")
+    if (!password || password.length < 8) return badRequest("Password must be at least 8 characters")
+    const allowedRoles = ["student", "faculty", "principal", "admin", "hod", "registrar", "acm", "exam", "est", "library", "placement", "nss", "yrc", "alumni", "sports", "welfare", "cash", "accounts", "stores", "studentassoc"]
+    if (!allowedRoles.includes(role)) return badRequest("Select a valid account role")
+
+    let regNo = String(b.reg_no || "").trim()
+    let email = String(b.email || "").trim().toLowerCase()
+    const branch = normalizeBranch(String(b.branch || "").trim()) || null
+    if (role === "student") {
+      if (!isValidStudentRegNo(regNo)) return badRequest("Enter a valid student Register Number")
+      regNo = normalizeStudentRegNo(regNo)
+      if (!branch || !isOfficialBranch(branch)) return badRequest("Select a valid student branch")
+      email = studentSyntheticEmail(regNo)
+    } else {
+      if (!regNo || regNo.length < 3) return badRequest("Username is required and must be at least 3 characters")
+      if (!email || !email.includes("@")) return badRequest("A valid email is required")
+    }
+
+    const duplicate = await query(
+      `SELECT 1 FROM users WHERE deleted_at IS NULL AND (lower(email) = lower($1) OR lower(reg_no) = lower($2)) LIMIT 1`,
+      [email, regNo],
+    )
+    if (duplicate.rowCount) return Response.json({ error: "An account with this email or username/Register Number already exists" }, { status: 409 })
+
+    const stamp = stampFromSession(actor, "created")
+    const passwordHash = await hashPassword(password)
+    const { rows } = await query(
+      `INSERT INTO users (email, password_hash, role, display_name, reg_no, branch, status, force_password_change, created_by, created_by_name, created_by_role, created_at_actor)
+       VALUES ($1, $2, $3, $4, $5, $6, 'approved', FALSE, $7, $8, $9, $10)
+       RETURNING id, email, role, display_name, reg_no, branch, status, created_by, created_by_name, created_by_role, created_at_actor`,
+      [email, passwordHash, role, name, regNo || null, branch, stamp.by_id, stamp.by_name, stamp.by_role, stamp.at],
+    )
+    const created = rows[0]
+    if (role === "student") {
+      await query(
+        `INSERT INTO students (reg_no, name, dept, year, extra) VALUES ($1, $2, $3, NULL, '{}'::jsonb)
+         ON CONFLICT (reg_no) DO UPDATE SET name = EXCLUDED.name, dept = EXCLUDED.dept`,
+        [regNo, name, branch],
+      )
+    }
+    return Response.json({ ok: true, user: created, created_by: stamp })
+  }
 
   // ── Bulk soft-delete (admin only) ──
   if (b.action === "bulk_soft_delete") {

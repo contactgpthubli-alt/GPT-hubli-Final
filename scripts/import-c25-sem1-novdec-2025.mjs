@@ -26,6 +26,12 @@ const projectRoot = path.resolve(__dirname, "..")
 const DRY_RUN = process.argv.includes("--dry-run")
 const UPDATE_CGPA = process.argv.includes("--update-cgpa")
 const CREATE_MISSING = process.argv.includes("--create-missing")
+const BRANCH_ONLY = (() => {
+  const i = process.argv.indexOf("--branch")
+  if (i >= 0 && process.argv[i + 1]) return String(process.argv[i + 1]).toUpperCase()
+  const eq = process.argv.find((a) => a.startsWith("--branch="))
+  return eq ? eq.split("=")[1].toUpperCase() : null
+})()
 const SEM = 1
 const SESSION = "Nov/Dec-2025"
 const SCHEME = "C-25"
@@ -69,6 +75,9 @@ const SUBJECT_NAMES = {
   "25ME01I": "Computer Aided Engineering Drawing",
   "25ME11I": "Concepts of Mechanical Engineering -I",
   "25ME12T": "Environmental Sustainability",
+  "25CS11I": "Basics of Digital Logic and Computer Organisation",
+  "25CS12T": "Environmental Sustainability",
+  "25CS12I": "Environmental Sustainability",
 }
 
 const GRADE_RE = /^(S|A\+|A|B\+|B|C\+|C|D|E|P|O|F|F\*|F\*\*|Ab|AB|NE|W|X)$/i
@@ -341,9 +350,35 @@ function parseLedgerText(text, branchCode) {
 
 function loadAllFromExtracts() {
   const dir = path.join(projectRoot, "tmp-c25", "result-sheets", "nov-dec-2025")
-  const tags = ["CE", "CS", "EC", "ME"]
+  const tags = ["CE", "CS", "EC", "ME"].filter((t) => !BRANCH_ONLY || t === BRANCH_ONLY)
   const all = []
   for (const tag of tags) {
+    // Prefer structured JSON from pdfplumber table extract (needed for CS
+    // Nov/Dec sheets where text layout collapses credit/grade onto name lines).
+    const jsonPath = path.join(dir, `${tag}_parsed.json`)
+    if (existsSync(jsonPath)) {
+      const list = JSON.parse(readFileSync(jsonPath, "utf8")).map((s) => ({
+        ...s,
+        reg: String(s.reg || "").toUpperCase(),
+        branch_code: s.branch_code || tag,
+        branch: s.branch || BRANCH_FULL[tag] || tag,
+        subjects: (s.subjects || []).map((sub) => ({
+          ...sub,
+          code: String(sub.code || "").toUpperCase(),
+          name: sub.name || SUBJECT_NAMES[String(sub.code || "").toUpperCase()] || sub.code,
+          credits:
+            Number(sub.credits) ||
+            SUBJECT_CREDITS[String(sub.code || "").toUpperCase()] ||
+            0,
+          credit_earned: Number(sub.credit_earned ?? sub.credits ?? 0),
+          grade: sub.grade,
+          result: sub.result,
+        })),
+      }))
+      console.log(`Parsed ${tag} (JSON): ${list.length} students`)
+      all.push(...list)
+      continue
+    }
     const p = path.join(dir, `${tag}_result.txt`)
     if (!existsSync(p)) {
       console.warn("Missing extract (skip):", p)

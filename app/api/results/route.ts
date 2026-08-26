@@ -4,13 +4,35 @@ import { STAFF_ROLES, RESULT_WRITERS } from "@/lib/roles"
 import { hodBranchOf } from "@/lib/account-approvals"
 import { branchCodeFromDept } from "@/lib/curriculum-c20"
 
+async function ensureResultEditRequestSchema() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS result_edit_requests (
+      id BIGSERIAL PRIMARY KEY,
+      result_id BIGINT NOT NULL,
+      reg_no TEXT NOT NULL,
+      proposed JSONB NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      requested_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      requested_by_name TEXT,
+      requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      reviewed_by_name TEXT,
+      reviewed_by_role TEXT,
+      reviewed_at TIMESTAMPTZ,
+      review_stamp JSONB,
+      remarks TEXT
+    )
+  `)
+}
+
 async function fetchResults(where: string, params: unknown[]) {
   const { rows } = await query(
     `SELECT r.id, r.reg_no AS reg, r.name, r.branch, r.sem, r.session, r.sgpa::float AS sgpa, r.result,
             COALESCE(json_agg(json_build_object(
               'name', s.name, 'code', s.code, 'internal', s.internal,
               'external', s.external, 'credits', s.credits, 'grade', s.grade
-            ) ORDER BY s.ord) FILTER (WHERE s.id IS NOT NULL), '[]') AS subjects
+            ) ORDER BY s.ord) FILTER (WHERE s.id IS NOT NULL), '[]') AS subjects,
+            (SELECT rer.status FROM result_edit_requests rer WHERE rer.result_id = r.id ORDER BY rer.requested_at DESC LIMIT 1) AS edit_request_status
        FROM results r
        LEFT JOIN result_subjects s ON s.result_id = r.id
        ${where}
@@ -36,6 +58,7 @@ function hodBranchLike(user: { role: string; branch?: string | null; reg_no?: st
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return unauthorized()
+  await ensureResultEditRequestSchema()
   if (user.role === "student") {
     return Response.json({ results: await fetchResults("WHERE r.reg_no = $1", [user.reg_no]) })
   }
@@ -51,7 +74,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await requireRole(...RESULT_WRITERS)
+  const user = await requireRole("admin", "exam")
   if (!user) return unauthorized()
   const b = await req.json().catch(() => null)
   if (!b?.reg || !b?.sem || !b?.session || !Array.isArray(b.subjects)) {

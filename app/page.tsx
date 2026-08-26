@@ -1,32 +1,36 @@
+import { Analytics } from '@vercel/analytics/next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { legacyBodyHtml } from '@/lib/legacy-body'
 
-/**
- * Government Polytechnic Hubli — Management System
- *
- * Faithful port of the original single-file application.
- * - Markup (landing page, login modals, all dashboards) is server-rendered from lib/legacy-body.ts
- * - Styles live in app/legacy.css
- * - Application logic (auth, roles, results, attendance, fees, gallery, grievances, ...)
- *   runs from public/legacy-app.js, which exposes the global functions used by
- *   the inline event handlers in the markup.
- */
+export const metadata: Metadata = {
+  title: 'Government Polytechnic Hubli — Management System',
+  description:
+    'Official management system of Government Polytechnic Hubli — student, faculty, admin and principal portals with results, attendance, fees, grievances and more. Developed by Akshay Uppar.',
+  authors: [{ name: 'Akshay Uppar' }],
+  creator: 'Akshay Uppar',
+  generator: 'v0.app',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1a4fa0',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export default function Page() {
   return (
     <>
-      {/* biome-ignore lint: faithful port of the original static HTML application */}
-      {/* suppressHydrationWarning: browsers normalize the hand-written legacy markup,
-          so it can't byte-match the server string. React intentionally never patches
-          this subtree — all interactivity is handled by legacy-app.js. */}
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: legacyBodyHtml }} />
-      {/* Bridge config must exist before the bridge script runs.
-          Demo quick-login is opt-in via NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true. */}
-      <Script id="bridge-config" strategy="beforeInteractive">
-        {`window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`}
-      </Script>
-      {/* Instant CMS shell — hide old public landing before heavy scripts load */}
-      <Script src="/cms-boot.js?v=20260808perf" strategy="beforeInteractive" />
-      {/* Core only on first paint — exam/ops/ACM/TC load AFTER login (see legacy-bridge ensureStaffModules) */}
+      <Script
+        id="bridge-config"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`,
+        }}
+      />
       <Script src="/legacy-app.js?v=20260813gradeCplus" strategy="afterInteractive" />
       <Script src="/legacy-bridge.js?v=20260813gradeCplus" strategy="afterInteractive" />
     </>

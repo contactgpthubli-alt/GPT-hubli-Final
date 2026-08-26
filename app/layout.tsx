@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import './legacy.css'
 
 export const metadata: Metadata = {
@@ -45,19 +46,12 @@ html.cms-login-mode #dbAdmin:not(.show),
 html.cms-login-mode #dbStudent:not(.show),
 html.cms-login-mode #dbFaculty:not(.show),
 html.cms-login-mode #dbPrincipal:not(.show) { display:none!important; }
-#dbAdmin[data-auth-locked="1"],#dbStudent[data-auth-locked="1"],
-#dbFaculty[data-auth-locked="1"],#dbPrincipal[data-auth-locked="1"] {
+#dbAdmin[data-auth-locked=\\"1\\"],#dbStudent[data-auth-locked=\\"1\\"],
+#dbFaculty[data-auth-locked=\\"1\\"],#dbPrincipal[data-auth-locked=\\"1\\"] {
   display:none!important;visibility:hidden!important;pointer-events:none!important;
-}
 /* Soft shell while scripts load */
 #cmsLoginGate .cms-msg-loading { color:#64748b; font-weight:600; font-size:0.85rem; text-align:center; padding:8px 0 4px; }
 `,
-          }}
-        />
-        {/* Apply mode before first paint when possible */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{document.documentElement.classList.add('cms-login-mode');}catch(e){}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -68,6 +62,7 @@ html.cms-login-mode #dbPrincipal:not(.show) { display:none!important; }
         />
       </head>
       <body className="cms-login-mode" suppressHydrationWarning>
+        <Script src="/cms-boot.js?v=20260808perf" strategy="beforeInteractive" />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

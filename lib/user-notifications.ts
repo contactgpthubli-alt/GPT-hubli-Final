@@ -15,6 +15,10 @@ export async function ensureAccountApprovalSchema(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_by_name TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_by_role TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by BIGINT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by_name TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by_role TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at_actor TIMESTAMPTZ;
     `)
     await query(`
       CREATE TABLE IF NOT EXISTS user_notifications (

@@ -1327,7 +1327,7 @@ function __initGptBridge() {
       '<button type="button" class="btn ol" onclick="window.renderStudentDataBrowser&&window.renderStudentDataBrowser()">↻ Refresh</button>' +
       '<button type="button" class="btn pr" onclick="window.exportStudentDataCsv&&window.exportStudentDataCsv()">⬇ Export CSV</button>' +
       '</div></div>' +
-      '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr;gap:10px;align-items:end;">' +
+      '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 1.1fr;gap:10px;align-items:end;">' +
       '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Search</label>' +
       '<div class="sbar" style="margin:0;"><span class="si">🔍</span>' +
       '<input type="text" id="' + p + '_search" placeholder="Name, reg no, father, phone…" ' +
@@ -1344,6 +1344,10 @@ function __initGptBridge() {
       '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Admission Year</label>' +
       '<select id="' + p + '_adm" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;" ' +
       'onchange="window.filterStudentDataList&&window.filterStudentDataList()"><option value="">All</option></select></div>' +
+      '<div class="fg" style="margin:0;"><label style="font-size:0.72rem;font-weight:700;">Profile Status</label>' +
+      '<select id="' + p + '_profile" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;" ' +
+      'onchange="window.filterStudentDataList&&window.filterStudentDataList()"><option value="">All Profiles</option>' +
+      '<option value="updated">Updated</option><option value="partial">Partial</option><option value="not_updated">Not Updated</option></select></div>' +
       '</div>' +
       '<div id="' + p + '_meta" style="padding:8px 16px;font-size:0.78rem;opacity:.8;border-bottom:1px solid var(--border);">Loading…</div>' +
       '<div id="' + p + '_stats" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--border);"></div>' +
@@ -1391,12 +1395,27 @@ function __initGptBridge() {
     var isHod = actorRole === 'hod';
     var approveOnly = isPrincipal || isHod;
 
-    var statusF = (document.getElementById('accStatusFilter') && document.getElementById('accStatusFilter').value) ||
+    var filterRoot = document.getElementById('bridgeAccountApprovals') || document.getElementById('bridgeUserManagement');
+    var adminHost = document.getElementById('adUsers');
+    if (adminHost && adminHost.offsetParent !== null && document.getElementById('bridgeUserManagement')) {
+      filterRoot = document.getElementById('bridgeUserManagement');
+    }
+    var approvalHost = document.getElementById('adUserApprovals');
+    if (approvalHost && approvalHost.offsetParent !== null && document.getElementById('bridgeAccountApprovals')) {
+      filterRoot = document.getElementById('bridgeAccountApprovals');
+    }
+    filterRoot = filterRoot || document;
+    function filterValue(id) {
+      var el = filterRoot.querySelector('#' + id);
+      return el ? el.value : '';
+    }
+
+    var statusF = filterValue('accStatusFilter') ||
       (approveOnly ? 'pending' : 'all');
-    var roleF = (document.getElementById('accApRoleFilter') && document.getElementById('accApRoleFilter').value) ||
+    var roleF = filterValue('accApRoleFilter') ||
       (isHod ? 'student' : '');
-    var qF = (document.getElementById('accApSearch') && document.getElementById('accApSearch').value) || '';
-    var branchF = (document.getElementById('accApBranchFilter') && document.getElementById('accApBranchFilter').value) || '';
+    var qF = filterValue('accApSearch') || '';
+    var branchF = filterValue('accApBranchFilter') || '';
     if (isHod && currentUser && currentUser.branch) {
       branchF = currentUser.branch;
     }
@@ -1548,6 +1567,11 @@ function __initGptBridge() {
             '</div>'
           );
         }
+        if (a.created_by_name || a.created_at_actor) {
+          return '<div style="margin-top:6px;">' + window.gpthStamp.html({
+            action: 'created', by_name: a.created_by_name, by_role: a.created_by_role, at: a.created_at_actor,
+          }, 'created') + '</div>';
+        }
         return '';
       }
       if (a.status === 'approved' && (a.approved_by_name || a.approved_at)) {
@@ -1573,6 +1597,16 @@ function __initGptBridge() {
           'Rejected by <strong>' + rwho + '</strong>' +
           (rwhen ? '<br><span style="opacity:.8;">' + rwhen + '</span>' : '') +
           '</div>';
+      }
+      if (a.created_by_name || a.created_at_actor) {
+        var cwho = a.created_by_name
+          ? esc(a.created_by_name) + (a.created_by_role ? ' <span style="opacity:.75;">(' + esc(a.created_by_role) + ')</span>' : '')
+          : '—';
+        var cwhen = a.created_at_actor
+          ? new Date(a.created_at_actor).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '';
+        return '<div style="font-size:0.68rem;margin-top:4px;line-height:1.35;color:#1d4ed8;">Created by <strong>' + cwho + '</strong>' +
+          (cwhen ? '<br><span style="opacity:.8;">' + cwhen + '</span>' : '') + '</div>';
       }
       return '';
     }
@@ -1716,6 +1750,7 @@ function __initGptBridge() {
         '</div></div>' +
         '<div class="card" style="margin-bottom:16px;">' +
         '<div class="card-hd"><h3>👥 All Accounts — select &amp; delete <span style="font-size:0.7rem;opacity:.6;font-weight:500;">(actions v4)</span></h3>' +
+        '<button class="btn gr" type="button" data-acc-create="1" style="margin-left:auto;margin-right:8px;">＋ Create account</button>' +
         '<button class="btn ol" type="button" onclick="window.renderAccountApprovals()">↻ Refresh</button></div>' +
         '<div style="padding:12px 16px;">' +
         filterBar +
@@ -1780,10 +1815,13 @@ function __initGptBridge() {
   }
 
   window.clearAccountFilters = function () {
+    var root = document.getElementById('bridgeAccountApprovals') || document.getElementById('bridgeUserManagement') || document;
+    var adminHost = document.getElementById('adUsers');
+    if (adminHost && adminHost.offsetParent !== null && document.getElementById('bridgeUserManagement')) root = document.getElementById('bridgeUserManagement');
     ;['accApSearch', 'accApRoleFilter', 'accApBranchFilter'].forEach(function (id) {
-      var el = document.getElementById(id); if (el) el.value = '';
+      var el = root.querySelector('#' + id); if (el) el.value = '';
     });
-    var st = document.getElementById('accStatusFilter');
+    var st = root.querySelector('#accStatusFilter');
     if (st) st.value = 'all';
     renderAccountApprovals();
   };
@@ -7056,6 +7094,7 @@ async function renderProfileRequestApprovals() {
     (role === 'principal') ? 'priProfileApprovals' : 'facApprovals';
   var host = document.getElementById(containerId);
   if (!host) return;
+  renderResultEditApprovals(host, role);
 
   var f = getProfileApprovalFiltersFromUiOrUrl();
   // HOD: force branch filter to own branch
@@ -7285,6 +7324,45 @@ async function renderProfileRequestApprovals() {
     '<div style="padding:4px 18px 16px;">' + cards + '</div>';
 }
 window.renderProfileRequestApprovals = renderProfileRequestApprovals;
+
+async function renderResultEditApprovals(host, role) {
+  if (role !== 'admin' && role !== 'hod') return;
+  var data = await profileApiGet('/api/result-edit-requests');
+  if (!data || !Array.isArray(data.requests)) return;
+  var pending = data.requests.filter(function (r) { return r.status === 'pending'; });
+  var old = host.querySelector('#resultEditApprovalPanel');
+  if (old) old.remove();
+  var panel = document.createElement('div');
+  panel.id = 'resultEditApprovalPanel';
+  panel.style.cssText = 'margin:0 18px 14px;padding:14px;border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:10px;background:#fffbeb;';
+  if (!pending.length) {
+    panel.innerHTML = '<strong>Official result corrections</strong><p style="margin:6px 0 0;font-size:.82rem;opacity:.75;">No pending student result correction requests.</p>';
+  } else {
+    panel.innerHTML = '<strong>Official result corrections</strong><p style="margin:6px 0 10px;font-size:.82rem;">Students can edit official results only after approval.</p>' + pending.map(function (r) {
+      var p = r.proposed || {};
+      return '<div style="padding:10px 0;border-top:1px solid #fcd34d;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
+        '<span style="flex:1;min-width:220px;"><strong>' + escAp(r.reg_no) + '</strong> · Sem ' + escAp(r.sem) + ' · ' + escAp(r.session) + '<br><span style="font-size:.75rem;opacity:.75;">Proposed SGPA: ' + escAp(p.sgpa == null ? '—' : p.sgpa) + ' · ' + escAp(p.result || '—') + '</span></span>' +
+        '<button class="btn gr" type="button" data-result-edit-action="approved" data-result-edit-id="' + r.id + '">Approve and publish</button>' +
+        '<button class="btn re" type="button" data-result-edit-action="rejected" data-result-edit-id="' + r.id + '">Reject</button></div>';
+    }).join('');
+  }
+  host.insertBefore(panel, host.firstChild);
+}
+window.renderResultEditApprovals = renderResultEditApprovals;
+
+document.addEventListener('click', function (event) {
+  var button = event.target && event.target.closest ? event.target.closest('[data-result-edit-action]') : null;
+  if (!button) return;
+  var action = button.getAttribute('data-result-edit-action');
+  var id = Number(button.getAttribute('data-result-edit-id'));
+  fetch('/api/result-edit-requests', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ id: id, action: action }) })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (result) {
+      if (!result.ok) { alert(result.data.error || 'Result correction action failed'); return; }
+      alert(action === 'approved' ? 'Result correction approved and published.' : 'Result correction rejected.');
+      renderProfileRequestApprovals();
+    }).catch(function () { alert('Result correction action failed'); });
+}, true);
 
 /** Review modal: clean list of only updated fields (photo as thumbnail). */
 function openProfileApprovalReview(id) {
@@ -7730,12 +7808,16 @@ function filterAdminStudentList() {
         regAttr + '" style="padding:3px 8px;font-size:0.72rem;">Open Approvals</button></div>'
       : '<span style="font-size:0.75rem;opacity:.55;">—</span>';
     var lock = s.profile_edit_locked ? ' 🔒' : ' 🔓';
+    var lockStamp = s.profile_lock_stamp && window.gpthStamp
+      ? '<div style="margin-top:4px;">' + window.gpthStamp.html(s.profile_lock_stamp, 'profile access') + '</div>'
+      : '';
     var canToggle = !!(s.reg_no);
     var lockBtn = !canToggle
       ? '<span style="font-size:0.72rem;opacity:.6;">No reg no</span>'
-      : (s.profile_edit_locked
-        ? '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '">🔓 Unlock Edit</button>'
-        : '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '">🔒 Lock Edit</button>');
+      : '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '"' +
+        (s.profile_edit_locked ? ' disabled title="Already locked"' : '') + '>🔒 Lock Edit</button>' +
+        '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' + regAttr + '" data-stu-label="' + nameAttr + '"' +
+        (!s.profile_edit_locked ? ' disabled title="Already unlocked"' : '') + '>🔓 Unlock Edit</button>';
     var st = academicStatusOf(s);
     var statusBadge = st === 'passed_out'
       ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;">Alumni</span>'
@@ -7760,7 +7842,7 @@ function filterAdminStudentList() {
       '<td>' + escHtml(s.dept || '—') + '</td>' +
       '<td>' + escHtml(s.year || '—') + ' ' + statusBadge + batchHint + '</td>' +
       '<td>' + accountStatusBadge(s.account_status) + '</td>' +
-      '<td>' + profileStatusBadge(s.profile_status) + lock + '</td>' +
+      '<td>' + profileStatusBadge(s.profile_status) + lock + lockStamp + '</td>' +
       '<td>' + raisedCol + '</td>' +
       '<td><div style="display:flex;gap:5px;flex-wrap:wrap;">' +
       '<button class="btn ol stu-act-btn" type="button" data-stu-action="view" data-stu-key="' + escHtml(key) + '">View</button>' +
@@ -7822,15 +7904,11 @@ function viewAdminStudent(key) {
     var regAttrM = escHtml(String(s.reg_no));
     var nameAttrM = escHtml(String(s.name || s.display_name || s.reg_no));
     html += '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
-    if (s.profile_edit_locked) {
-      html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' +
-        regAttrM + '" data-stu-label="' + nameAttrM + '">🔓 Open free edit</button>';
-      html += '<span style="font-size:0.75rem;opacity:.75;">View-only — student can still raise edit requests (no unlock required).</span>';
-    } else {
-      html += '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' +
-        regAttrM + '" data-stu-label="' + nameAttrM + '">🔒 Set view-only</button>';
-      html += '<span style="font-size:0.75rem;opacity:.75;">Student can raise edit requests anytime — see Raised edit request column.</span>';
-    }
+    html += '<button class="btn stu-act-btn" type="button" style="background:#b45309;color:#fff;" data-stu-action="lock" data-stu-reg="' +
+      regAttrM + '" data-stu-label="' + nameAttrM + '"' + (s.profile_edit_locked ? ' disabled title="Already locked"' : '') + '>🔒 Lock Edit</button>';
+    html += '<button class="btn gr stu-act-btn" type="button" data-stu-action="unlock" data-stu-reg="' +
+      regAttrM + '" data-stu-label="' + nameAttrM + '"' + (!s.profile_edit_locked ? ' disabled title="Already unlocked"' : '') + '>🔓 Unlock Edit</button>';
+    html += '<span style="font-size:0.75rem;opacity:.75;">Lock makes the profile view-only; unlock allows free editing.</span>';
     html += '</div>';
   }
   html += '</div>';
@@ -8327,6 +8405,56 @@ setInterval(function () {
     try { alert(msg); } catch (e2) { console.log("[acc-toast]", msg); }
   }
 
+  function openCreateAccountDialog() {
+    var old = document.getElementById("accCreateDialog");
+    if (old) old.remove();
+    var overlay = document.createElement("div");
+    overlay.id = "accCreateDialog";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px;";
+    overlay.innerHTML =
+      '<form style="width:min(560px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;padding:22px;box-shadow:0 18px 60px rgba(15,23,42,.3);" data-acc-create-form>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><h3 style="margin:0;">Create account</h3><button type="button" class="btn ol" data-acc-create-close>Close</button></div>' +
+      '<div style="display:grid;gap:10px;">' +
+      '<label>Name<input name="name" required style="width:100%;padding:9px;margin-top:4px;"></label>' +
+      '<label>Role<select name="role" required style="width:100%;padding:9px;margin-top:4px;"><option value="student">Student</option><option value="faculty">Faculty</option><option value="hod">HOD</option><option value="acm">ACM</option><option value="exam">Exam Cell</option><option value="principal">Principal</option><option value="registrar">Registrar</option><option value="admin">Root Admin</option><option value="est">EST</option><option value="library">Library</option><option value="accounts">Accounts</option><option value="stores">Stores</option></select></label>' +
+      '<label data-create-reg>Register Number / Username<input name="reg_no" required style="width:100%;padding:9px;margin-top:4px;"></label>' +
+      '<label data-create-email>Email<input name="email" type="email" style="width:100%;padding:9px;margin-top:4px;"></label>' +
+      '<label data-create-branch>Branch<select name="branch" style="width:100%;padding:9px;margin-top:4px;"><option value="">Select branch</option><option>Civil Engineering</option><option>Computer Science and Engineering</option><option>Electronics and Communication Engineering</option><option>Mechanical Engineering</option></select></label>' +
+      '<label>Password<input name="password" type="password" minlength="8" required style="width:100%;padding:9px;margin-top:4px;"></label>' +
+      '</div><p data-acc-create-error style="color:#b91c1c;font-size:.82rem;min-height:20px;margin:10px 0 0;"></p>' +
+      '<button class="btn gr" type="submit" style="margin-top:8px;width:100%;">Create approved account</button></form>';
+    document.body.appendChild(overlay);
+    var form = overlay.querySelector("[data-acc-create-form]");
+    var role = form.querySelector('[name="role"]');
+    var email = form.querySelector('[data-create-email]');
+    var branch = form.querySelector('[data-create-branch]');
+    function updateFields() {
+      var student = role.value === "student";
+      email.style.display = student ? "none" : "block";
+      email.querySelector("input").required = !student;
+      branch.style.display = student ? "block" : "none";
+      branch.querySelector("select").required = student;
+      form.querySelector('[data-create-reg] input').placeholder = student ? "e.g. 171CS25001" : "Login username";
+    }
+    role.addEventListener("change", updateFields);
+    updateFields();
+    form.querySelector("[data-acc-create-close]").addEventListener("click", function () { overlay.remove(); });
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var values = Object.fromEntries(new FormData(form).entries());
+      var error = form.querySelector("[data-acc-create-error]");
+      error.textContent = "Creating account...";
+      var result = await accFetch("POST", "/api/users", {
+        action: "create_account", name: values.name, role: values.role,
+        reg_no: values.reg_no, email: values.email, branch: values.branch, password: values.password,
+      });
+      if (!result.ok) { error.textContent = result.error || "Account creation failed"; return; }
+      overlay.remove();
+      showAccToast("Account created and approved.");
+      refreshAccounts();
+    });
+  }
+
   function refreshAccounts() {
     console.log("[acc-action] refreshing list…");
     if (typeof window.renderAccountApprovals === "function") {
@@ -8612,6 +8740,13 @@ setInterval(function () {
         var id = actBtn.getAttribute("data-acc-id");
         var label = actBtn.getAttribute("data-acc-label") || id;
         runAction(action, id, label);
+        return;
+      }
+
+      if (t.closest("[data-acc-create='1']")) {
+        e.preventDefault();
+        e.stopPropagation();
+        openCreateAccountDialog();
         return;
       }
 
@@ -9158,8 +9293,10 @@ setInterval(function () {
     var year = ((document.getElementById(p + '_year') || {}).value || '').trim().toLowerCase();
     var statusF = ((document.getElementById(p + '_status') || {}).value || 'active_like').trim();
     var adm = ((document.getElementById(p + '_adm') || {}).value || '').trim();
+    var profile = ((document.getElementById(p + '_profile') || {}).value || '').trim();
     return (window._studentDataList || []).filter(function (s) {
       if (!branchMatch(s.dept, branch)) return false;
+      if (profile && String(s.profile_status || '').toLowerCase() !== profile) return false;
       var st = String(s.academic_status || 'active').toLowerCase();
       if (statusF === 'active_like') {
         if (st === 'passed_out') return false;
@@ -9251,20 +9388,22 @@ setInterval(function () {
         ? ' <span class="badge" style="background:#fef3c7;color:#92400e;font-size:0.65rem;">Lateral</span>'
         : '';
       var lockIcon = s.profile_edit_locked ? ' 🔒' : ' 🔓';
+      var lockStampSd = s.profile_lock_stamp && window.gpthStamp
+        ? '<div style="margin-top:4px;">' + window.gpthStamp.html(s.profile_lock_stamp, 'profile access') + '</div>'
+        : '';
       var regAttrSd = s.reg_no ? sdEsc(String(s.reg_no)) : '';
       var nameAttrSd = sdEsc(String(s.name || s.reg_no || ''));
       var lockBtnSd = '';
       if (canLockPaint && s.reg_no) {
-        lockBtnSd = s.profile_edit_locked
-          ? '<button class="btn gr stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;" ' +
-            'data-stu-action="unlock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd +
-            '">🔓 Unlock</button>'
-          : '<button class="btn stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;background:#b45309;color:#fff;" ' +
-            'data-stu-action="lock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd +
-            '">🔒 Lock</button>';
+        lockBtnSd = '<button class="btn stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;background:#b45309;color:#fff;" ' +
+          'data-stu-action="lock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd + '"' +
+          (s.profile_edit_locked ? ' disabled title="Already locked"' : '') + '>🔒 Lock</button>' +
+          '<button class="btn gr stu-act-btn" type="button" style="padding:6px 10px;font-size:0.75rem;font-weight:700;" ' +
+          'data-stu-action="unlock" data-stu-reg="' + regAttrSd + '" data-stu-label="' + nameAttrSd + '"' +
+          (!s.profile_edit_locked ? ' disabled title="Already unlocked"' : '') + '>🔓 Unlock</button>';
       }
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + lockIcon + '</td>' +
+        '<td style="padding:10px 8px;font-family:JetBrains Mono,monospace;font-size:0.78rem;white-space:nowrap;">' + sdEsc(s.reg_no || '—') + lockIcon + lockStampSd + '</td>' +
         '<td style="padding:10px 8px;"><strong>' + sdEsc(s.name) + '</strong>' + latBadge + '</td>' +
         '<td style="padding:10px 8px;">' + sdEsc(s.father || '—') + '</td>' +
         '<td style="padding:10px 8px;font-size:0.82rem;">' + sdEsc(s.dept || '—') +
