@@ -35,6 +35,23 @@ export function isValidStudentRegNo(raw: string | null | undefined): boolean {
   return /^\d{3}[A-Z]{2,4}\d{5,6}$/.test(u)
 }
 
+/**
+ * Looser check for admin-initiated account creation (Root Admin only).
+ * Accepts any identifier an admin might type — including DTE eligibility
+ * numbers, lateral-entry numbers, or other non-college-format IDs — as
+ * long as it isn't an email and is a plausible-length alphanumeric code.
+ * The strict `isValidStudentRegNo` pattern stays for public self-registration,
+ * where input needs stricter guardrails.
+ */
+export function isValidAdminStudentRegNo(raw: string | null | undefined): boolean {
+  const original = String(raw || "").trim()
+  if (!original) return false
+  if (looksLikeEmail(original)) return false
+  if (/[^A-Za-z0-9]/.test(original)) return false
+  const u = normalizeStudentRegNo(original)
+  return u.length >= 5 && u.length <= 20
+}
+
 /** Synthetic unique email when students no longer supply an email on sign-up. */
 export function studentSyntheticEmail(regNo: string): string {
   const n = normalizeStudentRegNo(regNo).toLowerCase()

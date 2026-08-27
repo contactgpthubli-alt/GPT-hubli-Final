@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth"
 import { normalizeBranch } from "@/lib/branches"
 import { isOfficialBranch } from "@/lib/branches"
-import { isValidStudentRegNo, normalizeStudentRegNo, studentSyntheticEmail } from "@/lib/student-reg-no"
+import { isValidAdminStudentRegNo, normalizeStudentRegNo, studentSyntheticEmail } from "@/lib/student-reg-no"
 import { stampFromSession } from "@/lib/signature-stamp"
 import {
   canApproveTarget,
@@ -309,7 +309,7 @@ async function mutateUsers(req: Request) {
     let email = String(b.email || "").trim().toLowerCase()
     const branch = normalizeBranch(String(b.branch || "").trim()) || null
     if (role === "student") {
-      if (!isValidStudentRegNo(regNo)) return badRequest("Enter a valid student Register Number")
+      if (!isValidAdminStudentRegNo(regNo)) return badRequest("Enter a valid student Register Number")
       regNo = normalizeStudentRegNo(regNo)
       if (!branch || !isOfficialBranch(branch)) return badRequest("Select a valid student branch")
       email = studentSyntheticEmail(regNo)
