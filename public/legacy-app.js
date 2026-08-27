@@ -256,6 +256,87 @@ window.unlockDashboardShell = unlockDashboardShell;
   window.initSidebarGroups = initSidebarGroups;
 })();
 
+// ===== DARK THEME TOGGLE (CMS dashboards) =====
+// The [data-theme] attribute + localStorage key are shared with public/cms-boot.js
+// (first paint, no flash) and lib/theme.ts (React pages: login gate, student app).
+(function () {
+  var STORAGE_KEY = 'gpth_theme';
+
+  function getStored() {
+    try {
+      var v = localStorage.getItem(STORAGE_KEY);
+      return v === 'light' || v === 'dark' ? v : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function effectiveTheme() {
+    var stored = getStored();
+    if (stored) return stored;
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    } catch (e) { /* ignore */ }
+    return 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+
+  function updateButtons(theme) {
+    document.querySelectorAll('.theme-toggle-btn').forEach(function (btn) {
+      btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      btn.title = btn.getAttribute('aria-label');
+    });
+  }
+
+  function toggleTheme() {
+    var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch (e) { /* ignore */ }
+    updateButtons(next);
+  }
+
+  function makeButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-toggle-btn';
+    btn.setAttribute('aria-label', 'Toggle theme');
+    btn.addEventListener('click', toggleTheme);
+    return btn;
+  }
+
+  function ensureButtons() {
+    document.querySelectorAll('.db-topbar .db-user').forEach(function (host) {
+      if (host.querySelector('.theme-toggle-btn')) return;
+      var btn = makeButton();
+      var notif = host.querySelector('.notif-btn');
+      if (notif) host.insertBefore(btn, notif);
+      else host.insertBefore(btn, host.firstChild);
+    });
+    updateButtons(effectiveTheme());
+  }
+
+  function init() {
+    applyTheme(effectiveTheme());
+    // .db-topbar/.db-user exist per-role in the static dashboard HTML (same as
+    // .notif-btn), so a couple of staggered passes covers hydration timing
+    // without an always-on MutationObserver fighting bridge.js's own DOM churn.
+    ensureButtons();
+    setTimeout(ensureButtons, 300);
+    setTimeout(ensureButtons, 1500);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  window.toggleGpthTheme = toggleTheme;
+})();
+
 // ===== LOGIN =====
 // NEVER open a dashboard from this function alone — bridge must set currentUser first.
 // Kept for openDashboardFor(bypass) after a verified server session only.

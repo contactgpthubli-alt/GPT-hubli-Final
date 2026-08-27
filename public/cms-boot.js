@@ -4,6 +4,16 @@
  */
 (function () {
   try {
+    var t = localStorage.getItem("gpth_theme");
+    if (t !== "light" && t !== "dark") {
+      t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {
+    /* ignore */
+  }
+
+  try {
     document.documentElement.classList.add("cms-login-mode");
     if (document.body) document.body.classList.add("cms-login-mode");
     else {

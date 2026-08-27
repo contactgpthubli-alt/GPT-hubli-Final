@@ -1,6 +1,6 @@
 {
-  "version": "1.6.2",
+  "version": "1.7.0",
   "minShell": "1.5.1",
   "recommendedShell": "1.6.0",
-  "message": "Update available: if Exam Cell rejects a wrong fee challan, Fees shows what is wrong so you can resubmit. Use More → Update / refresh app."
+  "message": "Update available: dark mode (tap the moon icon) plus a smoother, more polished mobile experience. Use More → Update / refresh app."
 }

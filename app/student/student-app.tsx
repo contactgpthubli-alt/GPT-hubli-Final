@@ -20,6 +20,7 @@ import {
   showNativeNotification,
 } from "@/lib/native-android"
 import { isValidStudentRegNo, normalizeStudentRegNo } from "@/lib/student-reg-no"
+import { type ThemePref, getEffectiveTheme, initTheme, setTheme } from "@/lib/theme"
 import { StudentFeesPanel } from "./student-fees-panel"
 import "./student.css"
 
@@ -452,6 +453,17 @@ const IDLE_TOUCH_THROTTLE_MS = 60 * 1000
 export default function StudentApp() {
   const [booting, setBooting] = useState(true)
   const [user, setUser] = useState<User | null>(null)
+  const [theme, setThemeState] = useState<ThemePref>("light")
+
+  useEffect(() => {
+    setThemeState(initTheme())
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    const next: ThemePref = getEffectiveTheme() === "dark" ? "light" : "dark"
+    setTheme(next)
+    setThemeState(next)
+  }, [])
   const idleLastActivityRef = useRef(Date.now())
   const idleLastTouchRef = useRef(0)
   const idleLogoutLockRef = useRef(false)
@@ -2178,6 +2190,15 @@ export default function StudentApp() {
                     : ""}
           </div>
         </div>
+        <button
+          type="button"
+          className="stu-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
         <div className="stu-avatar" title={user.email}>
           {profilePhoto ? (
             // eslint-disable-next-line @next/next/no-img-element

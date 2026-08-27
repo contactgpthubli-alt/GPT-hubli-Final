@@ -1,14 +1,26 @@
 "use client"
 
-import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Loader2, Moon, Sun } from "lucide-react"
 import styles from "./cms-login-gate.module.css"
+import { type ThemePref, getEffectiveTheme, initTheme, setTheme } from "@/lib/theme"
 
 export default function CmsLoginGate() {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  const [theme, setThemeState] = useState<ThemePref>("light")
+
+  useEffect(() => {
+    setThemeState(initTheme())
+  }, [])
+
+  function toggleTheme() {
+    const next: ThemePref = getEffectiveTheme() === "dark" ? "light" : "dark"
+    setTheme(next)
+    setThemeState(next)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,6 +61,15 @@ export default function CmsLoginGate() {
 
   return (
     <div className={styles.page}>
+      <button
+        type="button"
+        className={styles.themeToggle}
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      >
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
       <div className={styles.bg} aria-hidden="true">
         <img
           className={styles.bgImg}

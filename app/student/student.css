@@ -1,6 +1,7 @@
 /* GPT Hubli — Student mobile app */
 :root {
   --stu-navy: #0f2d5c;
+  --stu-navy-fixed: #0f2d5c;
   --stu-blue: #1a4fa0;
   --stu-blue-soft: #e8f0fe;
   --stu-accent: #0d9488;
@@ -12,10 +13,75 @@
   --stu-danger: #b91c1c;
   --stu-ok: #047857;
   --stu-warn: #b45309;
+  --stu-danger-bg: #fef2f2;
+  --stu-danger-border: #fecaca;
+  --stu-danger-bg-strong: #fee2e2;
+  --stu-ok-bg: #ecfdf5;
+  --stu-ok-border: #a7f3d0;
+  --stu-warn-bg: #fef3c7;
+  --stu-info: #1e40af;
+  --stu-info-bg: #eff6ff;
+  --stu-info-border: #bfdbfe;
+  --stu-input-bg: #f8fafc;
   --stu-radius: 16px;
   --stu-nav-h: 64px;
   --stu-safe-b: env(safe-area-inset-bottom, 0px);
   --stu-safe-t: env(safe-area-inset-top, 0px);
+  color-scheme: light;
+}
+
+/* Dark theme — same [data-theme] contract as legacy.css, shared via lib/theme.ts */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --stu-navy: #dbe4f5;
+    --stu-blue: #5b8fe0;
+    --stu-blue-soft: rgba(91, 143, 224, 0.16);
+    --stu-accent: #35c2b5;
+    --stu-bg: #0b1220;
+    --stu-card: #16223a;
+    --stu-text: #e6ecf7;
+    --stu-muted: #93a2c0;
+    --stu-border: #2a3a58;
+    --stu-danger: #f2695e;
+    --stu-ok: #3ecf83;
+    --stu-warn: #f0954a;
+    --stu-danger-bg: rgba(242, 105, 94, 0.14);
+    --stu-danger-border: rgba(242, 105, 94, 0.35);
+    --stu-danger-bg-strong: rgba(242, 105, 94, 0.22);
+    --stu-ok-bg: rgba(62, 207, 131, 0.14);
+    --stu-ok-border: rgba(62, 207, 131, 0.35);
+    --stu-warn-bg: rgba(240, 149, 74, 0.16);
+    --stu-info: #9db8f0;
+    --stu-info-bg: rgba(91, 143, 224, 0.14);
+    --stu-info-border: rgba(91, 143, 224, 0.32);
+    --stu-input-bg: #101a2e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --stu-navy: #dbe4f5;
+  --stu-blue: #5b8fe0;
+  --stu-blue-soft: rgba(91, 143, 224, 0.16);
+  --stu-accent: #35c2b5;
+  --stu-bg: #0b1220;
+  --stu-card: #16223a;
+  --stu-text: #e6ecf7;
+  --stu-muted: #93a2c0;
+  --stu-border: #2a3a58;
+  --stu-danger: #f2695e;
+  --stu-ok: #3ecf83;
+  --stu-warn: #f0954a;
+  --stu-danger-bg: rgba(242, 105, 94, 0.14);
+  --stu-danger-border: rgba(242, 105, 94, 0.35);
+  --stu-danger-bg-strong: rgba(242, 105, 94, 0.22);
+  --stu-ok-bg: rgba(62, 207, 131, 0.14);
+  --stu-ok-border: rgba(62, 207, 131, 0.35);
+  --stu-warn-bg: rgba(240, 149, 74, 0.16);
+  --stu-info: #9db8f0;
+  --stu-info-bg: rgba(91, 143, 224, 0.14);
+  --stu-info-border: rgba(91, 143, 224, 0.32);
+  --stu-input-bg: #101a2e;
+  color-scheme: dark;
 }
 
 .stu-app {
@@ -110,7 +176,7 @@
 }
 
 .stu-auth-card {
-  background: #fff;
+  background: var(--stu-card);
   color: var(--stu-text);
   border-radius: 20px;
   padding: 22px 18px 20px;
@@ -151,7 +217,7 @@
   border: 1.5px solid var(--stu-border);
   border-radius: 12px;
   padding: 12px 14px;
-  background: #f8fafc;
+  background: var(--stu-input-bg);
   color: var(--stu-text);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -162,7 +228,7 @@
 .stu-field textarea:focus {
   border-color: var(--stu-blue);
   box-shadow: 0 0 0 3px rgba(26, 79, 160, 0.15);
-  background: #fff;
+  background: var(--stu-card);
 }
 
 .stu-btn {
@@ -210,13 +276,13 @@
 }
 
 .stu-btn-danger {
-  background: #fef2f2;
+  background: var(--stu-danger-bg);
   color: var(--stu-danger);
-  border: 1.5px solid #fecaca;
+  border: 1.5px solid var(--stu-danger-border);
 }
 
 .stu-btn-danger:hover:not(:disabled) {
-  background: #fee2e2;
+  background: var(--stu-danger-bg-strong);
   border-color: var(--stu-danger);
 }
 
@@ -229,21 +295,21 @@
 }
 
 .stu-msg-err {
-  background: #fef2f2;
+  background: var(--stu-danger-bg);
   color: var(--stu-danger);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--stu-danger-border);
 }
 
 .stu-msg-ok {
-  background: #ecfdf5;
+  background: var(--stu-ok-bg);
   color: var(--stu-ok);
-  border: 1px solid #a7f3d0;
+  border: 1px solid var(--stu-ok-border);
 }
 
 .stu-msg-info {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background: var(--stu-info-bg);
+  color: var(--stu-info);
+  border: 1px solid var(--stu-info-border);
 }
 
 .stu-auth-foot {
@@ -263,7 +329,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: linear-gradient(135deg, var(--stu-navy), var(--stu-blue));
+  background: linear-gradient(135deg, var(--stu-navy-fixed), #1a4fa0);
   color: #fff;
   padding: calc(10px + var(--stu-safe-t)) 16px 12px;
   display: flex;
@@ -297,6 +363,31 @@
   font-size: 0.9rem;
   flex-shrink: 0;
   overflow: hidden;
+}
+
+.stu-theme-toggle {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.stu-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.stu-theme-toggle:active {
+  transform: scale(0.92);
 }
 
 .stu-avatar img {
@@ -338,12 +429,12 @@
 }
 
 .stu-alert-ready {
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  border: 1px solid #6ee7b7;
+  background: var(--stu-ok-bg);
+  border: 1px solid var(--stu-ok-border);
   border-radius: var(--stu-radius);
   padding: 12px 14px;
   margin-bottom: 12px;
-  color: #065f46;
+  color: var(--stu-ok);
 }
 
 .stu-alert-ready h3 {
@@ -474,23 +565,23 @@
 }
 
 .stu-badge-ok {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--stu-ok-bg);
+  color: var(--stu-ok);
 }
 
 .stu-badge-warn {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--stu-warn-bg);
+  color: var(--stu-warn);
 }
 
 .stu-badge-info {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--stu-info-bg);
+  color: var(--stu-info);
 }
 
 .stu-badge-err {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--stu-danger-bg-strong);
+  color: var(--stu-danger);
 }
 
 .stu-empty {
@@ -557,7 +648,7 @@
   z-index: 30;
   height: calc(var(--stu-nav-h) + var(--stu-safe-b));
   padding-bottom: var(--stu-safe-b);
-  background: #fff;
+  background: var(--stu-card);
   border-top: 1px solid var(--stu-border);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -615,7 +706,7 @@
 
 .stu-quick button {
   border: 1px solid var(--stu-border);
-  background: #fff;
+  background: var(--stu-card);
   border-radius: 14px;
   padding: 14px 12px;
   text-align: left;
@@ -661,7 +752,7 @@
 }
 
 .stu-sec-card {
-  background: #f8fafc;
+  background: var(--stu-input-bg);
   border: 1px solid var(--stu-border);
   border-radius: 14px;
   padding: 12px;
@@ -721,7 +812,7 @@
 
 .stu-chip {
   border: 1.5px solid var(--stu-border);
-  background: #fff;
+  background: var(--stu-card);
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -752,7 +843,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  background: #f1f5f9;
+  background: var(--stu-input-bg);
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 16px;
@@ -770,7 +861,7 @@
 }
 
 .stu-auth-tabs button.act {
-  background: #fff;
+  background: var(--stu-card);
   color: var(--stu-navy);
   box-shadow: 0 1px 4px rgba(15, 45, 92, 0.12);
 }
@@ -797,7 +888,7 @@
 
 .stu-modal {
   width: min(420px, 100%);
-  background: #fff;
+  background: var(--stu-card);
   border-radius: 20px;
   padding: 20px 18px 18px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);

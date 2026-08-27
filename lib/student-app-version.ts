@@ -8,7 +8,7 @@
  * without reinstalling the APK.
  */
 
-export const STUDENT_APP_VERSION = "1.6.2"
+export const STUDENT_APP_VERSION = "1.7.0"
 
 export type StudentAppUpdate = {
   version: string
@@ -19,6 +19,16 @@ export type StudentAppUpdate = {
 
 /** Newest first. Only the current version is auto-shown; full list is in More. */
 export const STUDENT_APP_CHANGELOG: StudentAppUpdate[] = [
+  {
+    version: "1.7.0",
+    date: "2026-08-27",
+    title: "Dark mode + smoother mobile app",
+    items: [
+      "New dark theme — tap the moon/sun icon at the top of the app to switch anytime.",
+      "Follows your phone's system theme automatically until you choose one yourself.",
+      "Mobile screens, forms, and buttons polished for phones and the Android app.",
+    ],
+  },
   {
     version: "1.6.2",
     date: "2026-08-19",
