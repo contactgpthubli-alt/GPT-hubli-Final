@@ -3237,7 +3237,6 @@ function __initGptBridge() {
     stopIdleWatch();
     clearAcmAdminScope();
     try { clearExamAdminScope(); } catch (e) { /* ignore */ }
-    api.post('/api/auth/logout').catch(function () { /* ignore */ });
     setCurrentUser(null);
     // Always drop sticky "VIEWING AS …" chip after logout
     try {
@@ -3250,15 +3249,15 @@ function __initGptBridge() {
     window.__allowDashboardOpen = false;
     if (typeof window.lockAllDashboards === 'function') window.lockAllDashboards();
     try { origLogout(); } catch (e2) { /* ignore */ }
-    // Return to private CMS login (not the old public homepage)
-    if (typeof window.showCmsLoginGate === 'function') window.showCmsLoginGate();
-    try {
-      var url = new URL(window.location.href);
-      ;['section', 'ap_branch', 'ap_year', 'ap_adm_year', 'ap_q', 'ap_type'].forEach(function (k) {
-        url.searchParams.delete(k);
-      });
-      window.history.replaceState({}, '', url.pathname + (url.search || ''));
-    } catch (e3) { /* ignore */ }
+    // Destroy the server session, then do a REAL navigation back to "/" —
+    // not showCmsLoginGate() in place. This page only has the old legacy
+    // login gate built in because it was rendered for an authenticated
+    // session; a fresh "/" request re-checks auth server-side and renders
+    // the fast React login page instead. Navigate either way so logout
+    // never gets stuck if the API call fails.
+    api.post('/api/auth/logout').catch(function () { /* ignore */ }).finally(function () {
+      window.location.assign('/');
+    });
   };
 
   /* ---------- Idle auto-logout (20 minutes without user activity) ---------- */
@@ -9421,9 +9420,14 @@ setInterval(function () {
     }).join('');
   }
 
+  var _filterStudentDataListTimer = null;
   window.filterStudentDataList = function () {
-    // Only paint the visible panel (painting all three froze UI on large lists)
-    paintTable(activePrefix());
+    // Only paint the visible panel (painting all three froze UI on large lists).
+    // Debounced so typing doesn't trigger a full table repaint per keystroke.
+    clearTimeout(_filterStudentDataListTimer);
+    _filterStudentDataListTimer = setTimeout(function () {
+      paintTable(activePrefix());
+    }, 180);
   };
 
   window.renderStudentDataBrowser = async function (secId) {

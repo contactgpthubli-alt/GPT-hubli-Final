@@ -26,6 +26,8 @@ next-env.d.ts
 scripts/data/
 tmp-adstudents.json
 *.xlsx
+tmp-c20/
+tmp-c25/
 
 # Student Android packaging (local SDK / builds / APKs)
 mobile/node_modules/

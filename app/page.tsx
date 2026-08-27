@@ -2,6 +2,8 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { legacyBodyHtml } from '@/lib/legacy-body'
+import { getCurrentUser } from '@/lib/auth'
+import CmsLoginGate from './cms-login-gate'
 
 export const metadata: Metadata = {
   title: 'Government Polytechnic Hubli — Management System',
@@ -20,7 +22,7 @@ export const viewport: Viewport = {
   userScalable: false,
 }
 
-export default function Page() {
+function LegacyCmsPage() {
   return (
     <>
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: legacyBodyHtml }} />
@@ -31,8 +33,27 @@ export default function Page() {
           __html: `window.__GPT_CONFIG = { demoLoginEnabled: ${process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true'} };`,
         }}
       />
-      <Script src="/legacy-app.js?v=20260813gradeCplus" strategy="afterInteractive" />
-      <Script src="/legacy-bridge.js?v=20260813gradeCplus" strategy="afterInteractive" />
+      <Script src="/legacy-app.js?v=20260827hodfix" strategy="afterInteractive" />
+      <Script src="/legacy-bridge.js?v=20260827hodfix" strategy="afterInteractive" />
     </>
   )
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams
+  const forceLegacy = params?.legacy === '1'
+  const user = await getCurrentUser()
+
+  // Logged in, or explicitly asked for the legacy path (e.g. registration modal,
+  // which still lives inside the legacy bridge) — unchanged behaviour.
+  if (user || forceLegacy) {
+    return <LegacyCmsPage />
+  }
+
+  // Fast path: real React login screen, no legacy blob / legacy-app.js / legacy-bridge.js.
+  return <CmsLoginGate />
 }

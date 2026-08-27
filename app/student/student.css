@@ -177,10 +177,10 @@
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: transform 0.08s, opacity 0.15s;
+  transition: transform 0.08s, opacity 0.15s, filter 0.15s, background-color 0.15s, border-color 0.15s;
 }
 
-.stu-btn:active {
+.stu-btn:active:not(:disabled) {
   transform: scale(0.98);
 }
 
@@ -194,16 +194,30 @@
   color: #fff;
 }
 
+.stu-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
 .stu-btn-ghost {
   background: transparent;
   color: var(--stu-blue);
   border: 1.5px solid var(--stu-border);
 }
 
+.stu-btn-ghost:hover:not(:disabled) {
+  background: rgba(26, 79, 160, 0.06);
+  border-color: var(--stu-blue);
+}
+
 .stu-btn-danger {
   background: #fef2f2;
   color: var(--stu-danger);
   border: 1.5px solid #fecaca;
+}
+
+.stu-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: var(--stu-danger);
 }
 
 .stu-msg {

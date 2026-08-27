@@ -60,6 +60,202 @@ window.isAuthenticatedPortal = isAuthenticatedPortal;
 window.lockAllDashboards = lockAllDashboards;
 window.unlockDashboardShell = unlockDashboardShell;
 
+// ===== SIDEBAR COLLAPSIBLE GROUPS =====
+// Sidebar menus (.sb-menu) are a flat list of ".sb-sec" section headers followed
+// by ".sl" nav-item siblings — including items legacy-bridge.js injects later at
+// runtime. Group boundaries are computed live off the current DOM on every click
+// (not cached), so newly-injected items are picked up automatically with zero
+// extra wiring. Never mutates lib/legacy-body.ts or showSec().
+(function () {
+  var SB_STATE_KEY = 'sb_group_state';
+
+  function loadSbState() {
+    try { return JSON.parse(localStorage.getItem(SB_STATE_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveSbState(state) {
+    try { localStorage.setItem(SB_STATE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+  function sbGroupKey(sbId, label) { return sbId + '::' + label; }
+
+  function isLogoutItem(el) {
+    var oc = (el.getAttribute('onclick') || '').replace(/\s+/g, '');
+    return oc === 'logout()';
+  }
+
+  // Walk live siblings from a .sb-sec header until the next .sb-sec (or a
+  // non-.sl element, as a safety stop) — never assumes a cached/static list.
+  function collectGroupItems(secEl) {
+    var items = [];
+    var node = secEl.nextElementSibling;
+    while (node) {
+      if (node.classList && node.classList.contains('sb-sec')) break;
+      if (!node.classList || !node.classList.contains('sl')) break;
+      items.push(node);
+      node = node.nextElementSibling;
+    }
+    return items;
+  }
+
+  function isDisplayed(el) {
+    return !!el && getComputedStyle(el).display !== 'none';
+  }
+
+  function setGroupCollapsed(secEl, collapsed) {
+    // Some roles (e.g. HOD) hide a .sb-sec header entirely via pre-existing
+    // role logic while deliberately leaving a few of its items visible and
+    // unlabeled. If the header itself isn't shown, there is no chevron for
+    // the user to click and recover the group — never collapse in that case.
+    var effectiveCollapsed = collapsed && isDisplayed(secEl);
+    collectGroupItems(secEl).forEach(function (item) {
+      if (isLogoutItem(item)) return; // Logout must never be hideable via group collapse
+      item.classList.toggle('sl-collapsed', effectiveCollapsed);
+    });
+    secEl.classList.toggle('collapsed', effectiveCollapsed);
+    secEl.setAttribute('aria-expanded', effectiveCollapsed ? 'false' : 'true');
+  }
+
+  // Find the .sb-sec header a given .sl item currently sits under (walks back
+  // to the nearest preceding .sb-sec sibling — same live-DOM approach as everywhere else).
+  function findOwningSec(el) {
+    var node = el.previousElementSibling;
+    while (node) {
+      if (node.classList && node.classList.contains('sb-sec')) return node;
+      node = node.previousElementSibling;
+    }
+    return null;
+  }
+
+  function wireSec(secEl, sbId, i) {
+    if (secEl.dataset.sbInit === '1') return;
+    var state = loadSbState();
+    var label = (secEl.textContent || '').trim();
+    secEl.dataset.sbInit = '1';
+    secEl.setAttribute('role', 'button');
+    secEl.setAttribute('tabindex', '0');
+    var chev = document.createElement('span');
+    chev.className = 'sb-chev';
+    chev.textContent = '▾';
+    chev.setAttribute('aria-hidden', 'true');
+    secEl.appendChild(chev);
+
+    var key = sbGroupKey(sbId, label);
+    var saved = state[key];
+    // First group open by default on a fresh browser; rest start collapsed
+    // (this is the actual "sidebar too tall" fix). A saved preference wins.
+    var collapsed = typeof saved === 'boolean' ? saved : i !== 0;
+    setGroupCollapsed(secEl, collapsed);
+
+    secEl.addEventListener('click', function () { toggleSbGroup(secEl, sbId, key); });
+    secEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleSbGroup(secEl, sbId, key);
+      }
+    });
+  }
+
+  function initSidebarGroups() {
+    document.querySelectorAll('.sb').forEach(function (sb, sbIdx) {
+      var dbEl = sb.closest('.db');
+      var sbId = (dbEl && dbEl.id) || ('sb' + sbIdx);
+      var menu = sb.querySelector('.sb-menu');
+      if (!menu) return;
+
+      menu.querySelectorAll(':scope > .sb-sec').forEach(function (secEl, i) {
+        wireSec(secEl, sbId, i);
+      });
+
+      if (menu.dataset.sbObserve) return;
+      menu.dataset.sbObserve = '1';
+
+      // legacy-bridge.js injects more .sl items (and occasionally .sb-sec headers)
+      // into this same flat list well after this initial pass runs (e.g. once
+      // session/role data loads) — and separate role-scoping code (e.g. HOD
+      // filtering) can show/hide a .sb-sec header itself via style.display at
+      // any point too. One observer covers four things, computed live off the
+      // DOM rather than cached, so it never goes stale:
+      //  1. a brand-new .sl inherits whatever collapsed state its group is in now
+      //  2. a brand-new .sb-sec gets wired up the same as the static ones
+      //  3. navigating (.act moving to a new item) force-expands its group
+      //  4. a .sb-sec header's visibility changing re-evaluates its collapse
+      //     state — if the header just got hidden, its items are forced back
+      //     visible (no collapsed group may ever exist with no way to reopen it)
+      new MutationObserver(function (mutations) {
+        var justActivated = false;
+        var secsToReevaluate = [];
+        mutations.forEach(function (m) {
+          if (m.type === 'childList') {
+            m.addedNodes.forEach(function (node) {
+              if (!node.classList) return;
+              if (node.classList.contains('sb-sec')) {
+                wireSec(node, sbId, Array.prototype.indexOf.call(menu.children, node));
+                return;
+              }
+              if (!node.classList.contains('sl') || isLogoutItem(node)) return;
+              var owner = findOwningSec(node);
+              if (owner && owner.classList.contains('collapsed')) {
+                node.classList.add('sl-collapsed');
+              }
+            });
+          } else if (m.type === 'attributes') {
+            if (!m.target.classList) return;
+            if (m.attributeName === 'style' && m.target.classList.contains('sb-sec')) {
+              secsToReevaluate.push(m.target);
+              return;
+            }
+            if (!m.target.classList.contains('sl')) return;
+            var hadAct = (m.oldValue || '').split(/\s+/).indexOf('act') !== -1;
+            if (m.target.classList.contains('act') && !hadAct) justActivated = true;
+          }
+        });
+        secsToReevaluate.forEach(function (secEl) {
+          var label = (secEl.textContent || '').trim();
+          var saved = loadSbState()[sbGroupKey(sbId, label)];
+          setGroupCollapsed(secEl, !!saved);
+        });
+        if (justActivated) ensureActiveGroupVisible(menu, sbId);
+      }).observe(menu, {
+        attributes: true, attributeFilter: ['class', 'style'], attributeOldValue: true,
+        childList: true, subtree: true,
+      });
+      ensureActiveGroupVisible(menu, sbId);
+    });
+  }
+
+  function toggleSbGroup(secEl, sbId, key) {
+    var next = !secEl.classList.contains('collapsed');
+    setGroupCollapsed(secEl, next);
+    var st = loadSbState();
+    st[key] = next;
+    saveSbState(st);
+  }
+
+  function ensureActiveGroupVisible(menu, sbId) {
+    var act = menu.querySelector('.sl.act');
+    if (!act) return;
+    var sec = null;
+    var node = act.previousElementSibling;
+    while (node) {
+      if (node.classList && node.classList.contains('sb-sec')) { sec = node; break; }
+      node = node.previousElementSibling;
+    }
+    if (sec && sec.classList.contains('collapsed')) {
+      var label = (sec.textContent || '').trim();
+      setGroupCollapsed(sec, false);
+      var st = loadSbState();
+      st[sbGroupKey(sbId, label)] = false;
+      saveSbState(st);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebarGroups);
+  } else {
+    initSidebarGroups();
+  }
+  window.initSidebarGroups = initSidebarGroups;
+})();
+
 // ===== LOGIN =====
 // NEVER open a dashboard from this function alone — bridge must set currentUser first.
 // Kept for openDashboardFor(bypass) after a verified server session only.
