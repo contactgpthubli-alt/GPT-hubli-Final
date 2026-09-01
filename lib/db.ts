@@ -34,10 +34,17 @@ function createPool(): Pool {
     /neon\.postgres\.azure\.com/.test(connectionString) ||
     /supabase\.(co|com)/.test(connectionString)
 
+  // Pooled connections (Neon's "-pooler" endpoint, Supabase's pgbouncer) sit
+  // in front of a shared, often low, backend connection cap (e.g. Supabase's
+  // free-tier session pooler allows only 15 total). Each serverless function
+  // instance gets its own Pool here, so keep it small per instance rather
+  // than risk exhausting that shared cap under concurrent traffic.
+  const isPooled = /-pooler\./.test(connectionString) || /pooler\.supabase\.com/.test(connectionString)
+
   return new Pool({
     connectionString,
     ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-    max: 10,
+    max: isPooled ? 3 : 10,
   })
 }
 

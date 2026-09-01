@@ -22,6 +22,9 @@ next-env.d.ts
 .vercel
 .env*
 
+# Local Postgres backup of production DB (contains real student/exam data + creds)
+/local-db-backup/
+
 # Local import data / PII (do not commit)
 scripts/data/
 tmp-adstudents.json
