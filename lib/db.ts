@@ -31,7 +31,8 @@ function createPool(): Pool {
   const needsSsl =
     /sslmode=(require|verify-full|verify-ca|prefer)/.test(connectionString) ||
     /neon\.tech/.test(connectionString) ||
-    /neon\.postgres\.azure\.com/.test(connectionString)
+    /neon\.postgres\.azure\.com/.test(connectionString) ||
+    /supabase\.(co|com)/.test(connectionString)
 
   return new Pool({
     connectionString,
